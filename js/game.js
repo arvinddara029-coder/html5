@@ -13,6 +13,7 @@
     timeScale: 1, slowT: 0, hitStopT: 0,
     cam: { x: 0, y: 0, sx: 0, sy: 0, trauma: 0 },
     waveDamageTaken: false, clearT: 0, startT: 0, deathT: 0, overShown: false,
+    corpses: [],
   });
 
   G.comboWindow = () => 4.2 + (G.player.furyBonus || 0);
@@ -23,7 +24,7 @@
     G.state = "menu";
     I.reset();
     G.enemies.length = 0; G.bolts.length = 0; G.shots.length = 0; G.shockwaves.length = 0;
-    G.pickups.length = 0; G.spawnQueue.length = 0;
+    G.pickups.length = 0; G.spawnQueue.length = 0; G.corpses.length = 0;
     F.reset();
     NR.ui.show("menu");
     NR.ui.refreshHigh();
@@ -48,12 +49,12 @@
     G.runName = NR.profile.name;
     G.chronoT = 0; G.finished = false;
     G.enemies.length = 0; G.bolts.length = 0; G.shots.length = 0; G.shockwaves.length = 0;
-    G.pickups.length = 0; G.spawnQueue.length = 0; F.reset();
+    G.pickups.length = 0; G.spawnQueue.length = 0; G.corpses.length = 0; F.reset();
     G.score = 0; G.combo = 0; G.comboT = 0; G.time = 0; G.wave = 0;
     G.stats = { kills: 0, maxCombo: 0, storms: 0, parries: 0, kunaiHits: 0, salvaged: 0 };
     G.bossActive = false; G.bossRef = null;
     G.timeScale = 1; G.slowT = 0; G.hitStopT = 0;
-    G.overShown = false; G.deathT = 0; G.upgradeT = 0; G.clearT = 0;
+    G.overShown = false; G.deathT = 0; G.upgradeT = 0; G.clearT = 0; G.rewarded = false; G.lastReward = null;
     G.cam.trauma = 0; G.cam.sx = 0; G.cam.sy = 0;
     G.state = "playing";
     NR.ui.hideAll();
@@ -78,12 +79,15 @@
 
   /* ================= waves ================= */
   function waveComp(n) {
-    if (n % 5 === 0) return { boss: true, crawlers: Math.min(2 + Math.floor(n / 5), 5), drones: 0, wraiths: 0 };
+    if (n % 5 === 0)
+      return { boss: true, crawlers: Math.min(2 + Math.floor(n / 5), 5), drones: 0, wraiths: 0, slimes: 0, soldiers: 0 };
     return {
       boss: false,
-      crawlers: Math.min(3 + n, 9),
+      crawlers: Math.max(1, Math.min(2 + n, 7)),
       drones: n >= 2 ? Math.min(1 + Math.floor(n / 2.5), 5) : 0,
       wraiths: n >= 3 ? Math.min(Math.floor((n - 1) / 2), 4) : 0,
+      slimes: n >= 2 ? Math.min(1 + Math.floor(n / 3), 4) : 0,
+      soldiers: n >= 3 ? Math.min(Math.floor(n / 3), 3) : 0,
     };
   }
 
@@ -97,7 +101,9 @@
     let delay = 0.4;
     const q = G.spawnQueue;
     for (let i = 0; i < comp.crawlers; i++) q.push({ type: "crawler", t: (delay += U.rand(0.4, 0.8)) });
+    for (let i = 0; i < comp.slimes; i++) q.push({ type: "slime", t: (delay += U.rand(0.4, 0.9)) });
     for (let i = 0; i < comp.drones; i++) q.push({ type: "drone", t: (delay += U.rand(0.3, 0.7)) });
+    for (let i = 0; i < comp.soldiers; i++) q.push({ type: "soldier", t: (delay += U.rand(0.5, 1)) });
     for (let i = 0; i < comp.wraiths; i++) q.push({ type: "wraith", t: (delay += U.rand(0.4, 0.8)) });
     if(n>=3 && !comp.boss) q.push({type:"sentry",t:(delay+=.8)});
     if(n>=4 && !comp.boss) q.push({type:"sentinel",t:(delay+=.8)});
@@ -129,12 +135,17 @@
       e = new NR.Crawler(x, W.groundY, mul);
     } else if (type === "drone") {
       e = new NR.Drone(U.clamp(px + side * U.rand(380, 640), 120, W.W - 120), U.rand(220, 420), mul);
+    } else if (type === "slime") {
+      e = new NR.Slime(U.clamp(px + side * U.rand(220, 520), 80, W.W - 80), W.groundY, mul);
+    } else if (type === "soldier") {
+      e = new NR.Soldier(U.clamp(px + side * U.rand(320, 560), 80, W.W - 80), W.groundY, mul);
     } else if(type === "sentry" || type === "sentinel") {
       e = new (type === "sentry" ? NR.Sentry : NR.Sentinel)(U.clamp(px+side*500,100,W.W-100),W.groundY,mul);
     } else {
       e = new NR.Wraith(U.clamp(px + side * U.rand(300, 500), 100, W.W - 100), W.groundY - 200, mul);
     }
-    F.teleport(e.x, e.y - e.h / 2, type === "crawler" ? "red" : type === "drone" ? "cyan" : "purple");
+    F.teleport(e.x, e.y - e.h / 2,
+      type === "crawler" ? "red" : type === "drone" ? "cyan" : type === "slime" ? "blue" : type === "soldier" ? "orange" : "purple");
     G.enemies.push(e);
   }
 
@@ -362,6 +373,7 @@
       }
       if (e.dead) G.enemies.splice(i, 1);
     }
+    NR.spriteRender.updateCorpses(G, dt);
     for (let i = G.bolts.length - 1; i >= 0; i--) { G.bolts[i].update(dt * (G.chronoT>0?.35:1), G); if (G.bolts[i].dead) G.bolts.splice(i, 1); }
     for(let i=G.shots.length-1;i>=0;i--){G.shots[i].update(dt,G);if(G.shots[i].dead)G.shots.splice(i,1);}
     for (let i = G.shockwaves.length - 1; i >= 0; i--) { G.shockwaves[i].update(dt, G); if (G.shockwaves[i].dead) G.shockwaves.splice(i, 1); }
@@ -399,6 +411,19 @@
     G.finished=true;G.state=victory?'victory':'over';
     const newHigh = G.score > G.high;
     if (newHigh) { G.high = G.score; NR.store.setItem('nr_high', String(G.high)); }
+    // Skyward progression: coins + XP for every run, gems for milestones
+    if (!G.rewarded) {
+      G.rewarded = true;
+      const reward = NR.economy.awardRun({
+        score: G.score, kills: G.stats.kills, wave: G.mode === "survival" ? G.wave : G.chapter + 1,
+      });
+      let gems = 0;
+      if (G.mode === "survival" && G.wave >= 5) gems += Math.floor(G.wave / 5) * 5;
+      if (G.mode === "adventure" && G.finished) gems += 25;
+      if (gems > 0) NR.economy.addGems(gems);
+      G.lastReward = { ...reward, gems };
+      NR.progress.check(G);
+    }
     if(G.mode==='survival')NR.profile.bestWave=Math.max(NR.profile.bestWave||0,G.wave);
     NR.profile.runs++;NR.saveProfile();NR.progress.record(G,victory);
     if(victory)NR.expeditionUI.showVictory(G);

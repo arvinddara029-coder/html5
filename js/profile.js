@@ -46,10 +46,44 @@
       totalKills: 0,
       musicVolume: 0.5,
       sfxVolume: 0.7,
+      /* ---- Skyward progression & appearance ---- */
+      level: 1,
+      xp: 0,
+      coins: 500,
+      gems: 10,
+      pet: "",
+      owned: {},
+      appearance: {
+        skin: "Male Skin1", monster: "", hair: "Male Hair10", ears: "",
+        top: "mShirt", bottom: "mPants", underwear: "mUnderwear", shoes: "mBoots",
+        gloves: "mGloves", hat: "", mask: "", back: "", weapon: "mWooden Sword", aura: "",
+      },
     },
     saved && typeof saved === "object" ? saved : {},
   );
   const P = NR.profile;
+  /* sanitize appearance: every key must reference a real catalog entry */
+  const DEFAULT_LOOK = {
+    skin: "Male Skin1", monster: "", hair: "Male Hair10", ears: "",
+    top: "mShirt", bottom: "mPants", underwear: "mUnderwear", shoes: "mBoots",
+    gloves: "mGloves", hat: "", mask: "", back: "", weapon: "mWooden Sword", aura: "",
+  };
+  if (!P.appearance || typeof P.appearance !== "object") P.appearance = { ...DEFAULT_LOOK };
+  for (const key of Object.keys(DEFAULT_LOOK)) {
+    const v = P.appearance[key];
+    const valid = !v || (NR.catalog && NR.catalog[key] && NR.catalog[key].some((o) => o.id === v));
+    if (!valid) P.appearance[key] = DEFAULT_LOOK[key];
+  }
+  const DEFAULTS = { level: 1, xp: 0, coins: 500, gems: 10 };
+  for (const key of Object.keys(DEFAULTS)) {
+    const n = P[key];
+    P[key] = typeof n === "number" && Number.isFinite(n)
+      ? Math.max(0, Math.min(key === "level" ? 99 : 99999999, Math.floor(n)))
+      : DEFAULTS[key];
+  }
+  if (P.level < 1) P.level = 1;
+  if (!P.owned || typeof P.owned !== "object") P.owned = {};
+  if (typeof P.pet !== "string") P.pet = "";
   for (const key of ["shake", "controls"])
     if (typeof P[key] !== "boolean") P[key] = true;
   if (

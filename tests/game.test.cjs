@@ -40,6 +40,48 @@ function engine(seed = {}) {
           classList: { toggle: noop },
           style: {},
         }),
+      createElement: (tag) => {
+        if (tag !== "canvas") return { style: {} };
+        const ctx2d = {
+          canvas: null,
+          imageSmoothingEnabled: false,
+          drawImage: noop,
+          clearRect: noop,
+          fillRect: noop,
+          fill: noop,
+          stroke: noop,
+          save: noop,
+          restore: noop,
+          translate: noop,
+          scale: noop,
+          rotate: noop,
+          beginPath: noop,
+          closePath: noop,
+          moveTo: noop,
+          lineTo: noop,
+          ellipse: noop,
+          arc: noop,
+          quadraticCurveTo: noop,
+          clip: noop,
+          createLinearGradient: () => ({ addColorStop: noop }),
+          createRadialGradient: () => ({ addColorStop: noop }),
+          createPattern: () => null,
+          measureText: () => ({ width: 0 }),
+          fillText: noop,
+          strokeText: noop,
+          setTransform: noop,
+          setLineDash: noop,
+        };
+        return {
+          width: 0,
+          height: 0,
+          style: {},
+          getContext: () => ctx2d,
+        };
+      },
+    },
+    Image: function () {
+      return { set src(v) { this._src = v; }, get src() { return this._src; } };
     },
   };
   context.window = context;
@@ -49,13 +91,17 @@ function engine(seed = {}) {
   vm.createContext(context);
   for (const name of [
     "utils",
+    "assetlib",
     "profile",
+    "economy",
     "progression",
     "save-transfer",
     "characters",
+    "character",
     "input",
     "audio",
     "sprites",
+    "spriterender",
     "particles",
     "world",
     "projectiles",

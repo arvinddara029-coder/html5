@@ -56,11 +56,13 @@
     constructor(x, y, mul) {
       super(x, y);
       this.type = "crawler";
-      this.w = 60; this.h = 44;
+      this.w = 52; this.h = 62;
       this.maxHp = this.hp = Math.round(30 * mul);
       this.dmg = 12; this.score = 100;
       this.speed = 150; this.cd = U.rand(0.5, 1.5); this.windup = 0; this.lungeT = 0;
       this.legPhase = 0;
+      this.spr = NR.spriteRender.anim("orc", { anim: "idle" });
+      this.dying = 0;
     }
     update(dt, G) {
       this.t += dt; this.flash -= dt; this.touchCd -= dt;
@@ -90,56 +92,37 @@
       }
       this.legPhase += Math.abs(this.vx) * dt * 0.09;
       this.phys(dt);
+      // sprite state
+      if (this.dying > 0) { this.dying -= dt; this.spr.set("death"); }
+      else if (this.stunned > 0 || this.hitstun > 0) this.spr.set("hurt");
+      else if (this.windup > 0) this.spr.set("attack");
+      else if (Math.abs(this.vx) > 40) this.spr.set("walk");
+      else this.spr.set("idle");
+      this.spr.update(dt);
+    }
+    die(G) {
+      if (this.dead) return;
+      NR.spriteRender.spawnCorpse(G, "orc", this.x, this.y, this.facing, 1);
+      Enemy.prototype.die.call(this, G);
     }
     draw(ctx) {
-      const t = this.t, ph = this.legPhase;
+      // ground shadow
       ctx.save();
-      ctx.translate(this.x, this.y);
-      ctx.scale(this.facing, 1);
-      const hot = this.windup > 0 ? (Math.sin(t * 40) > 0 ? 1 : 0.3) : 1;
-      const bodyC = this.flash > 0 ? "#ffffff" : "#1b1030";
-      // legs
-      ctx.lineCap = "round";
-      for (let i = 0; i < 4; i++) {
-        const off = [-20, -7, 7, 20][i];
-        const sw = Math.sin(ph + i * 1.7) * 9;
-        ctx.strokeStyle = this.flash > 0 ? "#fff" : "#120a24";
-        ctx.lineWidth = 5;
-        ctx.beginPath();
-        ctx.moveTo(off, -18);
-        ctx.quadraticCurveTo(off + sw, -8, off + sw * 1.7, -1);
-        ctx.stroke();
-      }
-      // body
-      ctx.fillStyle = bodyC;
-      U.roundRect(ctx, -30, -42, 58, 28, 12); ctx.fill();
-      // spikes
-      ctx.fillStyle = this.flash > 0 ? "#fff" : "#2a1150";
-      for (let i = 0; i < 4; i++) {
-        const sx = -22 + i * 13;
-        ctx.beginPath();
-        ctx.moveTo(sx, -40);
-        ctx.lineTo(sx + 5, -54 + Math.sin(t * 5 + i) * 2);
-        ctx.lineTo(sx + 10, -40);
-        ctx.closePath(); ctx.fill();
-      }
-      // head + eyes
-      ctx.fillStyle = bodyC;
-      U.roundRect(ctx, 18, -36, 18, 18, 6); ctx.fill();
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      ctx.globalAlpha = hot;
-      NR.sprites.drawGlow(ctx, "red", 30, -28, 14, 0.9 * hot);
-      ctx.fillStyle = "#ff2d5f";
-      ctx.fillRect(26, -30, 8, 4);
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.ellipse(this.x, this.y + 2, 24, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
       ctx.restore();
-      // windup telegraph
+      const flash = this.flash > 0 ? "rgba(255,255,255,0.85)" : null;
+      const scale = this.dying > 0 ? Math.max(0.2, this.dying / 0.45) : 1;
+      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale });
       if (this.windup > 0) {
-        ctx.save(); ctx.globalCompositeOperation = "lighter";
-        NR.sprites.drawGlow(ctx, "red", 0, -26, 40 + this.windup * 40, 0.4 * hot);
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        NR.sprites.drawGlow(ctx, "red", this.x, this.y - 30, 34 + Math.sin(this.t * 40) * 10, 0.5);
         ctx.restore();
       }
-      ctx.restore();
       this.hpBar(ctx);
       this.drawSpawnFx(ctx);
     }
@@ -619,8 +602,129 @@
     }
   }
 
+  /* ============ SLIME — bouncing blob ============ */
+  class Slime extends Enemy {
+    constructor(x, y, mul) {
+      super(x, y);
+      this.type = "slime";
+      this.w = 46; this.h = 40;
+      this.maxHp = this.hp = Math.round(24 * mul);
+      this.dmg = 10; this.score = 80;
+      this.speed = 120; this.hopT = U.rand(0.4, 1.1); this.hopDir = U.chance(0.5) ? 1 : -1;
+      this.spr = NR.spriteRender.anim("slime", { anim: "idle", fps: 9 });
+    }
+    update(dt, G) {
+      this.t += dt; this.flash -= dt; this.touchCd -= dt;
+      if (this.spawnT > 0) { this.spawnT -= dt; return; }
+      const p = G.player;
+      this.facing = p.x > this.x ? 1 : -1;
+      if (this.stunned > 0) { this.stunned -= dt; this.vx = U.damp(this.vx, 0, 6, dt); }
+      else if (this.onGround) {
+        this.hopT -= dt;
+        if (this.hopT <= 0) {
+          this.hopT = U.rand(0.7, 1.4);
+          this.hopDir = Math.sign(p.x - this.x) || this.hopDir;
+          this.vx = this.hopDir * this.speed * G.enemySpdMul;
+          this.vy = -520;
+          this.onGround = false;
+        } else this.vx = U.damp(this.vx, 0, 5, dt);
+      }
+      this.spr.set("idle");
+      this.spr.update(dt);
+      this.phys(dt);
+    }
+    die(G) {
+      if (this.dead) return;
+      NR.spriteRender.spawnCorpse(G, "slime", this.x, this.y, this.facing, 0.9);
+      Enemy.prototype.die.call(this, G);
+    }
+    draw(ctx) {
+      ctx.save();
+      ctx.globalAlpha = 0.3; ctx.fillStyle = "#000";
+      ctx.beginPath(); ctx.ellipse(this.x, this.y + 2, 20, 5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      const flash = this.flash > 0 ? "rgba(255,255,255,0.9)" : null;
+      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 1.05 });
+      this.hpBar(ctx);
+      this.drawSpawnFx(ctx);
+    }
+  }
+
+  /* ============ SOLDIER — armoured archer ============ */
+  class Soldier extends Enemy {
+    constructor(x, y, mul) {
+      super(x, y);
+      this.type = "soldier";
+      this.w = 48; this.h = 66;
+      this.maxHp = this.hp = Math.round(46 * mul);
+      this.dmg = 14; this.score = 160;
+      this.speed = 105; this.aimT = 0; this.cd = U.rand(0.8, 1.8); this.strafe = U.chance(0.5) ? 1 : -1;
+      this.spr = NR.spriteRender.anim("soldier", { anim: "idle" });
+    }
+    update(dt, G) {
+      this.t += dt; this.flash -= dt; this.touchCd -= dt;
+      if (this.spawnT > 0) { this.spawnT -= dt; return; }
+      const p = G.player;
+      const dx = p.x - this.x;
+      this.facing = dx > 0 ? 1 : -1;
+      if (this.stunned > 0) { this.stunned -= dt; this.vx = U.damp(this.vx, 0, 6, dt); }
+      else if (this.aimT > 0) {
+        this.aimT -= dt;
+        this.vx = U.damp(this.vx, 0, 10, dt);
+        if (this.aimT <= 0) {
+          this.spr.set("attack", true);
+          const bolt = new NR.Bolt(this.x + this.facing * 26, this.y - 46, this.facing * 620, 0, { dmg: this.dmg * G.enemyDmgMul, col: "yellow", r: 6 });
+          G.bolts.push(bolt);
+          NR.audio.play("shot");
+          this.cd = U.rand(1.5, 2.6);
+        }
+      } else {
+        this.cd -= dt;
+        const dist = Math.abs(dx);
+        const lined = Math.abs(p.y - this.y) < 130;
+        if (dist < 300 && lined && this.cd <= 0) {
+          this.aimT = 0.5; // wind up the shot
+        } else if (dist < 190) {
+          this.vx = U.damp(this.vx, -Math.sign(dx) * this.speed * G.enemySpdMul, 5, dt); // too close, back off
+        } else if (dist > 470) {
+          this.vx = U.damp(this.vx, Math.sign(dx) * this.speed * G.enemySpdMul, 5, dt); // too far, close in
+        } else {
+          this.vx = U.damp(this.vx, this.strafe * this.speed * 0.45 * G.enemySpdMul, 5, dt); // strafe
+          if (U.chance(dt * 0.5)) this.strafe *= -1;
+        }
+      }
+      if (this.aimT > 0.25) this.spr.set("attack");
+      else this.spr.set(Math.abs(this.vx) > 40 ? "walk" : "idle");
+      this.spr.update(dt);
+      this.phys(dt);
+    }
+    die(G) {
+      if (this.dead) return;
+      NR.spriteRender.spawnCorpse(G, "soldier", this.x, this.y, this.facing, 1);
+      Enemy.prototype.die.call(this, G);
+    }
+    draw(ctx) {
+      ctx.save();
+      ctx.globalAlpha = 0.32; ctx.fillStyle = "#000";
+      ctx.beginPath(); ctx.ellipse(this.x, this.y + 2, 22, 6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      if (this.aimT > 0) {
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        NR.sprites.drawGlow(ctx, "yellow", this.x + this.facing * 30, this.y - 46, 12 + Math.sin(this.t * 30) * 4, 0.8);
+        ctx.restore();
+      }
+      const flash = this.flash > 0 ? "rgba(255,255,255,0.85)" : null;
+      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 1 });
+      this.hpBar(ctx);
+      this.drawSpawnFx(ctx);
+    }
+  }
+
   NR.Enemy = Enemy;
   NR.Crawler = Crawler;
+  NR.Slime = Slime;
+  NR.Soldier = Soldier;
   NR.Drone = Drone;
   NR.Wraith = Wraith;
   NR.Boss = Boss;

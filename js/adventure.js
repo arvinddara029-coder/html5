@@ -249,7 +249,9 @@
     } else {
       add(new NR.Crawler(x - 100, y, m));
       add(new NR.Crawler(x + 150, y, m));
+      if (G.chapter >= 1 || zone.id >= 1) add(new NR.Slime(x + 40, y, m));
       if (zone.id > 0 || G.chapter > 0) add(new NR.Sentry(x + 260, y, m));
+      if (zone.id > 1 || G.chapter > 0) add(new NR.Soldier(x - 40, y, m));
       if (zone.id === 3 || G.chapter === 2) add(new NR.Sentinel(x + 60, y, m));
       if (G.chapter > 0 && zone.id === 2)
         add(new NR.Wraith(x + 200, y - 100, m));

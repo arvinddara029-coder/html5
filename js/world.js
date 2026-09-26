@@ -141,6 +141,32 @@
     drawArena(ctx, cam, view);
   };
 
+  /* ---------- terrain textures (Kenney-style PBR tiles, CC0) ---------- */
+  const BIOME_TEX = [
+    { ground: "Brick/Brick_01-512x512.png", plat: "Metal/Metal_01-512x512.png", edge: "Metal/Metal_08-512x512.png" },
+    { ground: "Stone/Stone_01-128x128.png", plat: "Wood/Wood_01-128x128.png", edge: "Stone/Stone_09-128x128.png" },
+    { ground: "Metal/Metal_08-512x512.png", plat: "Tile/Tile_01-128x128.png", edge: "Plaster/Plaster_01-512x512.png" },
+  ];
+  const texCache = Object.create(null);
+  function texPattern(ctx, path) {
+    if (!path) return null;
+    const img = NR.assets.get(path);
+    if (!img) return null;
+    let e = texCache[path];
+    if (!e) e = texCache[path] = { pat: null, ctx: null };
+    if (e.pat && e.ctx === ctx) return e.pat;
+    try {
+      e.pat = ctx.createPattern(img, "repeat");
+      e.ctx = ctx;
+    } catch (_) { return null; }
+    return e.pat;
+  }
+  function biomeTex() {
+    const adv = NR.adventure && NR.adventure.active;
+    const ch = adv ? NR.game.chapter || 0 : 0;
+    return BIOME_TEX[Math.max(0, Math.min(2, ch))];
+  }
+
   function drawArena(ctx, cam, view) {
     const gy = W.groundY;
     // ground body
@@ -149,6 +175,16 @@
     gg.addColorStop(1, "#05060f");
     ctx.fillStyle = gg;
     ctx.fillRect(cam.x - 60, gy, view.w + 120, Math.max(W.H, cam.y + view.h) - gy + 120);
+    // tiled terrain texture over the ground body
+    const gpat = texPattern(ctx, biomeTex().ground);
+    if (gpat) {
+      ctx.save();
+      ctx.globalAlpha = NR.profile.world === "day" ? 0.5 : 0.34;
+      ctx.translate(0, gy);
+      ctx.fillStyle = gpat;
+      ctx.fillRect(cam.x - 60, 0, view.w + 120, Math.max(W.H, cam.y + view.h) - gy + 120);
+      ctx.restore();
+    }
     // ground top neon edge
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
@@ -188,6 +224,16 @@
       ctx.fillStyle = pg;
       NR.util.roundRect(ctx, p.x, p.y, p.w, p.h, 6);
       ctx.fill();
+      const ppat = texPattern(ctx, biomeTex().plat);
+      if (ppat) {
+        ctx.save();
+        ctx.globalAlpha = 0.55;
+        NR.util.roundRect(ctx, p.x, p.y, p.w, p.h, 6);
+        ctx.clip();
+        ctx.fillStyle = ppat;
+        ctx.fillRect(p.x, p.y, p.w, p.h);
+        ctx.restore();
+      }
       if (NR.adventure?.active) {
         for(let x=p.x; x<p.x+p.w; x+=70) NR.atlas.draw(ctx,36,x,p.y+3,Math.min(70,p.x+p.w-x),16);
       }

@@ -2,6 +2,8 @@
 (function () {
   const $ = id => document.getElementById(id);
   const P = NR.profile;
+  const on = (id, fn) => { const el = $(id); if (el) el.addEventListener('click', fn); };
+  const text = (id, v) => { const el = $(id); if (el) el.textContent = v; };
   const icon = name => `<svg class="ico" aria-hidden="true"><use href="#i-${name}"/></svg>`;
   let toastTimer, lastHUD = 0;
   const H = NR.hub = {};
@@ -9,9 +11,25 @@
   H.setWorld = mode => {
     P.world = mode;
     NR.saveProfile();
-    document.querySelectorAll('[data-world]').forEach(el => { el.classList.toggle('chosen', el.dataset.world === mode); el.setAttribute('aria-pressed', el.dataset.world === mode); });
-    $('game-world').innerHTML = icon(mode === 'day' ? 'sun' : 'moon');
-    $('game-world').setAttribute('aria-label', `Switch to ${mode === 'day' ? 'night' : 'day'} mode`);
+    document.querySelectorAll('[data-world]').forEach(el => {
+      el.classList.toggle('chosen', el.dataset.world === mode);
+      el.classList.toggle('sel', el.dataset.world === mode);
+      el.setAttribute('aria-pressed', el.dataset.world === mode);
+    });
+    const gw = $('game-world');
+    if (gw) {
+      gw.innerHTML = icon(mode === 'day' ? 'sun' : 'moon');
+      gw.setAttribute('aria-label', `Switch to ${mode === 'day' ? 'night' : 'day'} mode`);
+    }
+  };
+  H.setDifficulty = mode => {
+    P.difficulty = mode;
+    NR.saveProfile();
+    document.querySelectorAll('[data-difficulty]').forEach(el => {
+      el.classList.toggle('chosen', el.dataset.difficulty === mode);
+      el.classList.toggle('sel', el.dataset.difficulty === mode);
+      el.setAttribute('aria-pressed', el.dataset.difficulty === mode);
+    });
   };
   function powerCard(power, detailed) {
     const el = document.createElement('button');
@@ -26,47 +44,48 @@
   }
   function renderPowers() {
     for (const [id, detailed] of [['arsenal-grid', false], ['armory-options', true]]) {
+      if (!$('armory-options')) continue;
       const focused = document.activeElement?.closest('#' + id + ' [data-power]')?.dataset.power;
       $(id).replaceChildren(...NR.powers.map(p => powerCard(p, detailed)));
       if (focused) $(id).querySelector(`[data-power="${focused}"]`)?.focus({ preventScroll: true });
     }
     const power = NR.powers.find(p => p.id === P.tactical);
-    $('tactical-icon').innerHTML = icon(power.icon);
-    $('tactical-name').textContent = power.short;
+    if ($('tactical-icon')) $('tactical-icon').innerHTML = icon(power.icon);
+    text('tactical-name', power.short);
   }
   function showRecords() { NR.expeditionUI.showRecords(); }
   H.refreshPreferences = () => {
     H.setWorld(P.world);renderPowers();NR.ui.syncAudio?.();
-    $('callsign').value=P.name;$('operator-name').textContent=P.name;$('menu-wave').textContent=P.bestWave||'—';
+    if ($('callsign')) $('callsign').value=P.name;
+    text('operator-name',P.name);
+    if ($('menu-wave')) $('menu-wave').textContent=P.bestWave||'—';
     document.querySelectorAll('[data-difficulty]').forEach(b=>{b.classList.toggle('chosen',b.dataset.difficulty===P.difficulty);b.setAttribute('aria-pressed',b.dataset.difficulty===P.difficulty);});
     for(const key of ['shake','controls']){const b=$('tgl-'+key);b.textContent=P[key]?'ON':'OFF';b.classList.toggle('on',P[key]);b.setAttribute('aria-pressed',P[key]);}
     document.body.classList.toggle('controls-hidden',!P.controls);
-    $('music-volume').value=P.musicVolume*100;$('sfx-volume').value=P.sfxVolume*100;
-    $('service-status').textContent=NR.store.persistent?'OFFLINE READY · SAVED ON DEVICE':'TEMPORARY SESSION · STORAGE BLOCKED';
+    if($('music-volume')) $('music-volume').value=P.musicVolume*100;
+    if($('sfx-volume')) $('sfx-volume').value=P.sfxVolume*100;
+    text('service-status',NR.store.persistent?'OFFLINE READY · SAVED ON DEVICE':'TEMPORARY SESSION · STORAGE BLOCKED');
+    if (NR.lobby && NR.lobby.refreshCard) NR.lobby.refreshCard();
   };
   H.init = () => {
-    const on = (id, fn) => $(id).addEventListener('click', fn);
-    ['btn-armory', 'nav-armory', 'nav-loadout'].forEach(id => on(id, () => NR.ui.show('armory')));
-    ['nav-records', 'nav-leaderboard'].forEach(id => on(id, showRecords));
-    ['btn-armory-back', 'btn-records-back', 'nav-play'].forEach(id => on(id, () => NR.ui.show('menu')));
-    on('btn-mobile-start', () => NR.game.start());
+    ['btn-armory-back', 'btn-records-back'].forEach(id => on(id, () => NR.ui.show('menu')));
     on('nav-manual', () => NR.ui.show('how'));
     on('btn-profile', () => NR.ui.show('set'));
     on('btn-pause-how', () => NR.ui.show('how'));
     document.querySelectorAll('[data-difficulty]').forEach(el => {
-      const sync = () => document.querySelectorAll('[data-difficulty]').forEach(b => { b.classList.toggle('chosen', b.dataset.difficulty === P.difficulty); b.setAttribute('aria-pressed', b.dataset.difficulty === P.difficulty); });
-      sync(); el.addEventListener('click', () => { P.difficulty = el.dataset.difficulty; NR.saveProfile(); sync(); });
+      el.addEventListener('click', () => H.setDifficulty(el.dataset.difficulty));
     });
     document.querySelectorAll('[data-world]').forEach(el => onWorld(el));
     function onWorld(el) { el.addEventListener('click', () => H.setWorld(el.dataset.world)); }
     H.setWorld(P.world); renderPowers();
-    $('callsign').value = P.name;
-    $('operator-name').textContent = P.name;
-    $('menu-wave').textContent = P.bestWave || '—';
-    $('callsign').addEventListener('change', () => {
+    if ($('callsign')) $('callsign').value = P.name;
+    text('operator-name', P.name);
+    if ($('menu-wave')) $('menu-wave').textContent = P.bestWave || '—';
+    if ($('callsign')) $('callsign').addEventListener('change', () => {
       const value = $('callsign').value.trim();
       if (!/^[a-zA-Z0-9_]{3,16}$/.test(value)) { $('callsign').value = P.name; H.notify('Use 3–16 letters, numbers or underscores.'); return; }
-      P.name = value; NR.saveProfile(); $('operator-name').textContent = value;
+      P.name = value; NR.saveProfile(); text('operator-name', value);
+      if (NR.lobby && NR.lobby.refreshCard) NR.lobby.refreshCard();
     });
     ['shake', 'controls'].forEach(key => {
       const button = $('tgl-' + key);
@@ -83,7 +102,7 @@
         else H.notify('Fullscreen is not supported here. Rotate your device for a wider view.');
       } catch (_) { H.notify('Fullscreen unavailable in this browser. Landscape mode also works.'); }
     });
-    $('service-status').textContent = NR.store.persistent ? 'OFFLINE READY · SAVED ON DEVICE' : 'TEMPORARY SESSION · STORAGE BLOCKED';
+    text('service-status', NR.store.persistent ? 'OFFLINE READY · SAVED ON DEVICE' : 'TEMPORARY SESSION · STORAGE BLOCKED');
     NR.expeditionUI.init();
   };
   H.update = now => {
@@ -91,7 +110,7 @@
     const G = NR.game, p = G.player, playing = G.state === 'playing';
     document.body.classList.toggle('playing', playing);
     NR.expeditionUI.update();
-    if (!playing || !p) return;
+    if (!playing || !p || !$('parry-cd')) return;
     $('parry-cd').textContent=p.parryCd>0?p.parryCd.toFixed(1)+'s':'';
     $('kunai-count').textContent=p.kunaiCharges>0?p.kunaiCharges:Math.max(0,3-p.kunaiChargeT).toFixed(1)+'s';
     document.querySelector('[data-act="parry"]').classList.toggle('not-ready',p.parryCd>0);
@@ -103,7 +122,7 @@
     $('dash-cd').textContent = p.dashCharges > 0 ? '' : '…';
     document.querySelector('[data-act="tactical"]').classList.toggle('not-ready', seconds > 0);
     document.querySelector('[data-act="special"]').classList.toggle('not-ready', p.energy < p.maxEnergy);
-    $('game-wave').textContent = `${P.world === 'day' ? 'DAYBREAK' : 'NIGHTFALL'} / ${G.difficulty.toUpperCase()} / ${G.mode === 'adventure' ? 'CHAPTER '+(G.chapter+1) : 'WAVE '+String(G.wave || 1).padStart(2, '0')}`;
-    $('game-objective').textContent = p.counterT>0?'COUNTER READY — STRIKE WITHIN 2s':p.shieldT > 0 ? 'AEGIS ACTIVE — DAMAGE BLOCKED' : p.overdriveT > 0 ? 'OVERDRIVE — DOUBLE KATANA DAMAGE' : G.chronoT > 0 ? 'CHRONO FIELD — TIME DILATED' : p.droneT > 0 ? 'ARC COMPANION — SUPPORT ACTIVE' : G.bossActive ? 'ELIMINATE SHOGUN-9' : `${G.enemies.length + G.spawnQueue.length} HOSTILES REMAINING`;
+    text('game-wave', `${P.world === 'day' ? 'DAYBREAK' : 'NIGHTFALL'} / ${G.difficulty.toUpperCase()} / ${G.mode === 'adventure' ? 'CHAPTER '+(G.chapter+1) : 'WAVE '+String(G.wave || 1).padStart(2, '0')}`);
+    text('game-objective',  p.counterT>0?'COUNTER READY — STRIKE WITHIN 2s':p.shieldT > 0 ? 'AEGIS ACTIVE — DAMAGE BLOCKED' : p.overdriveT > 0 ? 'OVERDRIVE — DOUBLE KATANA DAMAGE' : G.chronoT > 0 ? 'CHRONO FIELD — TIME DILATED' : p.droneT > 0 ? 'ARC COMPANION — SUPPORT ACTIVE' : G.bossActive ? 'ELIMINATE SHOGUN-9' : `${G.enemies.length + G.spawnQueue.length} HOSTILES REMAINING`);
   };
 })();
