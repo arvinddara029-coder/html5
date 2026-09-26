@@ -227,7 +227,7 @@ test("lobby boots, renders every panel and survives modal churn", () => {
   assert.equal(nodes["pc-name"].textContent, NR.profile.name);
   assert.match(nodes["pc-level"].textContent, /^LV \d+$/);
   assert.ok(nodes["pc-coins"].textContent.length > 0);
-  assert.equal(nodes["event-list"].children.length, 3, "three event cards");
+  assert.equal(nodes["event-list"].children.length, 4, "four event cards");
   // deploy modal
   NR.lobby.openModal("modal-deploy");
   assert.ok(nodes["modal-deploy"].classList.contains("open"));
@@ -306,7 +306,7 @@ test("event cards route to their destination", () => {
   const { NR, nodes, listeners } = lobbyEnv();
   NR.lobby.init();
   const cards = nodes["event-list"].children;
-  assert.equal(cards.length, 3);
+  assert.equal(cards.length, 4);
   const raid = cards[0];
   const click = listeners.find((l) => l.el === raid && l.type === "click");
   click.fn();

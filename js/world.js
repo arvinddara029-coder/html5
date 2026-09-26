@@ -13,6 +13,7 @@
   });
 
   let midCity = null, rain = [], vehicles = [], lightning = 0, lightT = rand(5, 11), fogT = 0;
+  let stars = [], motes = [];
 
   W.init = function () {
     genMidCity();
@@ -23,6 +24,14 @@
     for (let i = 0; i < 7; i++)
       vehicles.push({ fx: Math.random(), fy: rand(0.08, 0.34), v: rand(50, 140) * (U.chance(0.5) ? 1 : -1),
         col: pick(["cyan", "magenta", "yellow"]) });
+    // night sky: a fixed star field that slowly parallaxes with the camera
+    stars = [];
+    for (let i = 0; i < 110; i++)
+      stars.push({ fx: Math.random(), fy: Math.random() * 0.62, r: rand(0.7, 2.2), tw: rand(1.5, 5), ph: rand(0, 7) });
+    // fireflies (garden night) / embers (reactor night) drifting particles
+    motes = [];
+    for (let i = 0; i < 40; i++)
+      motes.push({ fx: Math.random(), fy: rand(0.25, 0.95), vx: rand(-14, 14), vy: rand(-22, -6), ph: rand(0, 7), big: U.chance(0.2) });
   };
 
   /* mid-distance city silhouette with lit windows + neon billboards */
@@ -71,8 +80,16 @@
       if (v.fx > 1.1) v.fx = -0.1;
       if (v.fx < -0.1) v.fx = 1.1;
     }
+    for (const m of motes) {
+      m.fx += (m.vx / Math.max(view.w, 400)) * dt;
+      m.fy += (m.vy / Math.max(view.h, 400)) * dt;
+      if (m.fy < -0.05) { m.fy = 1.05; m.fx = Math.random(); }
+      if (m.fx > 1.05) m.fx = -0.05;
+      if (m.fx < -0.05) m.fx = 1.05;
+    }
     lightT -= dt;
-    if (lightT <= 0 && NR.profile.world === "night") {
+    const biome = NR.adventure?.active ? NR.adventure.chapter.biome : "city";
+    if (lightT <= 0 && NR.profile.world === "night" && biome === "city") {
       lightning = 1;
       lightT = rand(7, 18);
       NR.audio.play("thunder", { delay: rand(0.3, 0.9) });
@@ -80,27 +97,71 @@
     lightning = Math.max(0, lightning - dt * 2.4);
   };
 
-  /* ---------- background ---------- */
+  /* ---------- background ----------
+     DAY (primary): bright warm sky, full-color world art, soft sun.
+     NIGHT: the same world falls dark — deep-indigo grade, star field, moon,
+     biome life (city rain+lightning, garden fireflies, reactor embers). */
+  const NIGHT_SKY = { top: "#04060f", mid: "#0a0d21", low: "#160f2a" };
+  const DAY_SKY = {
+    city: ["#6fb3d6", "#bfe0d8", "#f7d7a8"],
+    garden: ["#83c4a4", "#cfe6b8", "#f6e3ac"],
+    reactor: ["#8e7a94", "#c69a7e", "#f2c08a"],
+  };
   W.drawBack = function (ctx, cam, view) {
     const day = NR.profile.world === "day";
     const biome = NR.adventure?.active ? NR.adventure.chapter.biome : "city";
     const scenic = biome === "garden" || biome === "reactor";
-    // sky
+    // --- sky gradient ---
     const g = ctx.createLinearGradient(0, cam.y, 0, cam.y + view.h);
-    g.addColorStop(0, day ? "#7eb9c9" : "#070818");
-    g.addColorStop(0.55, day ? "#c4d7ce" : "#0d0f26");
-    g.addColorStop(1, day ? "#f2cba3" : "#1b1030");
+    if (day) {
+      const d = DAY_SKY[biome] || DAY_SKY.city;
+      g.addColorStop(0, d[0]); g.addColorStop(0.55, d[1]); g.addColorStop(1, d[2]);
+    } else {
+      g.addColorStop(0, NIGHT_SKY.top); g.addColorStop(0.55, NIGHT_SKY.mid); g.addColorStop(1, NIGHT_SKY.low);
+    }
     ctx.fillStyle = g;
     ctx.fillRect(cam.x - 60, cam.y - 60, view.w + 120, view.h + 120);
 
-    // far AI-generated cityscape (parallax 0.18), tiled - supports both asset systems
+    // --- night-only star field + moon (behind the world art) ---
+    if (!day) {
+      ctx.save();
+      for (const s of stars) {
+        const sx = cam.x + (((s.fx - cam.x * 0.0006) % 1) + 1) % 1 * view.w;
+        const sy = cam.y + s.fy * view.h;
+        ctx.globalAlpha = 0.35 + 0.4 * Math.abs(Math.sin(fogT * s.tw + s.ph));
+        ctx.fillStyle = "#cfe2ff";
+        ctx.fillRect(sx, sy, s.r, s.r);
+      }
+      ctx.globalAlpha = 1;
+      // big low moon with halo
+      const mx = cam.x + view.w * 0.76 - (cam.x * 0.04 % 60), my = cam.y + view.h * 0.18;
+      ctx.globalCompositeOperation = "lighter";
+      NR.sprites.drawGlow(ctx, "yellow", mx, my, 120, 0.3);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = "#efe6c8";
+      ctx.beginPath(); ctx.arc(mx, my, 34, 0, U.TAU); ctx.fill();
+      ctx.fillStyle = NIGHT_SKY.top;
+      ctx.beginPath(); ctx.arc(mx - 13, my - 6, 29, 0, U.TAU); ctx.fill();
+      ctx.restore();
+    } else {
+      // soft daytime sun
+      const sx = cam.x + view.w * 0.2 - (cam.x * 0.03 % 60), sy = cam.y + view.h * 0.16;
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      NR.sprites.drawGlow(ctx, "yellow", sx, sy, 110, 0.4);
+      ctx.fillStyle = "rgba(255,246,214,0.9)";
+      ctx.beginPath(); ctx.arc(sx, sy, 26, 0, U.TAU); ctx.fill();
+      ctx.restore();
+    }
+
+    // --- world art (parallax 0.18), day & night use different paintings/grades ---
     let img = null;
+    const keyJpg = scenic ? 'bg_' + biome + '.jpg' : day ? 'bg_day.jpg' : 'bg_far.jpg';
+    const keyShort = keyJpg.replace(/\.jpg$/, "");
     try {
-      const keyJpg = scenic ? 'bg_'+biome+'.jpg' : day ? 'bg_day.jpg' : 'bg_far.jpg';
-      const keyShort = scenic ? 'bg_'+biome : day ? 'bg_day' : 'bg_far';
       img = (NR.assets && NR.assets.get && (NR.assets.get(keyJpg) || NR.assets.get(keyShort))) || U.assets.get(keyJpg) || U.assets.get(keyShort);
     } catch (_) {
-      img = U.assets.get(scenic ? 'bg_'+biome : day ? 'bg_day' : 'bg_far');
+      img = U.assets.get(keyShort);
     }
     if (img) {
       const f = 0.18;
@@ -112,6 +173,16 @@
       for (let x0 = startX; x0 < cam.x + view.w + drawW; x0 += drawW)
         ctx.drawImage(img, x0, baseY, drawW, drawH);
       ctx.globalAlpha = 1;
+      // THE NIGHTFALL GRADE: bury the world under cold indigo darkness
+      if (!day && scenic) {
+        ctx.fillStyle = "rgba(7,9,30,0.52)";
+        ctx.fillRect(cam.x - 60, cam.y - 60, view.w + 120, view.h + 120);
+        const rim = ctx.createLinearGradient(0, cam.y, 0, cam.y + view.h * 0.8);
+        rim.addColorStop(0, "rgba(18,26,64,0.4)");
+        rim.addColorStop(1, "rgba(4,5,16,0.1)");
+        ctx.fillStyle = rim;
+        ctx.fillRect(cam.x - 60, cam.y - 60, view.w + 120, view.h + 120);
+      }
     }
 
     // purple haze band
@@ -132,28 +203,29 @@
       ctx.globalAlpha = 1;
     }
 
-    // flying vehicles (screen-space streaks)
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
-    for (const v of vehicles) {
-      const sx = cam.x + v.fx * view.w, sy = cam.y + v.fy * view.h * 0.9;
-      NR.sprites.drawGlow(ctx, v.col, sx, sy, 9, 0.8);
-      ctx.strokeStyle = "rgba(180,220,255,0.5)";
-      ctx.lineWidth = 1.6;
-      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx - v.v * 0.25, sy); ctx.stroke();
+    // flying vehicles only buzz the city — and only at day; nights belong to stars
+    if (!scenic && day) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      for (const v of vehicles) {
+        const sx = cam.x + v.fx * view.w, sy = cam.y + v.fy * view.h * 0.9;
+        NR.sprites.drawGlow(ctx, v.col, sx, sy, 9, 0.8);
+        ctx.strokeStyle = "rgba(180,220,255,0.5)";
+        ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx - v.v * 0.25, sy); ctx.stroke();
+      }
+      ctx.restore();
     }
-    ctx.restore();
 
     NR.adventure?.drawScenery(ctx, cam, view);
     drawArena(ctx, cam, view);
   };
 
-  /* ---------- terrain textures (Kenney-style PBR tiles, CC0) ---------- */
-  const BIOME_TEX = [
-    { ground: "Brick/Brick_01-512x512.png", plat: "Metal/Metal_01-512x512.png", edge: "Metal/Metal_08-512x512.png" },
-    { ground: "Stone/Stone_01-128x128.png", plat: "Wood/Wood_01-128x128.png", edge: "Stone/Stone_09-128x128.png" },
-    { ground: "Metal/Metal_08-512x512.png", plat: "Tile/Tile_01-128x128.png", edge: "Plaster/Plaster_01-512x512.png" },
-  ];
+  /* ---------- terrain textures (Kenney-style PBR tiles, CC0) ----------
+     The texture library in assetlib holds four variants per surface per
+     biome; the arena rotates them every SEGW px so districts feel distinct,
+     and the `edge` set trims the ground line that used to go unused. */
+  const SEGW = 1024;
   const texCache = Object.create(null);
   function texPattern(ctx, path) {
     if (!path) return null;
@@ -168,10 +240,18 @@
     } catch (_) { return null; }
     return e.pat;
   }
-  function biomeTex() {
+  function biomeFamily() {
     const adv = NR.adventure && NR.adventure.active;
     const ch = adv ? NR.game.chapter || 0 : 0;
-    return BIOME_TEX[Math.max(0, Math.min(2, ch))];
+    return (NR.textureBiomes && NR.textureBiomes[Math.max(0, Math.min(2, ch))]) || "city";
+  }
+  function biomeList(kind) {
+    const t = NR.textures && NR.textures[biomeFamily() + kind];
+    return t && t.length ? t : null;
+  }
+  function segPick(list, x) {
+    if (!list) return null;
+    return list[Math.abs(Math.floor(x / SEGW)) % list.length];
   }
 
   function drawArena(ctx, cam, view) {
@@ -182,14 +262,52 @@
     gg.addColorStop(1, "#05060f");
     ctx.fillStyle = gg;
     ctx.fillRect(cam.x - 60, gy, view.w + 120, Math.max(W.H, cam.y + view.h) - gy + 120);
-    // tiled terrain texture over the ground body
-    const gpat = texPattern(ctx, biomeTex().ground);
-    if (gpat) {
+    // tiled terrain texture over the ground body — rotating districts
+    const day = NR.profile.world === "day";
+    const grounds = biomeList("Ground");
+    if (grounds) {
       ctx.save();
-      ctx.globalAlpha = NR.profile.world === "day" ? 0.5 : 0.34;
+      ctx.globalAlpha = day ? 0.5 : 0.34;
       ctx.translate(0, gy);
-      ctx.fillStyle = gpat;
-      ctx.fillRect(cam.x - 60, 0, view.w + 120, Math.max(W.H, cam.y + view.h) - gy + 120);
+      const hGround = Math.max(W.H, cam.y + view.h) - gy + 120;
+      for (let sx = Math.floor((cam.x - 60) / SEGW) * SEGW; sx < cam.x + view.w + 60; sx += SEGW) {
+        const gpat = texPattern(ctx, segPick(grounds, sx));
+        if (!gpat) continue;
+        ctx.fillStyle = gpat;
+        ctx.fillRect(sx, 0, Math.min(SEGW, cam.x + view.w + 60 - sx), hGround);
+      }
+      ctx.restore();
+    }
+    // biome overlay from the Elements pack: garden moss, reactor lava veins, city energy sheen
+    const family = biomeFamily();
+    const reactor = family === "reactor";
+    const veins = biomeList("Veins");
+    if (veins) {
+      ctx.save();
+      if (reactor) ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = reactor ? (day ? 0.10 : 0.2) : family === "garden" ? (day ? 0.22 : 0.3) : 0.08;
+      ctx.translate(0, gy + 26);
+      ctx.scale(1, 0.22); // squash into shallow veins near the surface
+      for (let sx = Math.floor((cam.x - 60) / SEGW) * SEGW; sx < cam.x + view.w + 60; sx += SEGW) {
+        const overlayPat = texPattern(ctx, segPick(veins, sx));
+        if (!overlayPat) continue;
+        ctx.fillStyle = overlayPat;
+        ctx.fillRect(sx, 0, Math.min(SEGW, cam.x + view.w + 60 - sx), 220);
+      }
+      ctx.restore();
+    }
+    // edge band — the surface trim texture right under the neon line
+    const edges = biomeList("Edge");
+    if (edges) {
+      ctx.save();
+      ctx.globalAlpha = day ? 0.6 : 0.5;
+      ctx.translate(0, gy + 2);
+      for (let sx = Math.floor((cam.x - 60) / SEGW) * SEGW; sx < cam.x + view.w + 60; sx += SEGW) {
+        const epat = texPattern(ctx, segPick(edges, sx));
+        if (!epat) continue;
+        ctx.fillStyle = epat;
+        ctx.fillRect(sx, 0, Math.min(SEGW, cam.x + view.w + 60 - sx), 24);
+      }
       ctx.restore();
     }
     // ground top neon edge
@@ -231,7 +349,8 @@
       ctx.fillStyle = pg;
       NR.util.roundRect(ctx, p.x, p.y, p.w, p.h, 6);
       ctx.fill();
-      const ppat = texPattern(ctx, biomeTex().plat);
+      const plats = biomeList("Plat");
+      const ppat = plats ? texPattern(ctx, plats[Math.abs(Math.floor(p.x / 512)) % plats.length]) : null;
       if (ppat) {
         ctx.save();
         ctx.globalAlpha = 0.55;
@@ -261,29 +380,45 @@
     }
   }
 
-  /* ---------- foreground: rain + lightning ---------- */
+  /* ---------- foreground: rain & lightning (city night), fireflies (garden),
+     rising embers (reactor) — daytime stays clear and readable. ---------- */
   W.drawFront = function (ctx, cam, view) {
     if (NR.profile.world === "day") return;
-    ctx.save();
-    ctx.strokeStyle = "rgba(160,200,255,0.33)";
-    ctx.lineWidth = 1.4;
-    ctx.beginPath();
-    const wind = Math.sin(fogT * 0.7) * 0.12 + 0.16;
-    for (const r of rain) {
-      r.fy += (r.spd / Math.max(view.h, 400)) * (1 / 60);
-      r.fx += wind * (r.spd / Math.max(view.h, 400)) * (1 / 60);
-      if (r.fy > 1.05) { r.fy = -0.05; r.fx = Math.random(); }
-      if (r.fx > 1.05) r.fx = -0.05;
-      const sx = cam.x + r.fx * view.w, sy = cam.y + r.fy * view.h;
-      ctx.moveTo(sx, sy);
-      ctx.lineTo(sx - wind * r.len, sy - r.len);
-    }
-    ctx.stroke();
-    ctx.restore();
-    // lightning flash
-    if (lightning > 0) {
-      ctx.fillStyle = `rgba(210,225,255,${lightning * 0.16})`;
-      ctx.fillRect(cam.x - 60, cam.y - 60, view.w + 120, view.h + 120);
+    const biome = NR.adventure?.active ? NR.adventure.chapter.biome : "city";
+    if (biome === "city") {
+      ctx.save();
+      ctx.strokeStyle = "rgba(160,200,255,0.33)";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      const wind = Math.sin(fogT * 0.7) * 0.12 + 0.16;
+      for (const r of rain) {
+        r.fy += (r.spd / Math.max(view.h, 400)) * (1 / 60);
+        r.fx += wind * (r.spd / Math.max(view.h, 400)) * (1 / 60);
+        if (r.fy > 1.05) { r.fy = -0.05; r.fx = Math.random(); }
+        if (r.fx > 1.05) r.fx = -0.05;
+        const sx = cam.x + r.fx * view.w, sy = cam.y + r.fy * view.h;
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(sx - wind * r.len, sy - r.len);
+      }
+      ctx.stroke();
+      ctx.restore();
+      // lightning flash
+      if (lightning > 0) {
+        ctx.fillStyle = `rgba(210,225,255,${lightning * 0.16})`;
+        ctx.fillRect(cam.x - 60, cam.y - 60, view.w + 120, view.h + 120);
+      }
+    } else {
+      // fireflies (garden night) / embers (reactor night)
+      const embers = biome === "reactor";
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      for (const m of motes) {
+        const sx = cam.x + m.fx * view.w;
+        const sy = cam.y + m.fy * view.h + Math.sin(fogT * 2 + m.ph) * 8;
+        const a = embers ? 0.5 : 0.28 + 0.3 * Math.abs(Math.sin(fogT * 2.2 + m.ph));
+        NR.sprites.drawGlow(ctx, embers ? "orange" : "yellow", sx, sy, m.big ? 9 : 5, a);
+      }
+      ctx.restore();
     }
   };
 

@@ -46,10 +46,18 @@
       "GandalfHardcore Emojis and Icons/GandalfHardcore Emojis and Icons/Coin.png",
       "GandalfHardcore Emojis and Icons/GandalfHardcore Emojis and Icons/Quest marker.png",
       "GandalfHardcore Emojis and Icons/GandalfHardcore Emojis and Icons/GandalfHardcore Emoji.png",
+      "GandalfHardcFREE NPC/GandalfHardcore Goddess NPC.png", // Luna, the lobby guide
+      // combat-manual demo strips + grand-lobby event art + pet wardrobe
+      "idle/sprite sheets/idle.png", "walk/sprite sheets/walk.png", "walk/sprite sheets/from idle.png",
+      "GandalfHardcore Warrior.png",
+      "GandalfHardcore Pet companion/GandalfHardcore doggy hat.png",
+      "GandalfHardcore Pet companion/GandalfHardcore doggy backpack.png",
       // terrain textures used by the arena
       "Brick/Brick_01-512x512.png", "Metal/Metal_01-512x512.png", "Metal/Metal_08-512x512.png",
       "Stone/Stone_01-128x128.png", "Stone/Stone_09-128x128.png", "Wood/Wood_01-128x128.png",
       "Tile/Tile_01-128x128.png", "Plaster/Plaster_01-512x512.png",
+      // biome overlays from the Elements pack
+      "Elements/Elements_02-512x512.png", "Elements/Elements_13-512x512.png", "Elements/Elements_17-512x512.png",
     ].concat(lookPaths);
     // Use the main asset lib (NR.assets) which knows how to load string paths.
     // Fallback to U.assets if for some reason NR.assets is unavailable.

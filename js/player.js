@@ -317,13 +317,16 @@
 
       const P = this.pose;
       const blink = this.iframes > 0 && this.dashT <= 0 ? (Math.sin(this.t * 34) > 0 ? 0.45 : 1) : 1;
-      // pet companion trots along behind the hero
+      // pet companion trots along behind the hero (pet art faces right natively)
       if (NR.profile.pet && !this.dead) {
         const wisp = NR.profile.pet.indexOf("Wisp") >= 0;
-        const pscale = wisp ? 1.5 : 1.05;
-        const bob = wisp ? Math.sin(this.t * 4) * 10 - 34 : Math.abs(Math.sin(this.t * 9)) * -7;
-        NR.char.drawPet(ctx, NR.profile.pet, Math.floor(this.t * 9),
-          this.x - this.facing * 44, this.y - 2 + bob, pscale, this.facing > 0);
+        const pscale = wisp ? 2.2 : 2.1;
+        const running = Math.abs(this.vx) > 60;
+        const bob = wisp
+          ? Math.sin(this.t * 4) * 10 - 40
+          : (running ? Math.abs(Math.sin(this.t * 11)) * -8 : 0);
+        NR.char.drawPet(ctx, NR.profile.pet, Math.floor(this.t * (running ? 12 : 7)),
+          this.x - this.facing * 52, this.y - 2 + bob, pscale, this.facing < 0, running ? 1 : 0);
       }
       ctx.globalAlpha = blink;
       drawHero(ctx, P, {});
@@ -350,8 +353,10 @@
     }
   }
 
-  /* ---------- layered hero renderer (Clockwork Raven sprite packs) ---------- */
-  const HERO_SCALE = 0.62;
+  /* ---------- layered hero renderer (Clockwork Raven sprite packs) ----------
+     The actual body art spans ~46px of the 64px cell height; scale 0.98 renders
+     the hero ~90px tall on screen — readable, weighty, matching the 78px hull. */
+  const HERO_SCALE = 0.98;
   function heroAnim(P) {
     if (P.hurt) return "hurt";
     if (P.attacking) return "attack";
@@ -372,10 +377,10 @@
     const frame = heroFrame(P);
     if (!ghost) {
       ctx.save();
-      ctx.globalAlpha = 0.32;
+      ctx.globalAlpha = 0.34;
       ctx.fillStyle = "#000";
       ctx.beginPath();
-      ctx.ellipse(P.x, P.y + 2, 22, 6, 0, 0, U.TAU);
+      ctx.ellipse(P.x, P.y + 3, 32, 9, 0, 0, U.TAU);
       ctx.fill();
       ctx.restore();
     }

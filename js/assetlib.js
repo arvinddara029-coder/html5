@@ -9,6 +9,7 @@
   A.state = Object.create(null); // path -> "loading" | "ready" | "error"
   A.total = 0;
   A.done = 0;
+  A.version = 0; // bumped whenever any image finishes decoding (cache invalidator)
 
   /* ------------------------------------------------------------------ *
    *  Character layer catalog (Clockwork Raven / GandalfHardcore packs)  *
@@ -52,6 +53,11 @@
       P.special("Female Orc skin"), P.special("Female Zombie skin"),
     ],
     hair: [
+      { id: "Male Hair1", name: "Hair1", path: `${CAP}/Male Hair/Male Hair1.png`, g: "m" },
+      { id: "Male Hair2", name: "Hair2", path: `${CAP}/Male Hair/Male Hair2.png`, g: "m" },
+      { id: "Male Hair3", name: "Hair3", path: `${CAP}/Male Hair/Male Hair3.png`, g: "m" },
+      { id: "Male Hair4", name: "Hair4", path: `${CAP}/Male Hair/Male Hair4.png`, g: "m" },
+      { id: "Male Hair5", name: "Hair5", path: `${CAP}/Male Hair/Male Hair5.png`, g: "m" },
       P.hairM("Fancy Hair"), P.hairM("Male Hair10"), P.hairM("Male Hair11"), P.hairM("Male Hair12"),
       P.hairM("Male Hair13"), P.hairM("Male Hair14"), P.hairM("Male Hair15"), P.hairM("Male Hair16"),
       P.hairM("Male Hair17"), P.hairM("Male Hair18"), P.hairM("Male Hair19"), P.hairM("Male Hair20"),
@@ -80,6 +86,13 @@
       P.top("Orange Corset", "f", FCLOTH), P.top("Orange Corset v2", "f", FCLOTH),
       P.top("Purple Corset", "f", FCLOTH), P.top("Purple Corset v2", "f", FCLOTH),
       P.top("Armored Corset", "f", F43),
+      // long-sleeve corset line + classic FCLOTH corsets (the shelf was half-stocked)
+      P.top("Corset", "f", FCLOTH), P.top("Corset v2", "f", FCLOTH),
+      P.top("Blue Corset Long Sleeves", "f", F43), P.top("Blue Corset v2 Long Sleeves", "f", F43),
+      P.top("Corset v2 Long Sleeves", "f", F43),
+      P.top("Green Corset Long Sleeves", "f", F43), P.top("Green Corset v2 Long Sleeves", "f", F43),
+      P.top("Orange Corset Long Sleeves", "f", F43), P.top("Orange Corset v2 Long Sleeves", "f", F43),
+      P.top("Purple Corset Long Sleeves", "f", F43), P.top("Purple Corset v2 Long Sleeves", "f", F43),
     ],
     bottom: [
       P.bot("Pants", "m", MCLOTH), P.bot("Blue Pants", "m", MCLOTH), P.bot("Green Pants", "m", MCLOTH),
@@ -100,7 +113,7 @@
       P.bot("Red Panties and Bra", "f", FCLOTH), P.bot("Skyblue Panties and Bra", "f", FCLOTH),
     ],
     shoes: [
-      P.shoe("Boots", "m", MCLOTH), P.shoe("Shoes", "m", MCLOTH),
+      P.shoe("Boots", "m", MCLOTH), P.shoe("Shoes", "m", MCLOTH), P.shoe("Boots", "f", FCLOTH),
       P.shoe("Black Thigh-High Boots", "f", F43), P.shoe("Brown Thigh-High Boots", "f", F43),
       P.shoe("Pink Thigh-High Boots", "f", F43),
       P.shoe("Socks", "f", FCLOTH), P.shoe("Green Socks", "f", FCLOTH), P.shoe("Orange Socks", "f", FCLOTH),
@@ -127,6 +140,8 @@
       P.glove("Opera Gloves red", "f"),
     ],
     weapon: [
+      { id: "mMale Sword", name: "Male Sword", path: `${CAP}/Male Hand/Male Sword.png`, g: "m" },
+      { id: "fFemale Sword", name: "Female Sword", path: `${CAP}/Female Hand/Female Sword.png`, g: "f" },
       P.weapon("Stick", "m"), P.weapon("Wooden Sword", "m"), P.weapon("Bronze Sword", "m"), P.weapon("Iron Sword", "m"),
       P.weapon("Golden Sword", "m"), P.weapon("Diamond Sword", "m"), P.weapon("Wooden Axe", "m"), P.weapon("Bronze Axe", "m"),
       P.weapon("Iron Axe", "m"), P.weapon("Golden Axe", "m"), P.weapon("Diamond Axe", "m"), P.weapon("Wooden Pickaxe", "m"),
@@ -161,32 +176,57 @@
     ],
   });
 
-  // pet sheets are multi-frame strips (32x64 doggy/fox, 32x32 wisp)
+  // pet sheets are multi-frame strips.
+  // Doggy & fox sheets are 2-row grids (row 0 = idle/walk, row 1 = run) of 32x32;
+  // the wisp is a single 5-frame row.
   const PET_FRAMES = {
     "GandalfHardcore doggy sheet.png": 6, "GandalfHardcore doggy sheet 2.png": 6,
     "GandalfHardcore doggy sheet 3.png": 6, "GandalfHardcore doggy sheet 4.png": 6,
     "GandalfHardcore doggy sheet 5.png": 6, "GandalfHardcore fox.png": 6, "GandalfHardcore Wisp.png": 5,
   };
   NR.petFrames = PET_FRAMES;
+  NR.petRows = {
+    "GandalfHardcore doggy sheet.png": 2, "GandalfHardcore doggy sheet 2.png": 2,
+    "GandalfHardcore doggy sheet 3.png": 2, "GandalfHardcore doggy sheet 4.png": 2,
+    "GandalfHardcore doggy sheet 5.png": 2, "GandalfHardcore fox.png": 2, "GandalfHardcore Wisp.png": 1,
+  };
 
-  /* ---------------- enemy sprite sheets (100x100 / 96x96 frames) ---------------- */
+  /* ---------------- enemy sprite sheets ----------------
+     The tiny-RPG art sits small inside large cells (e.g. a 22x16 orc inside a
+     100x100 cell, feet ~43px above the cell bottom). `crop` is the measured
+     art window and `floor` the cell-y where the feet touch — spriterender pins
+     that line to the ground, so nothing floats and everything reads BIG. */
   const ORC = "Tiny RPG Character Asset Pack v1.03 -Free Soldier&Orc/Characters(100x100)/Orc/Orc";
   const SOL = "Tiny RPG Character Asset Pack 01 v2.0 -Free Soldier&Orc/Characters(100x100 split)/Soldier/Soldier";
   const SAM = "FREE_Samurai 2D Pixel Art v1.2/Sprites";
+  const WIZ = "EVil Wizard 2/Sprites";
+  const SLIME = "GandalfHardcore Slime Enemy";
+  // Slime pack: 256x96 = 8 frames per row of 32x48; row 0 = bounce loop, row 1 = hop arc.
+  const slimeDef = (variant) => ({
+    fw: 32, fh: 48, perRow: 8,
+    crop: { x: 0, y: 0, w: 32, h: 48 }, floor: 48,
+    anims: {
+      idle: { path: `${SLIME}/Slime ${variant}.png`, frames: 8 },
+      hop: { path: `${SLIME}/Slime ${variant}.png`, frames: 8, start: 8 },
+      death: { path: `${SLIME}/Slime ${variant}.png`, frames: 3, start: 5 }, // squash-flat fade
+    },
+  });
   NR.sheets = {
     orc: {
       fw: 100, fh: 100,
+      crop: { x: 33, y: 29, w: 44, h: 33 }, floor: 57,
       anims: {
         idle: { path: `${ORC}/Orc-Idle.png`, frames: 6 },
         walk: { path: `${ORC}/Orc-Walk.png`, frames: 8 },
-        attack: { path: `${ORC}/Orc-Attack01.png`, frames: 6 },
-        attack2: { path: `${ORC}/Orc-Attack02.png`, frames: 6 },
+        attack: { path: `${ORC}/Orc-Attack01.png`, frames: 6, floor: 62 },
+        attack2: { path: `${ORC}/Orc-Attack02.png`, frames: 6, floor: 62 },
         hurt: { path: `${ORC}/Orc-Hurt.png`, frames: 4 },
         death: { path: `${ORC}/Orc-Death.png`, frames: 4 },
       },
     },
     soldier: {
-      fw: 100, fh: 100,
+      fw: 100, fh: 100, faceLeft: true, // soldier art looks left natively
+      crop: { x: 32, y: 29, w: 47, h: 31 }, floor: 60,
       anims: {
         idle: { path: `${SOL}/Soldier_Idle.png`, frames: 6 },
         walk: { path: `${SOL}/Soldier_Walk.png`, frames: 8 },
@@ -198,37 +238,101 @@
       },
     },
     samurai: {
-      fw: 96, fh: 96,
+      fw: 96, fh: 96, faceLeft: true, // the old ronin faces left natively
+      crop: { x: 24, y: 44, w: 72, h: 38 }, floor: 81,
       anims: {
         idle: { path: `${SAM}/IDLE.png`, frames: 10 },
         walk: { path: `${SAM}/RUN.png`, frames: 16 },
-        attack: { path: `${SAM}/ATTACK 1.png`, frames: 7 },
+        attack: { path: `${SAM}/ATTACK 1.png`, frames: 7, floor: 82 },
         hurt: { path: `${SAM}/HURT.png`, frames: 4 },
       },
     },
-    slime: {
-      fw: 64, fh: 96,
+    wizard: {
+      fw: 250, fh: 250,
+      crop: { x: 66, y: 22, w: 174, h: 145 }, floor: 167,
       anims: {
-        idle: { path: "GandalfHardcore Slime Enemy/Slime blue.png", frames: 4 },
-      },
-      variants: {
-        green: "GandalfHardcore Slime Enemy/Slime green.png",
-        red: "GandalfHardcore Slime Enemy/Slime red.png",
+        idle: { path: `${WIZ}/Idle.png`, frames: 8 },
+        walk: { path: `${WIZ}/Run.png`, frames: 8 },
+        attack: { path: `${WIZ}/Attack1.png`, frames: 8 },
+        attack2: { path: `${WIZ}/Attack2.png`, frames: 8 },
+        hurt: { path: `${WIZ}/Take hit.png`, frames: 3 },
+        death: { path: `${WIZ}/Death.png`, frames: 7 },
+        jump: { path: `${WIZ}/Jump.png`, frames: 2 },
+        fall: { path: `${WIZ}/Fall.png`, frames: 2 },
       },
     },
+    slime: slimeDef("blue"),
+    slimeGreen: slimeDef("green"),
+    slimeRed: slimeDef("red"),
     arrow: { fw: 32, fh: 32, anims: { idle: { path: "Tiny RPG Character Asset Pack 01 v2.0 -Free Soldier&Orc/Arrow(Projectile)/Arrow01(32x32).png", frames: 1 } } },
+    /* Sprite Pack 7 mercenaries — real combat kits, face RIGHT natively.
+       Attack sheets are wider cells, so anims carry their own fw/fh/crop. */
+    diego: {
+      fw: 32, fh: 48, crop: { x: 0, y: 8, w: 32, h: 40 }, floor: 48,
+      anims: {
+        idle: { path: "Sprite Pack 7/1 - Diego/Idle (32 x 48).png", frames: 4 },
+        blink: { path: "Sprite Pack 7/1 - Diego/Blink (32 x 48).png", frames: 3 },
+        walk: { path: "Sprite Pack 7/1 - Diego/Running (32 x 48).png", frames: 6 },
+        shoot: { path: "Sprite Pack 7/1 - Diego/Shooting_while_standing (48 x 48).png", frames: 3, fw: 48, fh: 48, crop: { x: 0, y: 8, w: 34, h: 40 } },
+        reload: { path: "Sprite Pack 7/1 - Diego/Reloading_while_standing (32 x 48).png", frames: 7 },
+        // point-blank mode: drops to a knee (32px-low cells)
+        crouch: { path: "Sprite Pack 7/1 - Diego/Crouching (32 x 32).png", frames: 1, fh: 32, crop: { x: 0, y: 2, w: 32, h: 30 }, floor: 32 },
+        cshoot: { path: "Sprite Pack 7/1 - Diego/Shooting_while_crouching (48 x 32).png", frames: 3, fw: 48, fh: 32, crop: { x: 0, y: 2, w: 40, h: 30 }, floor: 32 },
+        creload: { path: "Sprite Pack 7/1 - Diego/Reloading_while_crouching (32 x 32).png", frames: 7, fh: 32, crop: { x: 0, y: 2, w: 32, h: 30 }, floor: 32 },
+        hurt: { path: "Sprite Pack 7/1 - Diego/Hurt (32 x 48).png", frames: 1 },
+        death: { path: "Sprite Pack 7/1 - Diego/Hurt (32 x 48).png", frames: 1 },
+      },
+    },
+    holly: {
+      fw: 32, fh: 32, crop: { x: 0, y: 2, w: 32, h: 30 }, floor: 32,
+      anims: {
+        idle: { path: "Sprite Pack 7/2 - Holly/Idle (32 x 32).png", frames: 9 },
+        blink: { path: "Sprite Pack 7/2 - Holly/Blink (32 x 32).png", frames: 3 },
+        walk: { path: "Sprite Pack 7/2 - Holly/Running (32 x 32).png", frames: 6 },
+        jump: { path: "Sprite Pack 7/2 - Holly/Jump (32 x 32).png", frames: 1 },
+        fall: { path: "Sprite Pack 7/2 - Holly/Falling (32 x 32).png", frames: 2 },
+        aerial: { path: "Sprite Pack 7/2 - Holly/Aerial_swing (64 x 64).png", frames: 12, fw: 64, fh: 64, crop: { x: 7, y: 6, w: 50, h: 51 }, floor: 57 },
+        smash: { path: "Sprite Pack 7/2 - Holly/Ground_smash (64 x 48).png", frames: 8, fw: 64, fh: 48, crop: { x: 9, y: 8, w: 48, h: 40 }, floor: 48 },
+        duck: { path: "Sprite Pack 7/2 - Holly/Ducking (32 x 32).png", frames: 1 },
+        hurt: { path: "Sprite Pack 7/2 - Holly/Hurt (32 x 32).png", frames: 1 },
+        death: { path: "Sprite Pack 7/2 - Holly/Hurt (32 x 32).png", frames: 1 },
+      },
+    },
+    gordon: {
+      fw: 48, fh: 48, crop: { x: 4, y: 3, w: 44, h: 45 }, floor: 48,
+      anims: {
+        idle: { path: "Sprite Pack 7/3 - Gordon/Idle (48 x 48).png", frames: 4 },
+        blink: { path: "Sprite Pack 7/3 - Gordon/Blink (48 x 48).png", frames: 3 },
+        walk: { path: "Sprite Pack 7/3 - Gordon/Running (48 x 48).png", frames: 6 },
+        combo: { path: "Sprite Pack 7/3 - Gordon/Combo_swings (80 x 64).png", frames: 18, fw: 80, fh: 64, crop: { x: 5, y: 9, w: 75, h: 55 }, floor: 64 },
+        upswing: { path: "Sprite Pack 7/3 - Gordon/Up_swing (80 x 64).png", frames: 7, fw: 80, fh: 64, crop: { x: 5, y: 9, w: 75, h: 55 }, floor: 64 },
+        downswing: { path: "Sprite Pack 7/3 - Gordon/Down_swing (80 x 64).png", frames: 7, fw: 80, fh: 64, crop: { x: 5, y: 9, w: 75, h: 55 }, floor: 64 },
+        aer: { path: "Sprite Pack 7/3 - Gordon/Aerial_swing (80 x 64).png", frames: 7, fw: 80, fh: 64, crop: { x: 5, y: 9, w: 75, h: 55 }, floor: 64 },
+        stab: { path: "Sprite Pack 7/3 - Gordon/Run_stab (80 x 48).png", frames: 8, fw: 80, fh: 48, crop: { x: 6, y: 7, w: 68, h: 41 }, floor: 48 },
+        hurt: { path: "Sprite Pack 7/3 - Gordon/Hurt (48 x 48).png", frames: 1 },
+        death: { path: "Sprite Pack 7/3 - Gordon/Hurt (48 x 48).png", frames: 1 },
+      },
+    },
   };
 
-  /* ---------------- terrain texture library ---------------- */
+  /* ---------------- terrain texture library ----------------
+     Four curated variants per surface per biome — the arena rotates them
+     along the level so districts feel distinct instead of one repeating tile. */
   NR.textures = {
-    stone: ["Stone/Stone_01-128x128.png", "Stone/Stone_05-128x128.png", "Stone/Stone_09-128x128.png"],
-    wood: ["Wood/Wood_01-128x128.png", "Wood/Wood_06-128x128.png"],
-    metal: ["Metal/Metal_01-512x512.png", "Metal/Metal_08-512x512.png"],
-    brick: ["Brick/Brick_01-512x512.png", "Brick/Brick_08-512x512.png"],
-    tile: ["Tile/Tile_01-128x128.png", "Tile/Tile_05-128x128.png"],
-    plaster: ["Plaster/Plaster_01-512x512.png"],
-    elements: ["Elements/Elements_01-512x512.png"],
+    cityGround: ["Brick/Brick_04-512x512.png", "Brick/Brick_05-512x512.png", "Brick/Brick_06-512x512.png", "Brick/Brick_07-512x512.png"],
+    cityPlat: ["Metal/Metal_01-512x512.png", "Metal/Metal_02-512x512.png", "Metal/Metal_17-512x512.png", "Metal/Metal_19-512x512.png"],
+    cityEdge: ["Metal/Metal_08-512x512.png", "Metal/Metal_07-512x512.png", "Metal/Metal_18-512x512.png", "Metal/Metal_13-512x512.png"],
+    cityVeins: ["Elements/Elements_15-512x512.png", "Elements/Elements_16-512x512.png", "Elements/Elements_18-512x512.png", "Elements/Elements_20-512x512.png"],
+    gardenGround: ["Stone/Stone_05-128x128.png", "Stone/Stone_06-128x128.png", "Stone/Stone_02-128x128.png", "Stone/Stone_03-128x128.png"],
+    gardenPlat: ["Wood/Wood_02-128x128.png", "Wood/Wood_07-128x128.png", "Wood/Wood_08-128x128.png", "Wood/Wood_11-128x128.png"],
+    gardenEdge: ["Stone/Stone_09-128x128.png", "Stone/Stone_11-128x128.png", "Stone/Stone_12-128x128.png", "Stone/Stone_07-128x128.png"],
+    gardenVeins: ["Elements/Elements_12-512x512.png", "Elements/Elements_13-512x512.png", "Elements/Elements_14-512x512.png", "Elements/Elements_11-512x512.png"],
+    reactorGround: ["Metal/Metal_03-512x512.png", "Metal/Metal_11-512x512.png", "Metal/Metal_12-512x512.png", "Metal/Metal_13-512x512.png"],
+    reactorPlat: ["Tile/Tile_04-128x128.png", "Tile/Tile_05-128x128.png", "Tile/Tile_06-128x128.png", "Tile/Tile_10-128x128.png"],
+    reactorEdge: ["Plaster/Plaster_01-512x512.png", "Plaster/Plaster_19-512x512.png", "Plaster/Plaster_20-512x512.png", "Plaster/Plaster_02-512x512.png"],
+    reactorVeins: ["Elements/Elements_01-512x512.png", "Elements/Elements_02-512x512.png", "Elements/Elements_03-512x512.png", "Elements/Elements_04-512x512.png"],
   };
+  NR.textureBiomes = { 0: "city", 1: "garden", 2: "reactor" }; // chapter -> family prefix
 
   /* ---------------- loader ---------------- */
   A.get = function (path) { return A.images[path] || null; };
@@ -258,8 +362,8 @@
         const p = new Promise((done) => {
           A.state[path] = "loading";
           const img = new Image();
-          img.onload = () => { A.images[path] = img; A.state[path] = "ready"; done(); };
-          img.onerror = () => { A.state[path] = "error"; done(); };
+          img.onload = () => { A.images[path] = img; A.state[path] = "ready"; A.version++; done(); };
+          img.onerror = () => { A.state[path] = "error"; A.version++; done(); };
           img.src = enc("assets/" + path);
         }).then(() => { delete A.inflight[path]; });
         A.inflight[path] = p;

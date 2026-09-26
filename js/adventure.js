@@ -59,6 +59,8 @@
     A.prompt = null;
     A.t = 0;
     A.pendingCheckpoint = false;
+    A.finishing = 0; // counts down the extraction cinematic once triggered
+    A.exitWarnT = 0;
     if (!A.active) {
       W.W = 2560;
       W.platforms = basePlatforms.map((p) => ({ ...p }));
@@ -252,6 +254,11 @@
       if (G.chapter >= 1 || zone.id >= 1) add(new NR.Slime(x + 40, y, m));
       if (zone.id > 0 || G.chapter > 0) add(new NR.Sentry(x + 260, y, m));
       if (zone.id > 1 || G.chapter > 0) add(new NR.Soldier(x - 40, y, m));
+      if (G.chapter >= 1 && zone.id >= 1) add(new NR.Rival(x + 120, y, m));
+      if (G.chapter >= 2) add(new NR.Warlock(x + 300, y - 50, m));
+      if (G.chapter >= 1 && zone.id >= 2) add(new NR.Gunner(x - 220, y, m));           // Diego covers the approach
+      if (G.chapter >= 2 && zone.id >= 1) add(new NR.Striker(x + 200, y, m));         // Holly hunts the reactor
+      if (G.chapter === 2 && zone.id >= 1) add(new NR.Blade(x - 320, y, m));          // Gordon guards the core
       if (zone.id === 3 || G.chapter === 2) add(new NR.Sentinel(x + 60, y, m));
       if (G.chapter > 0 && zone.id === 2)
         add(new NR.Wraith(x + 200, y - 100, m));
@@ -351,13 +358,36 @@
       };
     const exitReady =
       A.relays.every((r) => r.active) && A.zones.every((z) => z.cleared);
-    if (p.x > W.W - 340)
+    A.exitWarnT = Math.max(0, (A.exitWarnT || 0) - dt);
+    const remaining = () => {
+      const r = A.relays.filter((x) => x.active).length;
+      const z = A.zones.filter((x) => x.cleared).length;
+      return `GATE LOCKED · RELAYS ${r}/3 · PATROLS ${z}/4 — track the ◆ markers`;
+    };
+    if (p.x > W.W - 340) {
       A.prompt = {
-        label: exitReady
-          ? "EXTRACT / COMPLETE CHAPTER"
-          : "RESTORE ALL THREE RELAYS",
+        label: exitReady ? "EXTRACTION GATE — WALK THROUGH" : remaining(),
         kind: exitReady ? "exit" : "locked",
       };
+      // THE FIX: reaching the end with everything cleared FINISHES the level —
+      // no hidden button press required, just a short victory cinematic.
+      if (exitReady && !A.finishing) {
+        A.finishing = 1.15;
+        G.banner("CHAPTER COMPLETE", "The gate opens — well fought, ronin.", "#d5fa5b");
+        NR.audio.sample("victory");
+        G.slowmo(0.35, 1.0);
+        F.ring(p.x, p.y - 60, { col: "yellow", r1: 520, life: 0.9, lw: 12 });
+      } else if (!exitReady && A.exitWarnT <= 0) {
+        A.exitWarnT = 4;
+        NR.hub.notify(remaining());
+      }
+    }
+    if (A.finishing) {
+      A.finishing -= dt;
+      p.vx = U.damp(p.vx, 60, 4, dt);
+      if (U.chance(dt * 18)) F.burst(W.W - 230 + U.rand(-40, 40), W.groundY - U.rand(0, 180), { n: 2, col: "yellow", spd: 90, life: 0.6, grav: -50 });
+      if (A.finishing <= 0) { A.finishing = 0; completeChapter(G); return; }
+    }
     if (A.prompt && NR.input.justPressed("interact")) {
       const { kind, object: o } = A.prompt;
       if (kind === "cache") {
@@ -392,17 +422,8 @@
           "RELAY RESTORED — CHOOSE AN UPGRADE";
         return;
       } else if (kind === "exit") {
-        G.score += 1500;
-        NR.progress.award("escape");
-        if (G.chapter === 2) NR.progress.award("zero");
-        NR.profile.unlocked = Math.max(
-          NR.profile.unlocked,
-          Math.min(2, G.chapter + 1),
-        );
-        NR.saveProfile();
-        NR.checkpoint.clear();
-        NR.audio.sample("victory");
-        G.finishRun(true);
+        A.finishing = 0;
+        completeChapter(G);
         return;
       } else
         NR.hub.notify(
@@ -411,6 +432,21 @@
       A.prompt = null;
     }
   };
+  /* shared chapter-completion: score, awards, unlock, checkpoint clear, victory */
+  function completeChapter(G) {
+    G.score += 1500;
+    NR.progress.award("escape");
+    if (G.chapter === 2) NR.progress.award("zero");
+    NR.profile.unlocked = Math.max(
+      NR.profile.unlocked,
+      Math.min(2, G.chapter + 1),
+    );
+    NR.saveProfile();
+    NR.checkpoint.clear();
+    NR.audio.sample("victory");
+    G.finishRun(true);
+  }
+  A.completeForTest = completeChapter;
   A.checkpointAfterUpgrade = function (G) {
     if (A.pendingCheckpoint) {
       A.pendingCheckpoint = false;
@@ -623,6 +659,20 @@
     if (visible(ex)) {
       const ready =
         A.relays.every((r) => r.active) && A.zones.every((z) => z.cleared);
+      // beacon: a column of light you can see from across the map
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      const beam = ctx.createLinearGradient(0, gy - 700, 0, gy);
+      const beamCol = ready ? "213,250,91" : "90,110,124";
+      beam.addColorStop(0, `rgba(${beamCol},0)`);
+      beam.addColorStop(1, `rgba(${beamCol},${ready ? 0.34 : 0.12})`);
+      ctx.fillStyle = beam;
+      ctx.fillRect(ex - 60, gy - 700, 120, 700);
+      if (ready) {
+        const pulse = 0.5 + Math.sin(A.t * 4) * 0.25;
+        NR.sprites.drawGlow(ctx, "yellow", ex, gy - 96, 70 * pulse, 0.5);
+      }
+      ctx.restore();
       ctx.fillStyle = "#172c38";
       ctx.fillRect(ex - 50, gy - 190, 100, 190);
       ctx.strokeStyle = ready ? "#d5fa5b" : "#688292";
@@ -631,10 +681,30 @@
       NR.atlas.draw(ctx, 70, ex - 24, gy - 125, 48, 48);
       ctx.fillStyle = ready ? "#d5fa5b22" : "#0a111d";
       ctx.fillRect(ex - 38, gy - 175, 76, 165);
-      ctx.font = "bold 13px monospace";
+      // marching arrows into the gate when it's open
+      if (ready) {
+        ctx.fillStyle = `rgba(213,250,91,${0.5 + Math.sin(A.t * 6) * 0.3})`;
+        for (let i = 0; i < 3; i++) {
+          const ay = gy - 60 - i * 46 - ((A.t * 40) % 46);
+          ctx.beginPath();
+          ctx.moveTo(ex - 14, ay);
+          ctx.lineTo(ex, ay - 16);
+          ctx.lineTo(ex + 14, ay);
+          ctx.lineTo(ex, ay - 7);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+      ctx.font = "bold 20px 'Barlow Condensed', sans-serif";
       ctx.textAlign = "center";
       ctx.fillStyle = ready ? "#d5fa5b" : "#9eaebb";
-      ctx.fillText("EXTRACTION", ex, gy - 207);
+      ctx.fillText(ready ? "LEVEL EXIT — ENTER" : "EXTRACTION (LOCKED)", ex, gy - 207);
+      if (!ready) {
+        const r = A.relays.filter((x) => x.active).length;
+        const z = A.zones.filter((x) => x.cleared).length;
+        ctx.font = "bold 13px monospace";
+        ctx.fillText(`RELAYS ${r}/3 · PATROLS ${z}/4`, ex, gy - 226);
+      }
     }
     ctx.restore();
   };

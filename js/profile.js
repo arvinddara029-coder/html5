@@ -33,7 +33,7 @@
     {
       name: "RONIN_01",
       tactical: "shield",
-      world: "night",
+      world: "day",
       difficulty: "normal",
       shake: !matchMedia("(prefers-reduced-motion: reduce)").matches,
       controls: true,
@@ -92,7 +92,7 @@
     )
   )
     P.tactical = "shield";
-  if (!["day", "night"].includes(P.world)) P.world = "night";
+  if (!["day", "night"].includes(P.world)) P.world = "day";
   if (!["casual", "normal", "hard"].includes(P.difficulty))
     P.difficulty = "normal";
   if (!/^[a-zA-Z0-9_]{3,16}$/.test(P.name)) P.name = "RONIN_01";

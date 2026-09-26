@@ -22,6 +22,7 @@
   <section class="screen active" id="scr-load">
     <div class="load-box">
       <img class="load-emblem" src="assets/emblem.jpg" alt=""/>
+      <img class="load-guide" src="assets/GandalfHardcFREE NPC/GandalfHardcore Goddess NPC.gif" alt=""/>
       <h2 class="load-title">NEON RONIN</h2>
       <div class="loadbar"><div id="loadfill"></div></div>
       <p class="load-tip">SYNCING NEURAL INTERFACE…</p>
@@ -90,6 +91,9 @@
         <div class="hero-stage" id="hero-stage">
           <div class="hero-plate"></div>
           <canvas id="hero-canvas" width="440" height="540"></canvas>
+          <canvas id="guide-canvas" width="128" height="128" title="Luna, your guide"></canvas>
+          <img class="guide-avatar" src="assets/GandalfHardcFREE NPC/GandalfHardcore Goddess Portrait 64x64.png" alt=""/>
+          <span class="guide-tag">GUIDE · LUNA</span>
           <div class="hero-tags" id="hero-tags"></div>
           <div class="hero-hint">TAP YOUR HERO TO SALUTE</div>
         </div>
@@ -103,37 +107,47 @@
         </div>
       </div>
 
-      <!-- ============ PLAY / DEPLOY modal ============ -->
-      <div class="lobby-modal" id="modal-deploy" role="dialog" aria-label="Deploy">
+      <!-- ============ PLAY / WORLD SELECT modal ============ -->
+      <div class="lobby-modal wide" id="modal-deploy" role="dialog" aria-label="Deploy">
         <div class="wood-panel">
-          <div class="lm-head"><h2>CHOOSE YOUR PATH</h2><button class="lm-close" data-close="modal-deploy" aria-label="Close">✕</button></div>
-          <div class="deploy-modes" id="deploy-modes">
-            <button class="deploy-mode sel" data-mode="adventure">
-              <span class="dm-tag">CAMPAIGN</span><h4>ADVENTURE</h4>
-              <p>Three chapters. Restore the relays, survive the hunt, and face what waits at the Zero Reactor.</p>
-            </button>
-            <button class="deploy-mode" data-mode="survival">
-              <span class="dm-tag">ENDLESS</span><h4>WAVE SURVIVAL</h4>
-              <p>One arena. Endless pressure. Every fifth wave the SHOGUN-9 walks the line.</p>
-            </button>
-          </div>
+          <div class="lm-head"><img class="deploy-avatar" src="assets/GandalfHardcFREE NPC/GandalfHardcore Goddess Portrait 64x64.png" alt=""/><h2 id="deploy-title">SELECT YOUR WORLD</h2><button class="lm-close" data-close="modal-deploy" aria-label="Close">✕</button></div>
+
           <div id="deploy-chapters">
-            <div class="lm-label">01 · SELECT CHAPTER</div>
-            <div class="chapter-cards" id="chapter-cards"></div>
+            <div class="lm-label">01 · WORLD — where do you fight?</div>
+            <div class="world-cards" id="chapter-cards"></div>
           </div>
-          <div class="lm-label">02 · DIFFICULTY</div>
-          <div class="seg" id="deploy-difficulty">
-            <button data-difficulty="casual">ROOKIE</button>
-            <button class="sel" data-difficulty="normal">RONIN</button>
-            <button data-difficulty="hard">LETHAL</button>
+
+          <div class="deploy-grid">
+            <div>
+              <div class="lm-label">02 · MISSION</div>
+              <div class="deploy-modes" id="deploy-modes">
+                <button class="deploy-mode sel" data-mode="adventure">
+                  <span class="dm-tag">CAMPAIGN</span><h4>ADVENTURE</h4>
+                  <p>Cross the world, restore 3 relays and reach the gate.</p>
+                </button>
+                <button class="deploy-mode" data-mode="survival">
+                  <span class="dm-tag">ENDLESS</span><h4>SURVIVAL</h4>
+                  <p>Arena waves. SHOGUN-9 every 5th.</p>
+                </button>
+              </div>
+            </div>
+            <div>
+              <div class="lm-label">03 · DIFFICULTY</div>
+              <div class="seg" id="deploy-difficulty">
+                <button data-difficulty="casual">ROOKIE</button>
+                <button class="sel" data-difficulty="normal">RONIN</button>
+                <button data-difficulty="hard">LETHAL</button>
+              </div>
+              <div class="lm-label" style="margin-top:14px">04 · ATMOSPHERE</div>
+              <div class="seg" id="deploy-world">
+                <button class="sel" data-world="day">☀ DAY</button>
+                <button data-world="night">☾ NIGHT</button>
+              </div>
+            </div>
           </div>
-          <div class="lm-label">03 · ATMOSPHERE</div>
-          <div class="seg" id="deploy-world">
-            <button class="sel" data-world="night">NIGHTFALL</button>
-            <button data-world="day">DAYBREAK</button>
-          </div>
+
           <button class="ghost-btn" id="deploy-continue" hidden style="width:100%;margin-top:16px">&#8635; CONTINUE SAVED CHECKPOINT</button>
-          <button class="deploy-cta" id="deploy-start"><svg class="ico" aria-hidden="true"><use href="#i-blade"/></svg> DEPLOY HERO</button>
+          <button class="deploy-cta" id="deploy-start"><svg class="ico" aria-hidden="true"><use href="#i-blade"/></svg> ENTER WORLD</button>
           <p class="deploy-note" id="deploy-note">LEVEL 1 · +5% HP &amp; +3% DAMAGE PER LEVEL</p>
         </div>
       </div>
@@ -141,9 +155,9 @@
       <!-- ============ ADVENTURE MAP modal ============ -->
       <div class="lobby-modal wide" id="modal-map" role="dialog" aria-label="Adventure map">
         <div class="wood-panel">
-          <div class="lm-head"><h2>ADVENTURE MAP</h2><button class="lm-close" data-close="modal-map" aria-label="Close">✕</button></div>
-          <div class="chapter-cards" id="map-cards"></div>
-          <p class="deploy-note">CLEAR A CHAPTER TO UNLOCK THE NEXT. RELAYS SAVE YOUR PROGRESS.</p>
+          <div class="lm-head"><h2>ADVENTURE MAP — THREE WORLDS</h2><button class="lm-close" data-close="modal-map" aria-label="Close">✕</button></div>
+          <div class="world-cards" id="map-cards"></div>
+          <p class="deploy-note">CLEAR A WORLD TO UNLOCK THE NEXT. RELAYS SAVE YOUR PROGRESS.</p>
         </div>
       </div>
 
@@ -200,13 +214,19 @@
 
   <section class="screen" id="scr-operators"><div class="panel wide-panel operators-panel"><div class="panel-kicker">THREE WAYS TO BREAK THE PROTOCOL</div><h2 class="panel-title">CHOOSE YOUR OPERATOR</h2><p class="panel-intro">Different armor. Different instincts. Every operator is ready from day one.</p><div id="operator-options"></div><button class="btn btn-primary" id="btn-operators-back">CONFIRM OPERATOR →</button></div></section>
   <section class="screen" id="scr-victory"><div class="panel victory-panel"><div class="panel-kicker">SIGNAL RESTORED</div><div class="victory-seal">✓</div><h2 class="panel-title" id="victory-title">CHAPTER COMPLETE</h2><p class="panel-intro" id="victory-story"></p><div class="victory-stats" id="victory-stats"></div><div class="menu-btns"><button class="btn btn-primary" id="btn-next-chapter">NEXT CHAPTER →</button><button class="btn" id="btn-victory-menu">MISSION CONTROL</button></div></div></section>
-  <section class="screen" id="scr-credits"><div class="panel wide-panel"><div class="panel-kicker">BUILT WITH OPEN GAME ASSETS</div><h2 class="panel-title">ASSET CREDITS</h2><div class="credits-body"><h3>Kenney · Creative Commons Zero</h3><p>Platformer Pack Industrial: a 112-sprite atlas used for relays, consoles, supply crates, terrain details, signs, gates and hazards.</p><p>Digital Audio: 8 imported effects for checkpoints, pickups, enemy shots, gates, achievements and completion.</p><a href="assets/kenney/ATTRIBUTION.md" target="_blank" rel="noopener">Read asset sources & license details ↗</a><h3>Original project artwork</h3><p>Animated operators, enemies, effects, gardens and reactor scenery are drawn procedurally. Operator portraits are original SVGs. Hero, city, garden and reactor background paintings are AI-generated.</p><h3>Typography & music</h3><p>Barlow Condensed, DM Sans, Orbitron and Rajdhani are bundled locally under their SIL Open Font Licenses. The soundtrack and remaining combat sounds are synthesized with Web Audio.</p></div><button class="btn btn-primary" id="btn-credits-back">BACK TO SETTINGS</button></div></section>
+  <section class="screen" id="scr-credits"><div class="panel wide-panel"><div class="panel-kicker">BUILT WITH OPEN GAME ASSETS</div><h2 class="panel-title">ASSET CREDITS</h2><div class="credits-body"><h3>Kenney · Creative Commons Zero</h3><p>Platformer Pack Industrial: a 112-sprite atlas used for relays, consoles, supply crates, terrain details, signs, gates and hazards.</p><p>Digital Audio: 8 imported effects for checkpoints, pickups, enemy shots, gates, achievements and completion.</p><a href="assets/kenney/ATTRIBUTION.md" target="_blank" rel="noopener">Read asset sources & license details ↗</a><h3>GandalfHardcore packs · free character pixel art</h3><p>Character Asset Pack (body layers), 58x Hair, 39x Hats, Masks, Arm/Back layers, 35x Hand Items, 7x & 43x Clothing, Special skins, character effects — everything the Hero Forge and the in-game hero is built from. Pet companion (doggy/fox/wisp + wardrobe), Slime Enemy pack (blue/green/red variants), Goddess NPC (Luna the guide), Warrior sheet and the Emojis & Icons pack also ship with thanks.</p><h3>Sprite Pack 7 · free pixel-art fighters</h3><p>Diego (gunner), Holly (striker) and Gordon (blade) patrol the later chapters and late survival waves.</p><h3>Tiny RPG Character Asset Pack · free soldier & orc</h3><p>Orc crawler and armoured soldier/archer sprite sheets across the Demo / v1.02 / v1.03 / 01 v2.0 releases.</p><h3>EVil Wizard 2 & FREE Samurai 2D Pixel Art</h3><p>The hovering warlock caster and the masterless duelist rival — including their full attack kits.</p><h3>PBR texture library · CC0-style tiles</h3><p>Brick, Metal, Stone, Tile, Wood, Plaster and Elements tile sets rotated across the three world districts.</p><h3>Original project artwork</h3><p>Operator portraits are original SVGs. Hero, city, garden and reactor background paintings are AI-generated. Effects and procedural scenery are drawn in code.</p><h3>Typography & music</h3><p>Barlow Condensed, DM Sans, Orbitron and Rajdhani are bundled locally under their SIL Open Font Licenses. The soundtrack and remaining combat sounds are synthesized with Web Audio.</p></div><button class="btn btn-primary" id="btn-credits-back">BACK TO SETTINGS</button></div></section>
 
   <!-- HOW TO PLAY -->
   <section class="screen" id="scr-how">
     <div class="panel">
       <h2 class="panel-title">COMBAT MANUAL</h2>
-      <p class="panel-intro">On mobile: hold the arrows to move and hold STRIKE to chain attacks. Tap JUMP again in the air. Rotate to landscape for a wider view.</p><div class="how-grid">
+      <p class="panel-intro">On mobile: hold the arrows to move and hold STRIKE to chain attacks. Tap JUMP again in the air. Rotate to landscape for a wider view.</p>
+      <div class="how-demo">
+        <div class="hd-cell"><canvas id="how-idle" width="120" height="130"></canvas><span>IDLE</span></div>
+        <div class="hd-cell"><canvas id="how-walk" width="120" height="130"></canvas><span>SPRINT — A / D</span></div>
+        <div class="hd-cell"><canvas id="how-combo" width="140" height="130"></canvas><span>CHAIN COMBO — J ×3</span></div>
+      </div>
+      <div class="how-grid">
         <div class="how-row"><span class="key">A / D</span><span class="key-alt">← →</span><p>Move</p></div>
         <div class="how-row"><span class="key">W / SPACE</span><span class="key-alt">↑</span><p>Jump · press again mid-air for <b>double jump</b></p></div>
         <div class="how-row"><span class="key">S</span><span class="key-alt">↓</span><p>Drop through platforms</p></div>
@@ -348,3 +368,4 @@
 <script src="js/main.js"></script>
 </body>
 </html>
+
