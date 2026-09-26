@@ -247,8 +247,11 @@
   function closeModal(id) { $(id) && $(id).classList.remove("open"); }
 
   /* ================= deploy panel — WORLD SELECT first ================= */
-  const WORLD_ART = ["bg_day.jpg", "bg_garden.jpg", "bg_reactor.jpg"];
-  const WORLD_TAG = ["TRANSIT LINE", "RECLAIMED GARDENS", "THE CORE"];
+  /* one card per chapter — art falls back instead of breaking on new chapters */
+  const WORLD_ART = ["bg_day.jpg", "bg_garden.jpg", "bg_reactor.jpg", "bg_far.jpg", "menu_hero.jpg", "lobby.png"];
+  const WORLD_TAG = ["TRANSIT LINE", "RECLAIMED GARDENS", "THE CORE", "SUNKEN FOUNDRY", "SKYWARD DOCKS", "THE SPIRE"];
+  const worldArt = (id) => WORLD_ART[id % WORLD_ART.length];
+  const worldTag = (id) => WORLD_TAG[id % WORLD_TAG.length];
   function worldCard(ch, selectable) {
     const locked = ch.id > P.unlocked;
     const cleared = ch.id < P.unlocked;
@@ -261,9 +264,9 @@
     b.dataset.chapter = ch.id;
     b.disabled = locked;
     b.innerHTML =
-      `<img class="wc-art" src="assets/${WORLD_ART[ch.id]}" alt="" loading="lazy"/>` +
+      `<img class="wc-art" src="assets/${worldArt(ch.id)}" alt="" loading="lazy"/>` +
       `<span class="wc-shade"></span>` +
-      `<span class="wc-num">WORLD 0${ch.id + 1} · ${WORLD_TAG[ch.id]}</span>` +
+      `<span class="wc-num">WORLD ${String(ch.id + 1).padStart(2, "0")} · ${worldTag(ch.id)}</span>` +
       `<span class="wc-body"><h4>${ch.short}</h4><p>${ch.district} · ${ch.description}</p></span>` +
       `<span class="wc-state">${
         locked

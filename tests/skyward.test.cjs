@@ -61,8 +61,8 @@ function skyward(seed = {}) {
   };
   vm.createContext(context);
   const mods = [
-    "utils", "assetlib", "profile", "economy", "progression", "save-transfer",
-    "characters", "character", "input", "audio", "sprites", "spriterender",
+    "utils", "assetlib", "characters", "profile", "economy", "progression", "save-transfer",
+    "character", "input", "audio", "sprites", "spriterender",
     "particles", "world", "projectiles", "combat", "player", "enemies",
     "expedition-enemies", "adventure", "upgrades",
   ];
@@ -161,7 +161,10 @@ test("pet frames slice into strips", () => {
   const frames = NR.char.petFrames("GandalfHardcore Wisp.png");
   assert.equal(frames.length, 5);
   const dog = NR.char.petFrames("GandalfHardcore fox.png");
-  assert.equal(dog.length, 6);
+  // row 0 of every doggy/fox sheet is a 5-frame sit-and-blink loop: the 6th
+  // cell is blank, so playing it made the pet flicker out once per cycle
+  assert.equal(dog.length, 5);
+  assert.equal(NR.char.petFrames("GandalfHardcore fox.png", 1).length, 6);
 });
 
 /* ---------------- economy ---------------- */
@@ -359,8 +362,8 @@ test("pet strips slice one row only — no doubled pets, run row available", () 
   assert.equal(NR.petRows["GandalfHardcore Wisp.png"], 1);
   const idle = NR.char.petFrames("GandalfHardcore fox.png", 0);
   const run = NR.char.petFrames("GandalfHardcore fox.png", 1);
-  assert.equal(idle.length, 6);
-  assert.equal(run.length, 6);
+  assert.equal(idle.length, 5, "idle row holds 5 real frames");
+  assert.equal(run.length, 6, "run row holds 6 frames");
   // frames come from a single 32px row, never the stacked 64px sheet
   assert.equal(idle[0].height, 32);
   assert.equal(idle[0].width, 32);

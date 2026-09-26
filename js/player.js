@@ -27,6 +27,11 @@
       this.stormT = 0; this.stormTick = 0;
       this.iframes = 0; this.hitstun = 0; this.landT = 0; this.dead = false;
       this.legPhase = 0; this.t = 0;
+      // sprite-sheet animation clock: the hero's body art has 5 idle / 8 walk /
+      // 8 run / 4 jump / 4 fall / 6 attack / 10 hurt frames — they must advance.
+      this.animT = 0; this.animName = "idle"; this.animFrame = 0;
+      this.petT = 0; this.petX = this.x; this.petY = this.y; this.petFlip = false;
+      this.petRow = 0; this.petFrame = 0;
       // upgradeable stats
       this.dmgMul = 1; this.speedMul = 1; this.jumpMax = 2;
       this.dashMax = 1; this.dashCdMul = 1; this.energyMul = 1;
@@ -125,6 +130,34 @@
       }
 
       this.computePose();
+      this.tickAnim(dt);
+      this.updatePet(dt);
+    }
+
+    /* ---------------- companion gait ----------------
+       The pet used to be pinned to a fixed offset and driven off the hero's
+       lifetime clock, so it looked glued to the ground and only ever blinked.
+       It now has its own gait clock (idle row = sit/blink, run row = 6-frame
+       trot) and springs toward a follow slot behind the hero. */
+    updatePet(dt) {
+      const petId = NR.profile.pet;
+      if (!petId || this.dead) return;
+      const wisp = petId.indexOf("Wisp") >= 0;
+      const running = !wisp && this.onGround && Math.abs(this.vx) > 60;
+      const row = running ? 1 : 0;
+      if (row !== this.petRow) { this.petRow = row; this.petFrame = 0; this.petT = 0; }
+      const n = NR.char.petCount ? NR.char.petCount(petId, row) : 6;
+      const fps = row === 1 ? 6 + Math.abs(this.vx) / 55 : 3.4;
+      this.petT += dt * fps;
+      while (this.petT >= 1) { this.petT -= 1; this.petFrame = (this.petFrame + 1) % Math.max(1, n); }
+      // follow slot: just behind the hero, turning to face the way you travel
+      const wantX = this.x - this.facing * 56;
+      this.petX = U.damp(this.petX === undefined ? wantX : this.petX, wantX, 7, dt);
+      this.petY = U.damp(this.petY === undefined ? this.y : this.petY, this.y, this.onGround ? 9 : 4, dt);
+      if (Math.abs(this.vx) > 30) this.petFlip = this.vx < 0;
+      // doggy wardrobe: the hat / backpack overlays cycle while you play
+      if (NR.petWardrobe && petId.indexOf("doggy sheet") >= 0)
+        NR.petWear[petId] = Math.floor(this.t / 11) % 2 === 0 ? "hat" : "backpack";
     }
 
     control(dt, G) {
@@ -262,7 +295,7 @@
       const P = this.pose;
       const speedK = U.clamp(Math.abs(this.vx) / 430, 0, 1.4);
       P.x = this.x; P.y = this.y; P.facing = this.facing; P.trim=this.trim; P.cloak=this.cloak; P.character=this.character;
-      P.t = this.t; P.appearance = NR.profile.appearance;
+      P.t = this.t; P.appearance = this.look || NR.profile.appearance;
       P.runAmt = this.onGround ? speedK : 0;
       P.air = !this.onGround;
       P.vy = this.vy;
@@ -284,6 +317,40 @@
         P.attacking = false;
         P.swordAng = this.parryT>0 ? -1.3 : P.air ? -0.7 : (-0.35 + Math.sin(this.t * 2.2) * 0.08);
       }
+      P.anim = heroAnim(P);
+      if (P.animFrame === undefined) P.animFrame = 0;
+    }
+
+    /* Advance the body-layer animation clock. Frame rate scales with travel
+       speed so a sprint cycles the 8-frame run row faster than a slow walk
+       (this is what makes the legs actually move instead of skating). */
+    tickAnim(dt) {
+      const name = this.pose.anim || "idle";
+      if (name !== this.animName) {
+        // keep the cycle phase when swapping between the two locomotion rows so
+        // walk <-> run transitions do not snap back to frame 0
+        const loco = (n) => n === "walk" || n === "run";
+        if (!(loco(name) && loco(this.animName))) this.animFrame = 0;
+        this.animName = name;
+        this.animT = 0;
+      }
+      const speedK = U.clamp(Math.abs(this.vx) / 430, 0, 1.6);
+      const fps =
+        name === "run" ? 9 + speedK * 9 :
+        name === "walk" ? 7 + speedK * 5 :
+        name === "attack" ? 16 :
+        name === "hurt" ? 14 :
+        name === "jump" || name === "fall" ? 9 : 6.5;
+      const row = NR.char.ANIMS.indexOf(name);
+      const n = NR.char.FRAMES[row < 0 ? 0 : row] || 1;
+      this.animT += dt * fps;
+      while (this.animT >= 1) {
+        this.animT -= 1;
+        // one-shots hold their final frame until the state changes
+        if (name === "attack" || name === "hurt") { if (this.animFrame < n - 1) this.animFrame++; }
+        else this.animFrame = (this.animFrame + 1) % n;
+      }
+      this.pose.animFrame = this.animFrame;
     }
 
     /* ================== DRAW ================== */
@@ -319,14 +386,22 @@
       const blink = this.iframes > 0 && this.dashT <= 0 ? (Math.sin(this.t * 34) > 0 ? 0.45 : 1) : 1;
       // pet companion trots along behind the hero (pet art faces right natively)
       if (NR.profile.pet && !this.dead) {
-        const wisp = NR.profile.pet.indexOf("Wisp") >= 0;
+        const petId = NR.profile.pet;
+        const wisp = petId.indexOf("Wisp") >= 0;
         const pscale = wisp ? 2.2 : 2.1;
-        const running = Math.abs(this.vx) > 60;
+        const row = this.petRow | 0;
         const bob = wisp
           ? Math.sin(this.t * 4) * 10 - 40
-          : (running ? Math.abs(Math.sin(this.t * 11)) * -8 : 0);
-        NR.char.drawPet(ctx, NR.profile.pet, Math.floor(this.t * (running ? 12 : 7)),
-          this.x - this.facing * 52, this.y - 2 + bob, pscale, this.facing < 0, running ? 1 : 0);
+          : (row === 1 ? -Math.abs(Math.sin((this.petFrame + this.petT) * Math.PI / 3)) * 7 : 0);
+        // soft shadow so the companion reads as part of the scene
+        if (!wisp) {
+          ctx.save();
+          ctx.globalAlpha = 0.28; ctx.fillStyle = "#000";
+          ctx.beginPath(); ctx.ellipse(this.petX, this.petY + 3, 20, 5, 0, 0, U.TAU); ctx.fill();
+          ctx.restore();
+        }
+        NR.char.drawPet(ctx, petId, this.petFrame | 0, this.petX, this.petY - 2 + bob,
+          pscale, this.petFlip, row);
       }
       ctx.globalAlpha = blink;
       drawHero(ctx, P, {});
@@ -365,15 +440,20 @@
     if ((P.runAmt || 0) > 0.04) return "walk";
     return "idle";
   }
+  /* Frame index for the current row. Attacks follow the swing curve so the
+     blade lines up with the hit; every other row cycles with the anim clock
+     (this used to be pinned to 0, which made the hero skate while running). */
   function heroFrame(P) {
-    if (!P.attacking) return 0;
-    const p = U.clamp(P.atkP || 0, 0, 1);
-    return Math.min(5, Math.floor(p * 6));
+    if (P.attacking) {
+      const p = U.clamp(P.atkP || 0, 0, 1);
+      return Math.min(5, Math.floor(p * 6));
+    }
+    return P.animFrame | 0;
   }
   function drawHero(ctx, P, O) {
     const ghost = O.ghost;
     const built = NR.char.build(P.appearance || NR.profile.appearance);
-    const anim = heroAnim(P);
+    const anim = P.anim || heroAnim(P);
     const frame = heroFrame(P);
     if (!ghost) {
       ctx.save();

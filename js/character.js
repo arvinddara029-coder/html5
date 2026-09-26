@@ -28,20 +28,37 @@
   };
 
   function layerDraw(appearance, key, row, frame) {
+    // The special skins (demon / devil / ghost / orc / zombie) are full body
+    // layers: they REPLACE the base skin. Painting both hid the monster art
+    // completely, so the whole Special-skin pack looked unused in game.
+    if (key === "skin" && appearance.monster) return null;
     const id = appearance[key];
     if (!id) return null;
     const opt = (NR.catalog[key] || []).find((o) => o.id === id);
     if (!opt) return null;
     const img = NR.assets.get(opt.path);
-    if (!img) return null;
-    return { img, sx: frame * CW, sy: row * CH };
+    // `img` stays null until the layer decodes; the path lets build() know
+    // exactly which art to wait for instead of rebuilding on every load
+    return { img, path: opt.path, sx: frame * CW, sy: row * CH };
   }
 
-  /* Build (and cache) every animation frame for an appearance. */
+  /* Build (and cache) every animation frame for an appearance.
+     PERF: the cache used to be keyed on the global asset version, so every one
+     of the ~600 background-loaded images invalidated the hero and forced a full
+     45-canvas re-composite — hundreds of times per run, which is what made the
+     game stutter. We now only rebuild when a layer THIS look actually uses
+     finishes decoding (usually never, once the look is complete). */
   CH_.build = function (appearance) {
-    const key = hash(appearance) + "@v" + CH_.artVersion();
-    if (cache[key]) return cache[key];
-    const built = { anims: Object.create(null), ready: true, layers: 0, empty: true };
+    const key = hash(appearance);
+    const prev = cache[key];
+    if (prev && !prev.missing.length) return prev;
+    if (prev) {
+      let arrived = false;
+      for (const p of prev.missing) if (NR.assets.ready(p)) { arrived = true; break; }
+      if (!arrived) return prev;
+    }
+    const built = { anims: Object.create(null), ready: true, layers: 0, empty: true, missing: [] };
+    const seen = Object.create(null);
     for (let r = 0; r < ROWS; r++) {
       const anim = ANIMS[r];
       const n = FRAMES[r];
@@ -56,6 +73,8 @@
         for (const layer of ORDER) {
           const l = layerDraw(appearance, layer, r, f);
           if (!l) continue;
+          if (!l.img && !seen[l.path]) { seen[l.path] = 1; built.missing.push(l.path); }
+          if (!l.img) continue;
           try { g.drawImage(l.img, l.sx, l.sy, CW, CH, 0, 0, CW, CH); drew++; } catch (_) {}
         }
         cv._drew = drew;
@@ -65,16 +84,22 @@
       built.anims[anim] = frames;
     }
     built.empty = built.layers === 0;
-    cache[key] = built;
-    // keep the cache bounded: drop builds from older art versions
-    if (Object.keys(cache).length > 48) {
-      for (const k of Object.keys(cache)) if (!k.endsWith("@v" + CH_.artVersion())) delete cache[k];
+    // keep the cache bounded: once full, retire finished looks (not this one)
+    const keys = Object.keys(cache);
+    if (keys.length > 48) {
+      for (const k of keys) {
+        if (k === key) continue;
+        const b = cache[k];
+        if (b && !b.missing.length) { delete cache[k]; break; }
+      }
     }
+    cache[key] = built;
     return built;
   };
 
   CH_.has = function (appearance) {
-    return !!cache[hash(appearance) + "@v" + CH_.artVersion()];
+    const b = cache[hash(appearance)];
+    return !!b && !b.missing.length;
   };
 
   /* A hero placeholder that ALWAYS shows when the art set is not decoded yet.
@@ -184,38 +209,65 @@
   };
 
   /* ---------------- pets ----------------
-     Doggy & fox sheets are 2-row strips: row 0 = idle/walk, row 1 = run.
-     Wisp is a single 5-frame row. Slicing the full height doubled the pet. */
+     Doggy & fox sheets are 2-row strips: row 0 = idle (5 frames, the 6th cell is
+     blank), row 1 = run (6 frames). Wisp is a single 5-frame row. Slicing the
+     full height doubled the pet, so each row is sliced on its own. */
   const petCache = Object.create(null);
-  CH_.petFrames = function (petId, row) {
+  CH_.petFrames = function (petId, row, wear) {
     const r = row | 0;
-    const key = petId + "|" + r;
-    if (petCache[key]) return petCache[key];
     const opt = (NR.catalog.pet || []).find((o) => o.id === petId);
     if (!opt) return null;
-    const n = NR.petFrames[petId] || 6;
-    const rows = (NR.petRows && NR.petRows[petId]) || 1;
     const img = NR.assets.get(opt.path);
+    if (!img) {
+      // art not decoded yet: hand back placeholders but NEVER cache them, so the
+      // companion starts animating the moment the sheet lands
+      const blank = [];
+      for (let i = 0; i < (NR.petRowFramesFor ? NR.petRowFramesFor(petId, r) : 6); i++) {
+        const cv = document.createElement("canvas");
+        cv.width = 32; cv.height = 32;
+        blank.push(cv);
+      }
+      return blank;
+    }
+    const w = wear === undefined ? (NR.petWear && NR.petWear[petId]) || "" : wear;
+    // never cache a build made before the art decoded — that used to freeze the
+    // companion on a blank placeholder for the rest of the session
+    const key = petId + "|" + r + "|" + w + "@v" + CH_.artVersion();
+    if (petCache[key]) return petCache[key];
+    const rows = (NR.petRows && NR.petRows[petId]) || 1;
+    const total = NR.petFrames[petId] || 6;
+    const n = (NR.petRowFramesFor ? NR.petRowFramesFor(petId, r) : total) || total;
+    const rr = Math.min(r, rows - 1);
     const out = [];
     for (let i = 0; i < n; i++) {
       const cv = document.createElement("canvas");
-      if (img) {
-        const fw = img.width / n;
-        const fh = img.height / rows;
-        const rr = Math.min(r, rows - 1);
-        cv.width = fw; cv.height = fh;
-        cv.getContext("2d").drawImage(img, i * fw, rr * fh, fw, fh, 0, 0, fw, fh);
-      } else {
-        cv.width = 32; cv.height = 32; // placeholder keeps callers safe if art is missing
+      const fw = img.width / total;
+      const fh = img.height / rows;
+      cv.width = fw; cv.height = fh;
+      const g = cv.getContext("2d");
+      g.imageSmoothingEnabled = false;
+      g.drawImage(img, i * fw, rr * fh, fw, fh, 0, 0, fw, fh);
+      // optional wardrobe overlay (hat / backpack) aligned to the same cell
+      const over = w && NR.petWardrobe && NR.assets.get(NR.petWardrobe[w]);
+      if (over) {
+        const ow = over.width / total, oh = over.height / rows;
+        g.drawImage(over, i * ow, rr * oh, ow, oh, 0, 0, fw, fh);
       }
       out.push(cv);
     }
     petCache[key] = out;
+    // bound the cache: drop slices from older art versions
+    const keys = Object.keys(petCache);
+    if (keys.length > 24) for (const k of keys) if (!k.endsWith("@v" + CH_.artVersion())) delete petCache[k];
     return out;
+  };
+  CH_.petCount = function (petId, row) {
+    const f = CH_.petFrames(petId, row);
+    return f ? f.length : (NR.petRowFramesFor ? NR.petRowFramesFor(petId, row | 0) : 6);
   };
   CH_.drawPet = function (ctx, petId, frame, x, y, scale, flip, row) {
     const frames = CH_.petFrames(petId, row);
-    if (!frames) return;
+    if (!frames || !frames.length) return;
     const cv = frames[Math.abs(frame | 0) % frames.length];
     const s = scale || 1;
     const w = cv.width * s, h = cv.height * s;

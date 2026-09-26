@@ -7,12 +7,32 @@
   NR.view = { w: 1280, h: 940, scale: 1 };
   let dpr = 1;
 
-  /* error toast (helps even players report issues) */
+  /* ---------------- error reporting ----------------
+     A thrown error used to leave a permanent red box on screen saying only
+     "Script error" — no detail, no way to dismiss it, and it stayed there after
+     the game recovered. Now: the same message is reported once, the full stack
+     goes to the console, the box clears itself, and the loop keeps running. */
   const errBox = document.getElementById("errtoast");
-  window.addEventListener("error", (e) => {
+  let errHide = 0, lastErr = "", errCount = 0;
+  function reportError(label, err, where) {
+    const detail = err && (err.stack || err.message) ? err : new Error(String(err));
+    const msg = (err && err.message) || String(err);
+    const key = label + "|" + msg;
+    if (key === lastErr) { errCount++; return; }
+    lastErr = key; errCount = 1;
+    try { console.error("[SKYWARD] " + label, detail); } catch (_) {}
+    if (!errBox) return;
+    const file = where ? "\n" + where : (detail.stack ? "\n" + String(detail.stack).split("\n")[1].trim() : "");
+    errBox.textContent = "⚠ " + label + ": " + msg + file + "\nThe game keeps running — this note clears itself.";
     errBox.style.display = "block";
-    errBox.textContent = "⚠ " + (e.message || "unknown error") + (e.filename ? "\n" + e.filename.split("/").pop() + ":" + e.lineno : "");
+    clearTimeout(errHide);
+    errHide = setTimeout(() => { errBox.style.display = "none"; lastErr = ""; }, 14000);
+  }
+  NR.reportError = reportError;
+  window.addEventListener("error", (e) => {
+    reportError("Runtime error", e.error || e.message, e.filename ? e.filename.split("/").pop() + ":" + e.lineno : "");
   });
+  window.addEventListener("unhandledrejection", (e) => reportError("Async error", e.reason));
 
   function resize() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -103,13 +123,20 @@
     if (NR.input.justPressed("mute")) {
       NR.ui.toggleMute();
     }
-    const dt = G.state === "playing" ? G.effDt(rd) : rd;
-    if (G.state !== "loading") G.update(dt, rd);
-    if (G.state === "menu") NR.world.update(rd, NR.view); // ambient life behind menu
-    NR.audio.muted = !NR.audio.sfxOn && !NR.audio.musicOn;
-    NR.input.postUpdate();
-    NR.hub.update(now);
-    render();
+    // one bad frame must never take the whole game down: report it, drop the
+    // frame, and keep playing (the loop is already re-armed above)
+    try {
+      const dt = G.state === "playing" ? G.effDt(rd) : rd;
+      if (G.state !== "loading") G.update(dt, rd);
+      if (G.state === "menu") NR.world.update(rd, NR.view); // ambient life behind menu
+      NR.audio.muted = !NR.audio.sfxOn && !NR.audio.musicOn;
+      NR.input.postUpdate();
+      NR.hub.update(now);
+      render();
+    } catch (err) {
+      reportError("Frame error", err);
+      NR.input.postUpdate();
+    }
   }
 
   function render() {

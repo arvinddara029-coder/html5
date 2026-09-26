@@ -18,7 +18,7 @@
             finite(r.score) &&
             finite(r.duration, 1e6) &&
             finite(r.wave, 10000) &&
-            finite(r.chapter, 3) &&
+            finite(r.chapter, 12) &&
             ["adventure", "survival"].includes(r.mode) &&
             ["casual", "normal", "hard"].includes(r.difficulty) &&
             typeof r.name === "string" &&
@@ -171,7 +171,7 @@
         c.version !== 1 ||
         !Number.isInteger(c.chapter) ||
         c.chapter < 0 ||
-        c.chapter > 2 ||
+        c.chapter > Math.max(2, ((NR.adventure && NR.adventure.chapters.length) || 3) - 1) ||
         c.chapter > profile.unlocked ||
         !finite(c.x, 6800) ||
         c.x < 0 ||

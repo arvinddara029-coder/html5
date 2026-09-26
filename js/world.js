@@ -243,7 +243,8 @@
   function biomeFamily() {
     const adv = NR.adventure && NR.adventure.active;
     const ch = adv ? NR.game.chapter || 0 : 0;
-    return (NR.textureBiomes && NR.textureBiomes[Math.max(0, Math.min(2, ch))]) || "city";
+    const max = Object.keys(NR.textureBiomes || {}).length - 1;
+    return (NR.textureBiomes && NR.textureBiomes[Math.max(0, Math.min(max, ch % (max + 1)))]) || "city";
   }
   function biomeList(kind) {
     const t = NR.textures && NR.textures[biomeFamily() + kind];

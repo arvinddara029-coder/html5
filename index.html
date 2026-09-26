@@ -298,7 +298,7 @@
       <p class="over-sub" id="new-high" style="display:none">◆ NEW HIGH SCORE ◆</p>
       <div class="stats-grid">
         <div class="stat"><span class="stat-v" id="st-score">0</span><span class="stat-l">SCORE</span></div>
-        <div class="stat"><span class="stat-v" id="st-wave">0</span><span class="stat-l">WAVE</span></div>
+        <div class="stat"><span class="stat-v" id="st-wave">0</span><span class="stat-l" id="st-wave-label">WAVE</span></div>
         <div class="stat"><span class="stat-v" id="st-kills">0</span><span class="stat-l">KILLS</span></div>
         <div class="stat"><span class="stat-v" id="st-combo">0</span><span class="stat-l">MAX COMBO</span></div>
         <div class="stat"><span class="stat-v" id="st-time">0:00</span><span class="stat-l">SURVIVED</span></div>
@@ -340,10 +340,11 @@
 
 <script src="js/utils.js"></script>
 <script src="js/assetlib.js"></script>
+<!-- roster loads before the profile so saved operator ids can be validated -->
+<script src="js/characters.js"></script>
 <script src="js/profile.js"></script>
 <script src="js/economy.js"></script>
 <script src="js/character.js"></script>
-<script src="js/characters.js"></script>
 <script src="js/progression.js"></script>
 <script src="js/atlas.js"></script>
 <script src="js/audio.js"></script>

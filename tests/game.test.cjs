@@ -92,11 +92,11 @@ function engine(seed = {}) {
   for (const name of [
     "utils",
     "assetlib",
+    "characters",
     "profile",
     "economy",
     "progression",
     "save-transfer",
-    "characters",
     "character",
     "input",
     "audio",

@@ -120,8 +120,13 @@
   /* ---------------- game over ---------------- */
   ui.showGameOver = function (G, newHigh) {
     $("st-score").textContent = U.fmt(G.score);
-    $("st-wave").textContent = G.mode === "adventure" ? (G.chapter+1)+" / 3" : G.wave;
-    $("st-wave").nextElementSibling.textContent = G.mode === "adventure" ? "CHAPTER" : "WAVE";
+    const total = (NR.adventure && NR.adventure.chapters.length) || 3;
+    const waveEl = $("st-wave");
+    if (waveEl) waveEl.textContent = G.mode === "adventure" ? (G.chapter + 1) + " / " + total : G.wave;
+    // label swap used to walk to nextElementSibling unguarded — a markup change
+    // there threw on the death screen ("script error")
+    const labelEl = $("st-wave-label") || (waveEl && waveEl.nextElementSibling);
+    if (labelEl) labelEl.textContent = G.mode === "adventure" ? "CHAPTER" : "WAVE";
     $("st-kills").textContent = G.stats.kills;
     $("st-combo").textContent = "x" + G.stats.maxCombo;
     $("st-time").textContent = U.fmtTime(G.time);

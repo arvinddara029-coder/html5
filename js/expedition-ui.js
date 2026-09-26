@@ -27,7 +27,7 @@
     on("btn-retry-checkpoint", () => NR.game.start({ resume: true }));
     on("btn-next-chapter", () => {
       P.mode = "adventure";
-      P.chapter = Math.min(2, NR.game.chapter + 1);
+      P.chapter = Math.min(NR.adventure.chapters.length - 1, NR.game.chapter + 1);
       NR.saveProfile();
       NR.game.start({ chapter: P.chapter });
     });
@@ -200,20 +200,21 @@
   };
   X.showVictory = function (G) {
     const A = NR.adventure;
+    const last = NR.adventure.chapters.length - 1;
     const vt = $("victory-title");
-    if (vt) vt.textContent = G.chapter === 2 ? "PROTOCOL ZERO: BROKEN" : "CHAPTER COMPLETE";
+    if (vt) vt.textContent = G.chapter >= last ? "PROTOCOL PRIME: BROKEN" : "CHAPTER COMPLETE";
     const vs = $("victory-story");
     if (vs) vs.textContent =
-      G.chapter === 2
-        ? "The reactor is silent. For the first time in years, the city belongs to its people. Your story is now part of it."
+      G.chapter >= last
+        ? "The spire is dark and the protocol is finished. For the first time in years the city belongs to its people — and every route you opened stays open."
         : `${A.chapter.name} is back online. A new route has opened beyond the wall.`;
     const caches = A.caches.filter((c) => c.open).length,
       shards = A.shards.filter((s) => s.collected).length;
     const vstats = $("victory-stats");
     if (vstats) vstats.innerHTML =
-      `<div><strong>${NR.util.fmt(G.score)}</strong><span>SCORE</span></div><div><strong>${NR.util.fmtTime(G.time)}</strong><span>TIME</span></div><div><strong>${caches}/4</strong><span>CACHES</span></div><div><strong>${shards}/16</strong><span>SHARDS</span></div>`;
+      `<div><strong>${NR.util.fmt(G.score)}</strong><span>SCORE</span></div><div><strong>${NR.util.fmtTime(G.time)}</strong><span>TIME</span></div><div><strong>${caches}/4</strong><span>CACHES</span></div><div><strong>${shards}/${A.shards.length}</strong><span>SHARDS</span></div>`;
     const bn = $("btn-next-chapter");
-    if (bn) bn.hidden = G.chapter >= 2;
+    if (bn) bn.hidden = G.chapter >= NR.adventure.chapters.length - 1;
     NR.ui.show("victory");
   };
 })();
