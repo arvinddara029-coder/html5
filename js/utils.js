@@ -35,15 +35,46 @@ window.NR = window.NR || {};
   U.fmt = (n) => String(Math.floor(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   U.fmtTime = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
-  /* -------- asset preloader -------- */
+  /* -------- asset preloader (legacy + string-path tolerant) -------- */
   const imgs = {};
+  const enc = (p) => p.split("/").map(encodeURIComponent).join("/");
   U.assets = {
     imgs,
-    get: (n) => imgs[n],
+    get: (n) => {
+      if (imgs[n]) return imgs[n];
+      // fallback to the main asset lib so callers using either system still find images
+      try {
+        if (window.NR && NR.assets && NR.assets.get) {
+          const v = NR.assets.get(n);
+          if (v) return v;
+          if (n === "industrial") {
+            const ind = NR.assets.get("kenney/platformIndustrial_sheet.png");
+            if (ind) return ind;
+          }
+          // also try with .jpg extension for bg_* shortcuts
+          if (!n.includes(".")) {
+            const withJpg = NR.assets.get(n + ".jpg");
+            if (withJpg) return withJpg;
+            const withPng = NR.assets.get(n + ".png");
+            if (withPng) return withPng;
+          }
+        }
+      } catch (_) {}
+      return null;
+    },
     load(list, onprog) {
       let done = 0;
       const tick = () => { done++; onprog && onprog(done / list.length); };
-      return Promise.all(list.map((it) => new Promise((res) => {
+      const normalized = (list || []).map((it) => {
+        if (typeof it === "string") {
+          return { name: it, src: enc("assets/" + it) };
+        }
+        if (it && typeof it === "object" && it.path) {
+          return { name: it.path, src: enc("assets/" + it.path) };
+        }
+        return it;
+      });
+      return Promise.all(normalized.map((it) => new Promise((res) => {
         const im = new Image();
         im.onload = () => { imgs[it.name] = im; tick(); res(); };
         im.onerror = () => { tick(); res(); };

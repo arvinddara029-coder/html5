@@ -93,8 +93,15 @@
     ctx.fillStyle = g;
     ctx.fillRect(cam.x - 60, cam.y - 60, view.w + 120, view.h + 120);
 
-    // far AI-generated cityscape (parallax 0.18), tiled
-    const img = U.assets.get(scenic ? "bg_"+biome : day ? "bg_day" : "bg_far");
+    // far AI-generated cityscape (parallax 0.18), tiled - supports both asset systems
+    let img = null;
+    try {
+      const keyJpg = scenic ? 'bg_'+biome+'.jpg' : day ? 'bg_day.jpg' : 'bg_far.jpg';
+      const keyShort = scenic ? 'bg_'+biome : day ? 'bg_day' : 'bg_far';
+      img = (NR.assets && NR.assets.get && (NR.assets.get(keyJpg) || NR.assets.get(keyShort))) || U.assets.get(keyJpg) || U.assets.get(keyShort);
+    } catch (_) {
+      img = U.assets.get(scenic ? 'bg_'+biome : day ? 'bg_day' : 'bg_far');
+    }
     if (img) {
       const f = 0.18;
       const drawH = view.h * (day || scenic ? 1.08 : 0.9);

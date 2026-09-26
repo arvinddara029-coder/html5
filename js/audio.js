@@ -50,7 +50,7 @@
     clip.play().catch(()=>A.play('pickup'));
   };
   A.setVolumes = function(){
-    if(musG)musG.gain.setTargetAtTime(A.musicOn?.84*NR.profile.musicVolume:0,ctx.currentTime,.05);
+    if(musG)musG.gain.setTargetAtTime(A.musicOn ? 0.84*NR.profile.musicVolume : 0,ctx.currentTime,.05);
     if(sfxG)sfxG.gain.setTargetAtTime(A.sfxOn?1.2*NR.profile.sfxVolume:0,ctx.currentTime,.05);
     Object.values(samplePools).flat().forEach(a=>{a.volume=A.sfxOn?NR.profile.sfxVolume*.55:0;});
   };
