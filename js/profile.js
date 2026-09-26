@@ -1,0 +1,149 @@
+/* Device-local preferences. No backend, requests, accounts or telemetry. */
+(function () {
+  const memory = {};
+  NR.store = {
+    persistent: true,
+    getItem(key) {
+      if (Object.prototype.hasOwnProperty.call(memory, key)) return memory[key];
+      try {
+        return localStorage.getItem(key);
+      } catch (_) {
+        this.persistent = false;
+        return null;
+      }
+    },
+    setItem(key, value) {
+      memory[key] = String(value);
+      try {
+        localStorage.setItem(key, String(value));
+        return true;
+      } catch (_) {
+        this.persistent = false;
+        return false;
+      }
+    },
+  };
+  let saved;
+  try {
+    saved = JSON.parse(NR.store.getItem("nr_profile") || "{}");
+  } catch (_) {
+    saved = {};
+  }
+  NR.profile = Object.assign(
+    {
+      name: "RONIN_01",
+      tactical: "shield",
+      world: "night",
+      difficulty: "normal",
+      shake: !matchMedia("(prefers-reduced-motion: reduce)").matches,
+      controls: true,
+      bestWave: 0,
+      runs: 0,
+      mode: "adventure",
+      character: "ronin",
+      chapter: 0,
+      unlocked: 0,
+      totalKills: 0,
+      musicVolume: 0.5,
+      sfxVolume: 0.7,
+    },
+    saved && typeof saved === "object" ? saved : {},
+  );
+  const P = NR.profile;
+  for (const key of ["shake", "controls"])
+    if (typeof P[key] !== "boolean") P[key] = true;
+  if (
+    !["shield", "pulse", "heal", "overdrive", "chrono", "drone"].includes(
+      P.tactical,
+    )
+  )
+    P.tactical = "shield";
+  if (!["day", "night"].includes(P.world)) P.world = "night";
+  if (!["casual", "normal", "hard"].includes(P.difficulty))
+    P.difficulty = "normal";
+  if (!/^[a-zA-Z0-9_]{3,16}$/.test(P.name)) P.name = "RONIN_01";
+  if (!["adventure", "survival"].includes(P.mode)) P.mode = "adventure";
+  if (!["ronin", "kestrel", "titan"].includes(P.character))
+    P.character = "ronin";
+  for (const key of ["chapter", "unlocked"])
+    P[key] = Math.max(0, Math.min(2, Math.floor(Number(P[key]) || 0)));
+  P.chapter = Math.min(P.chapter, P.unlocked);
+  for (const key of ["totalKills", "bestWave", "runs"])
+    P[key] = Math.max(0, Math.min(10000000, Math.floor(Number(P[key]) || 0)));
+  for (const key of ["musicVolume", "sfxVolume"])
+    P[key] = Math.max(0, Math.min(1, Number(P[key]) || 0));
+  NR.saveProfile = () => NR.store.setItem("nr_profile", JSON.stringify(P));
+  NR.powers = [
+    {
+      id: "shield",
+      icon: "shield",
+      name: "Aegis Shield",
+      short: "AEGIS",
+      color: "#baafff",
+      type: "DEFENSE",
+      cooldown: 16,
+      summary: "Become untouchable. Hold your ground.",
+      description:
+        "A 3-second energy shield blocks all incoming damage. 16s cooldown.",
+    },
+    {
+      id: "pulse",
+      icon: "target",
+      name: "Shock Pulse",
+      short: "PULSE",
+      color: "#f4bc7b",
+      type: "AREA DAMAGE",
+      cooldown: 12,
+      summary: "One pulse. Send the whole horde flying.",
+      description:
+        "Deal 45 damage and knock back every enemy within 380 units. 12s cooldown.",
+    },
+    {
+      id: "heal",
+      icon: "heart",
+      name: "Nano Repair",
+      short: "REPAIR",
+      color: "#9adea9",
+      type: "RECOVERY",
+      cooldown: 24,
+      summary: "A second chance, built into your armor.",
+      description:
+        "Restore 35 health instantly. Cannot be wasted at full health. 24s cooldown.",
+    },
+    {
+      id: "overdrive",
+      icon: "bolt",
+      name: "Overdrive",
+      short: "DRIVE",
+      color: "#87c9ef",
+      type: "DAMAGE BOOST",
+      cooldown: 20,
+      summary: "Push your blade beyond its limits.",
+      description: "Double your katana damage for 5 seconds. 20s cooldown.",
+    },
+    {
+      id: "chrono",
+      icon: "sun",
+      name: "Chrono Field",
+      short: "CHRONO",
+      color: "#eec887",
+      type: "TIME CONTROL",
+      cooldown: 22,
+      summary: "Slow enemies. Take back the initiative.",
+      description:
+        "Slow enemy actions and bolts to 35% speed for 5 seconds. 22s cooldown.",
+    },
+    {
+      id: "drone",
+      icon: "grid",
+      name: "Arc Companion",
+      short: "DRONE",
+      color: "#83d7ec",
+      type: "SUPPORT",
+      cooldown: 24,
+      summary: "An airborne ally that never misses.",
+      description:
+        "Summon an 8-second companion. Fires 13-damage pulses at nearby enemies every 0.5s. 24s cooldown.",
+    },
+  ];
+})();

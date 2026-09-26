@@ -2,10 +2,12 @@
 (function () {
   const U = NR.util;
   const $ = (id) => document.getElementById(id);
-  const SCREENS = ["load", "menu", "how", "set", "pause", "up", "over"];
+  const SCREENS = ["load", "menu", "how", "set", "pause", "up", "over", "armory", "records", "operators", "victory", "credits"];
   const ui = (NR.ui = {});
 
   ui.show = function (name) {
+    NR.input.reset();
+    document.body.classList.toggle("playing", name === null && NR.game?.state === "playing");
     for (const s of SCREENS) $("scr-" + s).classList.toggle("active", s === name);
   };
   ui.hideAll = () => ui.show(null);
@@ -37,12 +39,17 @@
       sx.textContent = NR.audio.sfxOn ? "ON" : "OFF";
       mu.classList.toggle("on", NR.audio.musicOn);
       sx.classList.toggle("on", NR.audio.sfxOn);
+      mu.setAttribute('aria-pressed', NR.audio.musicOn); sx.setAttribute('aria-pressed', NR.audio.sfxOn);
+      const audible = NR.audio.sfxOn || NR.audio.musicOn;
+      $('game-mute').setAttribute('aria-label', audible ? 'Mute audio' : 'Unmute audio');
+      $('game-mute').style.opacity = audible ? '1' : '.5';
     };
+    ui.syncAudio = syncTgl;
     mu.classList.add("on"); sx.classList.add("on");
-    mu.addEventListener("click", () => { NR.audio.init(); NR.audio.toggleMusic(!NR.audio.musicOn); localStorage.setItem("nr_music", NR.audio.musicOn ? 1 : 0); syncTgl(); });
-    sx.addEventListener("click", () => { NR.audio.init(); NR.audio.toggleSfx(!NR.audio.sfxOn); localStorage.setItem("nr_sfx", NR.audio.sfxOn ? 1 : 0); syncTgl(); NR.audio.play("ui"); });
-    if (localStorage.getItem("nr_music") === "0") NR.audio.musicOn = false;
-    if (localStorage.getItem("nr_sfx") === "0") NR.audio.sfxOn = false;
+    mu.addEventListener("click", () => { NR.audio.init(); NR.audio.toggleMusic(!NR.audio.musicOn); NR.store.setItem("nr_music", NR.audio.musicOn ? 1 : 0); syncTgl(); });
+    sx.addEventListener("click", () => { NR.audio.init(); NR.audio.toggleSfx(!NR.audio.sfxOn); NR.store.setItem("nr_sfx", NR.audio.sfxOn ? 1 : 0); syncTgl(); NR.audio.play("ui"); });
+    if (NR.store.getItem("nr_music") === "0") NR.audio.musicOn = false;
+    if (NR.store.getItem("nr_sfx") === "0") NR.audio.sfxOn = false;
     syncTgl();
 
     // audio unlock on first interaction
@@ -50,26 +57,26 @@
     window.addEventListener("pointerdown", unlock, { passive: true });
     window.addEventListener("keydown", unlock);
 
-    // hero art parallax tilt
-    const frame = $("hero-frame"), hero = $("hero-img");
-    window.addEventListener("mousemove", (e) => {
-      if (!frame) return;
-      const nx = e.clientX / window.innerWidth - 0.5, ny = e.clientY / window.innerHeight - 0.5;
-      frame.style.transform = `perspective(900px) rotateY(${-4 + nx * 7}deg) rotateX(${-ny * 5}deg)`;
-      hero.style.transform = `translate(${nx * -14}px, ${ny * -10}px) scale(1.06)`;
-    });
-
-    // touch controls
-    if ("ontouchstart" in window || navigator.maxTouchPoints > 0) {
-      document.body.classList.add("touch");
-      document.querySelectorAll(".tbtn").forEach((el) => NR.input.bindTouchButton(el));
-    }
+    // Every visible control supports mouse and multi-touch.
+    if ("ontouchstart" in window || navigator.maxTouchPoints > 0) document.body.classList.add("touch");
+    document.querySelectorAll(".tbtn").forEach(el => NR.input.bindTouchButton(el));
+    NR.hub.init();
 
     ui.refreshHigh();
   };
 
+  ui.toggleMute = function () {
+    const on = !(NR.audio.sfxOn || NR.audio.musicOn);
+    NR.audio.toggleMusic(on); NR.audio.toggleSfx(on);
+    NR.store.setItem('nr_music', on ? 1 : 0); NR.store.setItem('nr_sfx', on ? 1 : 0);
+    for (const id of ['tgl-music', 'tgl-sfx']) { $(id).textContent = on ? 'ON' : 'OFF'; $(id).classList.toggle('on', on); }
+    $('game-mute').setAttribute('aria-label', on ? 'Mute audio' : 'Unmute audio');
+    $('game-mute').style.opacity = on ? '1' : '.5';
+  };
+
   ui.refreshHigh = function () {
     $("menu-high").textContent = U.fmt(NR.game.high || 0);
+    $("menu-wave").textContent = NR.profile.bestWave || "—";
   };
 
   /* ---------------- upgrade cards ---------------- */
@@ -79,17 +86,18 @@
     const wrap = $("cards");
     wrap.innerHTML = "";
     defs.forEach((d) => {
-      const el = document.createElement("div");
+      const el = document.createElement("button");
       el.className = "card " + d.rar;
       el.innerHTML = `<span class="c-ico">${d.ico}</span>
         <div class="c-name">${d.name}</div>
         <div class="c-desc">${d.desc}</div>
         <span class="c-rar">${NR.upgrades.rarityLabel[d.rar]}</span>`;
       el.addEventListener("click", () => {
+        if (G.state !== "upgrade") return;
         d.apply(G.player);
         NR.audio.play("upgrade");
-        ui.hideAll();
         G.closeUpgrade();
+        ui.hideAll();
       });
       wrap.appendChild(el);
     });
@@ -98,7 +106,8 @@
   /* ---------------- game over ---------------- */
   ui.showGameOver = function (G, newHigh) {
     $("st-score").textContent = U.fmt(G.score);
-    $("st-wave").textContent = G.wave;
+    $("st-wave").textContent = G.mode === "adventure" ? (G.chapter+1)+" / 3" : G.wave;
+    $("st-wave").nextElementSibling.textContent = G.mode === "adventure" ? "CHAPTER" : "WAVE";
     $("st-kills").textContent = G.stats.kills;
     $("st-combo").textContent = "x" + G.stats.maxCombo;
     $("st-time").textContent = U.fmtTime(G.time);
@@ -129,9 +138,13 @@
     const p = G.player;
     ctx.save();
     ctx.textBaseline = "middle";
+    const shade = ctx.createLinearGradient(0, 0, 0, 150);
+    shade.addColorStop(0, 'rgba(5,12,20,.85)'); shade.addColorStop(1, 'rgba(5,12,20,0)');
+    ctx.fillStyle = shade; ctx.fillRect(0, 0, W, 150);
 
     /* ---- health ---- */
-    const hx = 22, hy = 22, hw = Math.min(300, W * 0.32), hh = 17;
+    const compact = W < 650;
+    const hx = compact ? 16 : 22, hy = 20, hw = Math.min(280, W * (compact ? 0.42 : 0.27)), hh = 17;
     barBG(ctx, hx, hy, hw, hh);
     const hpK = U.clamp(p.hp / p.maxHp, 0, 1);
     // ghost damage bar
@@ -158,7 +171,7 @@
     const full = ek >= 1;
     ctx.fillStyle = full ? "#bafffb" : "#00fff4";
     ctx.fillRect(hx + 2, ey + 2, (ew - 4) * ek, eh - 4);
-    if (full) {
+    if (full && !compact) {
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
       NR.sprites.drawGlow(ctx, "cyan", hx + ew / 2, ey + eh / 2, 40 + Math.sin(performance.now() / 90) * 10, 0.65);
@@ -183,12 +196,12 @@
 
     /* ---- score ---- */
     ctx.textAlign = "right";
-    ctx.font = "900 26px Orbitron";
+    ctx.font = `700 ${compact ? 23 : 28}px "Barlow Condensed"`;
     ctx.fillStyle = "#fff";
     ctx.shadowColor = "rgba(0,255,244,0.7)"; ctx.shadowBlur = 14;
     ctx.fillText(U.fmt(G.score), W - 22, 30);
     ctx.shadowBlur = 0;
-    ctx.font = "600 11px Orbitron"; ctx.fillStyle = "#637ea9";
+    ctx.font = `500 ${compact ? 8 : 10}px "DM Sans"`; ctx.fillStyle = "#9baeb0";
     ctx.fillText("SCORE · BEST " + U.fmt(Math.max(G.high, G.score)), W - 22, 52);
 
     /* ---- wave ---- */
@@ -196,7 +209,7 @@
     ctx.font = "900 15px Orbitron";
     ctx.fillStyle = "#8fb0e8";
     const alive = G.enemies.length + G.spawnQueue.length;
-    ctx.fillText(G.bossActive ? "⚠ BOSS ⚠" : `WAVE ${G.wave}  ·  HOSTILES ${alive}`, W / 2, 26);
+    if (!compact) ctx.fillText(G.bossActive ? "⚠ BOSS ⚠" : ` ${G.mode === "adventure" ? "CHAPTER "+(G.chapter+1) : "WAVE "+G.wave}  ·  HOSTILES ${alive}`, W / 2, 26);
 
     /* ---- combo ---- */
     if (G.combo > 1) {
@@ -223,7 +236,7 @@
     /* ---- boss bar ---- */
     if (G.bossActive && G.bossRef) {
       const b = G.bossRef;
-      const bw = Math.min(560, W * 0.6), bx = W / 2 - bw / 2, by = 46;
+      const bw = Math.min(560, W * 0.6), bx = W / 2 - bw / 2, by = compact ? (G.mode === "adventure" ? 226 : 155) : 49;
       ctx.fillStyle = "rgba(5,8,18,0.8)";
       ctx.fillRect(bx - 3, by - 3, bw + 6, 18);
       const bk = U.clamp(b.hp / b.maxHp, 0, 1);
@@ -244,16 +257,19 @@
       ctx.globalAlpha = Math.min(aIn, aOut);
       const sc = U.ease.outBack(U.clamp(bn.t / 0.3, 0, 1));
       ctx.save();
-      ctx.translate(W / 2, H * 0.32);
+      ctx.translate(W / 2, H<530 && W>H ? Math.max(168,H*.44) : H * 0.32);
       ctx.scale(sc, sc);
-      ctx.font = "900 54px Orbitron";
+      ctx.font = `700 ${Math.min(54, W / 13)}px "Barlow Condensed"`;
+      const labelWidth = Math.min(W * .94, Math.max(ctx.measureText(bn.text).width, bn.sub.length * 7) + 44);
+      ctx.fillStyle = 'rgba(6,15,25,.72)';
+      U.roundRect(ctx, -labelWidth/2, -34, labelWidth, bn.sub ? 91 : 62, 6); ctx.fill();
       ctx.shadowColor = bn.col; ctx.shadowBlur = 26;
       ctx.fillStyle = bn.col;
       ctx.fillText(bn.text, 0, 0);
       if (bn.sub) {
         ctx.font = "600 18px Rajdhani";
         ctx.fillStyle = "#dfe9ff"; ctx.shadowBlur = 8;
-        ctx.fillText(bn.sub, 0, 42);
+        ctx.fillText(bn.sub, 0, 36, W * 0.88);
       }
       ctx.restore();
     }

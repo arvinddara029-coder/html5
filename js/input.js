@@ -11,6 +11,10 @@
     attack: ["KeyJ", "KeyX"],
     dash: ["KeyK", "ShiftLeft", "ShiftRight"],
     special: ["KeyL", "KeyC"],
+    tactical: ["KeyE"],
+    parry: ["KeyQ"],
+    kunai: ["KeyR"],
+    interact: ["KeyF"],
     pause: ["Escape", "KeyP"],
     mute: ["KeyM"],
   };
@@ -27,11 +31,13 @@
   I.justPressed = (a) => !!I.pressed[a];
   I.axis = () => (I.down("right") ? 1 : 0) - (I.down("left") ? 1 : 0);
   I.postUpdate = () => { I.pressed = {}; };
-  I.reset = () => { I.keys = {}; I.touch = {}; I.mouse.l = I.mouse.r = false; };
+  I.reset = () => { I.keys = {}; I.touch = {}; I.pressed = {}; I.mouse.l = I.mouse.r = false; document.querySelectorAll(".held").forEach(el => el.classList.remove("held")); };
 
   function fireAction(action) { I.pressed[action] = true; }
 
   window.addEventListener("keydown", (e) => {
+    if (e.target.matches("input, textarea, select")) return;
+    if (NR.game?.state !== "playing" && NR.game?.state !== "pause") return;
     if (GAME_KEYS.has(e.code)) e.preventDefault();
     if (e.repeat) return;
     I.keys[e.code] = true;
@@ -43,7 +49,7 @@
 
   window.addEventListener("mousemove", (e) => { I.mouse.x = e.clientX; I.mouse.y = e.clientY; });
   window.addEventListener("mousedown", (e) => {
-    if (e.target.closest("#ui") || e.target.closest("#touch")) return; // let UI buttons work
+    if (e.target.closest("#ui, #touch, #play-tools, button, input")) return; // let UI buttons work
     if (e.button === 0) { I.mouse.l = true; fireAction("attack"); }
     if (e.button === 2) { I.mouse.r = true; fireAction("special"); }
   });
@@ -56,11 +62,20 @@
   /* touch buttons (bound by ui.js) */
   I.bindTouchButton = function (el) {
     const act = el.dataset.act;
-    const on = (e) => { e.preventDefault(); I.touch[act] = true; fireAction(act); };
-    const off = (e) => { e.preventDefault(); I.touch[act] = false; };
+    const pointers = new Set();
+    const on = (e) => {
+      if (NR.game?.state !== "playing") return;
+      e.preventDefault(); el.setPointerCapture(e.pointerId); pointers.add(e.pointerId);
+      I.touch[act] = true; fireAction(act); el.classList.add("held");
+    };
+    const off = (e) => {
+      pointers.delete(e.pointerId);
+      if (!pointers.size) { I.touch[act] = false; el.classList.remove("held"); }
+    };
+    el.addEventListener("click", e => { if (e.detail === 0 && NR.game?.state === "playing") fireAction(act); });
     el.addEventListener("pointerdown", on);
     el.addEventListener("pointerup", off);
     el.addEventListener("pointercancel", off);
-    el.addEventListener("pointerleave", off);
+    el.addEventListener("lostpointercapture", off);
   };
 })();

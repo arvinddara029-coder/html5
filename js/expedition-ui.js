@@ -1,0 +1,251 @@
+/* Static-only mission selection, operator roster, archive and expedition HUD. */
+(function () {
+  const $ = (id) => document.getElementById(id),
+    P = NR.profile;
+  const icon = (name) =>
+    `<svg class="ico" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+  const X = (NR.expeditionUI = { recordFilter: "all" });
+  X.init = function () {
+    const on = (id, fn) => $(id).addEventListener("click", fn);
+    document.querySelectorAll("[data-mode]").forEach((b) =>
+      b.addEventListener("click", () => {
+        P.mode = b.dataset.mode;
+        NR.saveProfile();
+        X.refresh();
+        NR.audio.play("ui");
+      }),
+    );
+    on("btn-operators", () => {
+      X.renderOperators();
+      NR.ui.show("operators");
+    });
+    on("btn-operators-back", () => NR.ui.show("menu"));
+    on("btn-continue", () => NR.game.start({ resume: true }));
+    on("btn-retry-checkpoint", () => NR.game.start({ resume: true }));
+    on("btn-next-chapter", () => {
+      P.mode = "adventure";
+      P.chapter = Math.min(2, NR.game.chapter + 1);
+      NR.saveProfile();
+      NR.game.start({ chapter: P.chapter });
+    });
+    on("btn-victory-menu", () => NR.game.toMenu());
+    on("btn-credits", () => NR.ui.show("credits"));
+    on("btn-credits-back", () => NR.ui.show("set"));
+    on("interaction-prompt", () => {
+      if (NR.game.state === "playing") NR.input.pressed.interact = true;
+    });
+    document.querySelectorAll("[data-record-filter]").forEach((b) =>
+      b.addEventListener("click", () => {
+        X.recordFilter = b.dataset.recordFilter;
+        X.showRecords();
+      }),
+    );
+    for (const [id, key] of [
+      ["music-volume", "musicVolume"],
+      ["sfx-volume", "sfxVolume"],
+    ]) {
+      $(id).value = Math.round(P[key] * 100);
+      $(id).addEventListener("input", () => {
+        P[key] = Number($(id).value) / 100;
+        NR.audio.setVolumes();
+        NR.saveProfile();
+      });
+    }
+    NR.saveTransfer.init();
+    X.refresh();
+  };
+  X.refresh = function () {
+    const chapter = NR.adventure.chapters[P.chapter],
+      c = NR.characters.find((c) => c.id === P.character),
+      adv = P.mode === "adventure";
+    $("selected-operator").textContent = c.name;
+    $("selected-portrait").src = `assets/operators/${c.id}.svg`;
+    document.querySelectorAll("[data-mode]").forEach((b) => {
+      b.classList.toggle("selected", b.dataset.mode === P.mode);
+      b.setAttribute("aria-pressed", b.dataset.mode === P.mode);
+    });
+    $("campaign-route").hidden = !adv;
+    $("brief-title").textContent = adv
+      ? "Go beyond the neon."
+      : "Survive the uprising.";
+    $("brief-description").textContent = adv
+      ? chapter.description
+      : "Endless waves. Escalating enemies. A boss every five waves. Make every strike count.";
+    $("brief-operation").textContent = adv
+      ? "Side-scrolling adventure"
+      : "Endless wave survival";
+    $("brief-detail-label").textContent = adv
+      ? "MISSION GOAL"
+      : "BOSS ENCOUNTER";
+    $("brief-detail").textContent = adv
+      ? "3 relays + extraction"
+      : "Every 5 waves";
+    document.querySelector(".hero-tags").innerHTML = adv
+      ? "<span>3 CHAPTERS</span><span>EXPLORATION</span><span>SOLO</span>"
+      : "<span>ROGUELITE</span><span>WAVE SURVIVAL</span><span>SOLO</span>";
+    document.querySelector(".chapter-label").innerHTML = adv
+      ? `<i></i> CHAPTER ${String(P.chapter + 1).padStart(2, "0")}`
+      : "<i></i> ENDLESS SURVIVAL";
+    $("campaign-completion").textContent =
+      `CHAPTER ${String(P.chapter + 1).padStart(2, "0")} / 03`;
+    const cp = NR.checkpoint.get();
+    $("btn-continue").hidden = !cp || !adv;
+    $("btn-retry-checkpoint").hidden = !cp || NR.game.mode !== "adventure";
+    if (cp)
+      $("btn-continue").textContent =
+        `↳ CONTINUE · ${NR.adventure.chapters[cp.chapter].short.toUpperCase()} · RELAY ${cp.relays.length}/3`;
+    const active = document.activeElement?.dataset.chapter;
+    $("chapter-options").replaceChildren(
+      ...NR.adventure.chapters.map((ch) => {
+        const b = document.createElement("button"),
+          locked = ch.id > P.unlocked;
+        b.className =
+          "chapter-card chapter-" +
+          ch.biome +
+          (P.chapter === ch.id ? " selected" : "");
+        b.dataset.chapter = ch.id;
+        b.disabled = locked;
+        b.setAttribute("aria-pressed", P.chapter === ch.id);
+        b.innerHTML = `<span class="chapter-num">0${ch.id + 1}</span><span class="chapter-copy"><small>${ch.district}</small><strong>${ch.short}</strong><em>${locked ? "COMPLETE PREVIOUS CHAPTER" : P.chapter === ch.id ? "SELECTED DESTINATION" : "EXPLORE CHAPTER"}</em></span>${icon(locked ? "shield" : "arrow")}`;
+        b.addEventListener("click", () => {
+          P.chapter = ch.id;
+          NR.saveProfile();
+          X.refresh();
+        });
+        return b;
+      }),
+    );
+    if (active !== undefined)
+      $("chapter-options")
+        .querySelector(`[data-chapter="${active}"]`)
+        ?.focus({ preventScroll: true });
+  };
+  X.renderOperators = function () {
+    const focused = document.activeElement?.dataset.operator;
+    $("operator-options").replaceChildren(
+      ...NR.characters.map((c) => {
+        const b = document.createElement("button");
+        b.className =
+          "operator-card" + (P.character === c.id ? " selected" : "");
+        b.dataset.operator = c.id;
+        b.style.setProperty("--operator-color", c.color);
+        b.setAttribute("aria-pressed", P.character === c.id);
+        b.innerHTML = `<div class="operator-art"><img src="assets/operators/${c.id}.svg" alt="${c.name} armored operator"/><span>${P.character === c.id ? "● EQUIPPED" : c.tag}</span></div><div class="operator-info"><small>${c.role}</small><h3>${c.name}</h3><p>${c.perk}</p><div class="operator-spec"><span>ARMOR <b>${c.hp} HP</b></span><span>DAMAGE <b>×${c.damage.toFixed(2)}</b></span><span>MOBILITY <b>${c.jumps} JUMPS / ${c.dashes} DASH</b></span></div></div>`;
+        b.addEventListener("click", () => {
+          P.character = c.id;
+          NR.saveProfile();
+          X.renderOperators();
+          X.refresh();
+          NR.audio.play("ui");
+        });
+        return b;
+      }),
+    );
+    if (focused)
+      $("operator-options")
+        .querySelector(`[data-operator="${focused}"]`)
+        ?.focus({ preventScroll: true });
+  };
+  X.showRecords = function () {
+    NR.ui.show("records");
+    const board = $("leaderboard");
+    board.replaceChildren();
+    document.querySelectorAll("[data-record-filter]").forEach((b) => {
+      b.classList.toggle("selected", b.dataset.recordFilter === X.recordFilter);
+      b.setAttribute("aria-pressed", b.dataset.recordFilter === X.recordFilter);
+    });
+    const runs = NR.records.filter(
+      (r) => X.recordFilter === "all" || r.mode === X.recordFilter,
+    );
+    if (!runs.length) {
+      const p = document.createElement("p");
+      p.className = "board-empty";
+      p.textContent =
+        "Your story starts with the next run. Complete a chapter or finish a survival run to set a local record.";
+      board.append(p);
+    }
+    runs.forEach((r, i) => {
+      const row = document.createElement("div");
+      row.className = "board-row";
+      const rank = document.createElement("span");
+      rank.textContent = String(i + 1).padStart(2, "0");
+      const name = document.createElement("span");
+      name.textContent = r.name;
+      const meta = document.createElement("small");
+      meta.textContent = `${r.mode === "adventure" ? "CHAPTER " + r.chapter : "WAVE " + r.wave} · ${String(r.difficulty).toUpperCase()} · ${r.victory ? "COMPLETE" : "RUN ENDED"}`;
+      name.append(meta);
+      const duration = document.createElement("span");
+      duration.textContent = NR.util.fmtTime(r.duration);
+      const score = document.createElement("strong");
+      score.textContent = NR.util.fmt(r.score);
+      row.append(rank, name, duration, score);
+      board.append(row);
+    });
+    $("achievement-count").textContent =
+      `${NR.unlockedAchievements.size} / ${NR.achievements.length}`;
+    $("achievement-grid").replaceChildren(
+      ...NR.achievements.map((a) => {
+        const el = document.createElement("div");
+        el.className =
+          "achievement" +
+          (NR.unlockedAchievements.has(a.id) ? " unlocked" : "");
+        el.innerHTML =
+          icon(a.icon) +
+          `<div><b>${a.name}</b><p>${a.desc}</p><small>${NR.unlockedAchievements.has(a.id) ? "UNLOCKED" : "IN PROGRESS"}</small></div>`;
+        return el;
+      }),
+    );
+  };
+  X.syncRun = function () {
+    const G = NR.game;
+    document.body.classList.toggle("adventure-run", G.mode === "adventure");
+    const power = NR.powers.find((p) => p.id === G.tactical);
+    $("tactical-icon").innerHTML = icon(power.icon);
+    $("tactical-name").textContent = power.short;
+    $("journey-tip").hidden = G.mode !== "adventure";
+  };
+  X.update = function () {
+    const G = NR.game,
+      A = NR.adventure,
+      playing = G.state === "playing";
+    $("interaction-prompt").hidden =
+      !playing || G.mode !== "adventure" || !A.prompt;
+    $("journey-tip").hidden =
+      !playing ||
+      G.mode !== "adventure" ||
+      A.tutorial <= 0 ||
+      !!A.prompt ||
+      $("notification").classList.contains("visible") ||
+      NR.hud.banners.length > 0;
+    if (!playing || G.mode !== "adventure") return;
+    const pct = Math.min(100, Math.round((G.player.x / NR.world.W) * 100));
+    $("expedition-sector").textContent = A.chapter.district;
+    $("expedition-relays").textContent =
+      `RELAYS ${A.relays.filter((r) => r.active).length} / 3`;
+    $("expedition-distance").textContent = pct + "%";
+    $("route-progress").style.width = pct + "%";
+    $("route-player").style.left = pct + "%";
+    $("expedition-objective").textContent = A.objective();
+    document
+      .querySelectorAll(".route-track>span")
+      .forEach((el, i) => el.classList.toggle("online", A.relays[i].active));
+    if (A.prompt)
+      $("interaction-prompt").querySelector("span").textContent =
+        A.prompt.label;
+  };
+  X.showVictory = function (G) {
+    const A = NR.adventure;
+    $("victory-title").textContent =
+      G.chapter === 2 ? "PROTOCOL ZERO: BROKEN" : "CHAPTER COMPLETE";
+    $("victory-story").textContent =
+      G.chapter === 2
+        ? "The reactor is silent. For the first time in years, the city belongs to its people. Your story is now part of it."
+        : `${A.chapter.name} is back online. A new route has opened beyond the wall.`;
+    const caches = A.caches.filter((c) => c.open).length,
+      shards = A.shards.filter((s) => s.collected).length;
+    $("victory-stats").innerHTML =
+      `<div><strong>${NR.util.fmt(G.score)}</strong><span>SCORE</span></div><div><strong>${NR.util.fmtTime(G.time)}</strong><span>TIME</span></div><div><strong>${caches}/4</strong><span>CACHES</span></div><div><strong>${shards}/16</strong><span>SHARDS</span></div>`;
+    $("btn-next-chapter").hidden = G.chapter >= 2;
+    NR.ui.show("victory");
+  };
+})();

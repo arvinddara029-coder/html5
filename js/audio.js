@@ -13,8 +13,8 @@
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -20; comp.ratio.value = 9; comp.attack.value = 0.004; comp.release.value = 0.2;
     master.connect(comp); comp.connect(ctx.destination);
-    sfxG = ctx.createGain(); sfxG.gain.value = A.sfxOn ? 0.85 : 0; sfxG.connect(master);
-    musG = ctx.createGain(); musG.gain.value = A.musicOn ? 0.42 : 0; musG.connect(master);
+    sfxG = ctx.createGain(); sfxG.gain.value = A.sfxOn ? 1.2 * NR.profile.sfxVolume : 0; sfxG.connect(master);
+    musG = ctx.createGain(); musG.gain.value = A.musicOn ? 0.84 * NR.profile.musicVolume : 0; musG.connect(master);
     // shared echo for arps / UI shimmer
     delay = ctx.createDelay(1); delay.delayTime.value = 0.286;
     const fb = ctx.createGain(); fb.gain.value = 0.34;
@@ -25,17 +25,38 @@
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     A.ready = true;
+    A.setVolumes();
     startMusic();
   };
 
-  A.toggleMusic = function (v) { A.musicOn = v; if (musG) musG.gain.setTargetAtTime(v ? 0.42 : 0, ctx.currentTime, 0.05); };
-  A.toggleSfx = function (v) { A.sfxOn = v; if (sfxG) sfxG.gain.setTargetAtTime(v ? 0.85 : 0, ctx.currentTime, 0.03); };
+  A.toggleMusic = function (v) { A.musicOn = v; if (musG) musG.gain.setTargetAtTime(v ? 0.84 * NR.profile.musicVolume : 0, ctx.currentTime, 0.05); };
+  A.toggleSfx = function (v) { A.sfxOn = v; if (sfxG) sfxG.gain.setTargetAtTime(v ? 1.2 * NR.profile.sfxVolume : 0, ctx.currentTime, 0.03); };
   A.duck = function (amt = 0.25, rel = 0.6) { // duck music briefly (big moments)
     if (!A.ready) return;
     musG.gain.cancelScheduledValues(ctx.currentTime);
     musG.gain.setValueAtTime(A.musicOn ? amt : 0, ctx.currentTime);
-    musG.gain.linearRampToValueAtTime(A.musicOn ? 0.42 : 0, ctx.currentTime + rel);
+    musG.gain.linearRampToValueAtTime(A.musicOn ? 0.84 * NR.profile.musicVolume : 0, ctx.currentTime + rel);
   };
+
+  const sampleFiles = {checkpoint:'powerUp1',cache:'powerUp4',shard:'highUp',sentry:'laser3',gate:'lowDown',clear:'zap1',victory:'phaseJump1',achievement:'zap2'};
+  const samplePools = {}, sampleLast = {};
+  A.sample = function(name) {
+    if(!A.ready || !A.sfxOn || A.muted || !sampleFiles[name])return;
+    const now=performance.now();
+    if(now-(sampleLast[name]||0)<90)return; sampleLast[name]=now;
+    const pool=samplePools[name]||(samplePools[name]=Array.from({length:3},()=>new Audio('assets/kenney/'+sampleFiles[name]+'.ogg')));
+    const clip=pool.find(a=>a.paused||a.ended);if(!clip)return;
+    clip.volume=NR.profile.sfxVolume*.55;clip.currentTime=0;
+    clip.play().catch(()=>A.play('pickup'));
+  };
+  A.setVolumes = function(){
+    if(musG)musG.gain.setTargetAtTime(A.musicOn?.84*NR.profile.musicVolume:0,ctx.currentTime,.05);
+    if(sfxG)sfxG.gain.setTargetAtTime(A.sfxOn?1.2*NR.profile.sfxVolume:0,ctx.currentTime,.05);
+    Object.values(samplePools).flat().forEach(a=>{a.volume=A.sfxOn?NR.profile.sfxVolume*.55:0;});
+  };
+  // Samples and synth buses share the same mute controls.
+  const toggleSfx=A.toggleSfx;
+  A.toggleSfx=function(v){toggleSfx(v);A.setVolumes();};
 
   /* ---------- tiny synth helpers ---------- */
   function env(g, t, a, peak, dec, sus = 0.0001) {
@@ -70,6 +91,11 @@
 
   /* ---------- SFX bank ---------- */
   const SFX = {
+    guard(t){tone({t,type:"triangle",f0:650,f1:1100,dur:.08,vol:.09});},
+    parry(t){[1300,1900,2600].forEach(f=>tone({t,type:"sine",f0:f,f1:f*.7,dur:.25,vol:.1}));noise({t,dur:.07,vol:.2,ff:4500});},
+    kunai(t){noise({t,dur:.12,vol:.16,ff:3200,ff1:900});tone({t,type:"triangle",f0:950,f1:280,dur:.1,vol:.07});},
+    step(t) { noise({t,dur:.045,vol:.04,ff:240,ff1:65}); },
+    land(t) { noise({t,dur:.11,vol:.085,ff:400,ff1:90}); },
     swing(t) { noise({ t, dur: 0.16, vol: 0.22, ft: "bandpass", ff: 480, ff1: 3400, q: 1.6 }); },
     swing2(t) { noise({ t, dur: 0.18, vol: 0.24, ft: "bandpass", ff: 3200, ff1: 420, q: 1.6 }); },
     swing3(t) { noise({ t, dur: 0.3, vol: 0.3, ft: "bandpass", ff: 300, ff1: 4200, q: 1.2 }); tone({ t, type: "sawtooth", f0: 160, f1: 60, dur: 0.22, vol: 0.12 }); },

@@ -72,7 +72,7 @@
       if (v.fx < -0.1) v.fx = 1.1;
     }
     lightT -= dt;
-    if (lightT <= 0) {
+    if (lightT <= 0 && NR.profile.world === "night") {
       lightning = 1;
       lightT = rand(7, 18);
       NR.audio.play("thunder", { delay: rand(0.3, 0.9) });
@@ -82,22 +82,25 @@
 
   /* ---------- background ---------- */
   W.drawBack = function (ctx, cam, view) {
+    const day = NR.profile.world === "day";
+    const biome = NR.adventure?.active ? NR.adventure.chapter.biome : "city";
+    const scenic = biome === "garden" || biome === "reactor";
     // sky
     const g = ctx.createLinearGradient(0, cam.y, 0, cam.y + view.h);
-    g.addColorStop(0, "#070818");
-    g.addColorStop(0.55, "#0d0f26");
-    g.addColorStop(1, "#1b1030");
+    g.addColorStop(0, day ? "#7eb9c9" : "#070818");
+    g.addColorStop(0.55, day ? "#c4d7ce" : "#0d0f26");
+    g.addColorStop(1, day ? "#f2cba3" : "#1b1030");
     ctx.fillStyle = g;
     ctx.fillRect(cam.x - 60, cam.y - 60, view.w + 120, view.h + 120);
 
     // far AI-generated cityscape (parallax 0.18), tiled
-    const img = U.assets.get("bg_far");
+    const img = U.assets.get(scenic ? "bg_"+biome : day ? "bg_day" : "bg_far");
     if (img) {
       const f = 0.18;
-      const drawH = view.h * 0.9;
+      const drawH = view.h * (day || scenic ? 1.08 : 0.9);
       const drawW = drawH * (img.width / img.height);
       let startX = cam.x - (((cam.x * f) % drawW) + drawW) % drawW - drawW;
-      const baseY = cam.y + view.h - drawH + view.h * 0.06;
+      const baseY = day || scenic ? cam.y - view.h * 0.04 : cam.y + view.h - drawH + view.h * 0.06;
       ctx.globalAlpha = 0.85;
       for (let x0 = startX; x0 < cam.x + view.w + drawW; x0 += drawW)
         ctx.drawImage(img, x0, baseY, drawW, drawH);
@@ -107,7 +110,7 @@
     // purple haze band
     const haze = ctx.createLinearGradient(0, cam.y + view.h * 0.55, 0, cam.y + view.h);
     haze.addColorStop(0, "rgba(70,20,110,0)");
-    haze.addColorStop(1, "rgba(90,30,140,0.25)");
+    haze.addColorStop(1, day ? "rgba(255,214,150,0.22)" : "rgba(90,30,140,0.25)");
     ctx.fillStyle = haze;
     ctx.fillRect(cam.x, cam.y + view.h * 0.55, view.w, view.h * 0.45);
 
@@ -116,7 +119,7 @@
       const f = 0.45, mh = 470, mw = 2048 * (mh / 520);
       const baseY = W.groundY - mh + 26;
       let startX = cam.x - (((cam.x * f) % mw) + mw) % mw - mw;
-      ctx.globalAlpha = 0.95;
+      ctx.globalAlpha = scenic ? (day ? .25 : .5) : day ? 0.55 : 0.95;
       for (let x0 = startX; x0 < cam.x + view.w + mw; x0 += mw)
         ctx.drawImage(midCity, x0, baseY, mw, mh);
       ctx.globalAlpha = 1;
@@ -134,6 +137,7 @@
     }
     ctx.restore();
 
+    NR.adventure?.drawScenery(ctx, cam, view);
     drawArena(ctx, cam, view);
   };
 
@@ -141,10 +145,10 @@
     const gy = W.groundY;
     // ground body
     const gg = ctx.createLinearGradient(0, gy, 0, W.H + 80);
-    gg.addColorStop(0, "#0d0f22");
+    gg.addColorStop(0, NR.profile.world === "day" ? "#314d53" : "#0d0f22");
     gg.addColorStop(1, "#05060f");
     ctx.fillStyle = gg;
-    ctx.fillRect(cam.x - 60, gy, view.w + 120, W.H - gy + 120);
+    ctx.fillRect(cam.x - 60, gy, view.w + 120, Math.max(W.H, cam.y + view.h) - gy + 120);
     // ground top neon edge
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
@@ -173,6 +177,7 @@
     }
     // platforms
     for (const p of W.platforms) {
+      if (p.x + p.w < cam.x - 50 || p.x > cam.x + view.w + 50) continue;
       // supports shadow
       ctx.fillStyle = "rgba(3,4,12,0.5)";
       ctx.fillRect(p.x + 8, p.y + p.h + 8, p.w, 8);
@@ -183,6 +188,9 @@
       ctx.fillStyle = pg;
       NR.util.roundRect(ctx, p.x, p.y, p.w, p.h, 6);
       ctx.fill();
+      if (NR.adventure?.active) {
+        for(let x=p.x; x<p.x+p.w; x+=70) NR.atlas.draw(ctx,36,x,p.y+3,Math.min(70,p.x+p.w-x),16);
+      }
       // neon top edge
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
@@ -202,6 +210,7 @@
 
   /* ---------- foreground: rain + lightning ---------- */
   W.drawFront = function (ctx, cam, view) {
+    if (NR.profile.world === "day") return;
     ctx.save();
     ctx.strokeStyle = "rgba(160,200,255,0.33)";
     ctx.lineWidth = 1.4;
@@ -229,12 +238,12 @@
   // entity: {x(center), y(feet bottom), w, h, vx, vy, prevBottom, drop}
   W.collideEntity = function (e) {
     const wasGround = e.onGround;
-    e.onGround = false;
+    e.onGround = false; e.support = null;
     if (e.vy >= 0 && !e.drop) {
       for (const p of W.platforms) {
         if (e.x + e.w / 2 > p.x && e.x - e.w / 2 < p.x + p.w &&
             e.prevBottom <= p.y + 8 && e.y >= p.y) {
-          e.y = p.y; e.vy = 0; e.onGround = true;
+          e.y = p.y; e.vy = 0; e.onGround = true; e.support = p;
           break;
         }
       }
