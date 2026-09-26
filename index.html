@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>NEON RONIN — Protocol Zero</title>
+<link rel="icon" href="assets/emblem.jpg"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="scanlines"></div>
+<div id="vign"></div>
+
+<div id="ui">
+
+  <!-- LOADING -->
+  <section class="screen active" id="scr-load">
+    <div class="load-box">
+      <img class="load-emblem" src="assets/emblem.jpg" alt=""/>
+      <h2 class="load-title">NEON RONIN</h2>
+      <div class="loadbar"><div id="loadfill"></div></div>
+      <p class="load-tip">SYNCING NEURAL INTERFACE…</p>
+    </div>
+  </section>
+
+  <!-- MAIN MENU -->
+  <section class="screen" id="scr-menu">
+    <div class="menu-grid">
+      <div class="menu-left">
+        <img class="emblem" src="assets/emblem.jpg" alt="emblem"/>
+        <h1 class="title"><span>NEON</span> RONIN</h1>
+        <p class="tagline">// PROTOCOL ZERO — THE CITY REMEMBERS ITS BLADE //</p>
+        <div class="menu-btns">
+          <button class="btn btn-primary" id="btn-start">⚔ &nbsp;START MISSION</button>
+          <button class="btn" id="btn-how">⌨ &nbsp;HOW TO PLAY</button>
+          <button class="btn" id="btn-set">⚙ &nbsp;SETTINGS</button>
+        </div>
+        <p class="high-line">HIGH SCORE — <span id="menu-high">0</span></p>
+        <p class="credits">A blade-forged HTML5 experience · canvas · webaudio · procedural art</p>
+      </div>
+      <div class="menu-right">
+        <div class="hero-frame" id="hero-frame">
+          <img src="assets/menu_hero.jpg" alt="ronin" id="hero-img"/>
+          <div class="hero-glow"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW TO PLAY -->
+  <section class="screen" id="scr-how">
+    <div class="panel">
+      <h2 class="panel-title">COMBAT MANUAL</h2>
+      <div class="how-grid">
+        <div class="how-row"><span class="key">A / D</span><span class="key-alt">← →</span><p>Move</p></div>
+        <div class="how-row"><span class="key">W / SPACE</span><span class="key-alt">↑</span><p>Jump · press again mid-air for <b>double jump</b></p></div>
+        <div class="how-row"><span class="key">S</span><span class="key-alt">↓</span><p>Drop through platforms</p></div>
+        <div class="how-row"><span class="key">J / X</span><span class="key-alt">L-CLICK</span><p>Katana attack — chain 3 hits for a <b>heavy finisher</b></p></div>
+        <div class="how-row"><span class="key">K / SHIFT</span><span class="key-alt"></span><p>Dash — <b>invincible</b> while dashing, leaves afterimages</p></div>
+        <div class="how-row"><span class="key">L / C</span><span class="key-alt">R-CLICK</span><p><b>BLADE STORM</b> when energy bar is full</p></div>
+        <div class="how-row"><span class="key">P / ESC</span><span class="key-alt"></span><p>Pause</p></div>
+        <div class="how-row"><span class="key">M</span><span class="key-alt"></span><p>Mute audio</p></div>
+      </div>
+      <ul class="tips">
+        <li>⚡ Hits charge your energy bar. Kills raise the <b>combo multiplier</b>.</li>
+        <li>💔 Getting hit resets your combo — stay untouchable.</li>
+        <li>👹 Every 5th wave a <b>BOSS</b> enters the arena. Jump the shockwaves.</li>
+        <li>🃏 After each wave choose 1 of 3 upgrades. Build your ronin.</li>
+      </ul>
+      <button class="btn btn-primary" id="btn-how-back">← BACK</button>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="screen" id="scr-set">
+    <div class="panel">
+      <h2 class="panel-title">SETTINGS</h2>
+      <div class="set-row"><p>MUSIC</p><button class="btn toggle" id="tgl-music">ON</button></div>
+      <div class="set-row"><p>SOUND FX</p><button class="btn toggle" id="tgl-sfx">ON</button></div>
+      <button class="btn btn-primary" id="btn-set-back">← BACK</button>
+    </div>
+  </section>
+
+  <!-- PAUSE -->
+  <section class="screen" id="scr-pause">
+    <div class="panel">
+      <h2 class="panel-title glitch">PAUSED</h2>
+      <p class="pause-tip" id="pause-tip">“A drawn blade must eventually cut.”</p>
+      <div class="menu-btns">
+        <button class="btn btn-primary" id="btn-resume">▶ RESUME</button>
+        <button class="btn" id="btn-restart-p">↻ RESTART RUN</button>
+        <button class="btn btn-danger" id="btn-menu-p">✕ ABANDON (MENU)</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- UPGRADE -->
+  <section class="screen" id="scr-up">
+    <div class="up-wrap">
+      <h2 class="panel-title" id="up-title">WAVE CLEARED — CHOOSE AN UPGRADE</h2>
+      <div id="cards"></div>
+    </div>
+  </section>
+
+  <!-- GAME OVER -->
+  <section class="screen" id="scr-over">
+    <div class="panel over-panel">
+      <h2 class="panel-title glitch red">SIGNAL LOST</h2>
+      <p class="over-sub" id="new-high" style="display:none">◆ NEW HIGH SCORE ◆</p>
+      <div class="stats-grid">
+        <div class="stat"><span class="stat-v" id="st-score">0</span><span class="stat-l">SCORE</span></div>
+        <div class="stat"><span class="stat-v" id="st-wave">0</span><span class="stat-l">WAVE</span></div>
+        <div class="stat"><span class="stat-v" id="st-kills">0</span><span class="stat-l">KILLS</span></div>
+        <div class="stat"><span class="stat-v" id="st-combo">0</span><span class="stat-l">MAX COMBO</span></div>
+        <div class="stat"><span class="stat-v" id="st-time">0:00</span><span class="stat-l">SURVIVED</span></div>
+        <div class="stat"><span class="stat-v" id="st-high">0</span><span class="stat-l">HIGH SCORE</span></div>
+      </div>
+      <div class="menu-btns">
+        <button class="btn btn-primary" id="btn-retry">↻ RE-ENTER THE CITY</button>
+        <button class="btn" id="btn-menu-o">MENU</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- TOUCH CONTROLS -->
+<div id="touch">
+  <div class="t-left">
+    <button class="tbtn" data-act="left">◀</button>
+    <button class="tbtn" data-act="right">▶</button>
+  </div>
+  <div class="t-right">
+    <button class="tbtn small" data-act="special">PWR</button>
+    <button class="tbtn small" data-act="dash">DSH</button>
+    <button class="tbtn" data-act="jump">JMP</button>
+    <button class="tbtn" data-act="attack">ATK</button>
+  </div>
+  <button class="tbtn tiny" id="t-pause" data-act="pause">II</button>
+</div>
+
+<div id="errtoast"></div>
+
+<script src="js/utils.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/input.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/world.js"></script>
+<script src="js/projectiles.js"></script>
+<script src="js/player.js"></script>
+<script src="js/enemies.js"></script>
+<script src="js/upgrades.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
