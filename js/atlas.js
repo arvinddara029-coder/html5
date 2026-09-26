@@ -116,7 +116,13 @@
   };
   NR.atlas = {
     draw(ctx, id, x, y, w, h) {
-      const im = NR.util.assets.get("industrial");
+      // try both asset systems and both naming conventions
+      let im = null;
+      try {
+        im = NR.assets && NR.assets.get && NR.assets.get("kenney/platformIndustrial_sheet.png");
+        if (!im) im = NR.util && NR.util.assets && NR.util.assets.get("kenney/platformIndustrial_sheet.png");
+        if (!im) im = NR.util && NR.util.assets && NR.util.assets.get("industrial");
+      } catch (_) {}
       const f = frames[id];
       if (!im || !f) return;
       ctx.drawImage(im, ...f, x, y, w, h);

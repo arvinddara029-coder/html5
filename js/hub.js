@@ -7,7 +7,7 @@
   const icon = name => `<svg class="ico" aria-hidden="true"><use href="#i-${name}"/></svg>`;
   let toastTimer, lastHUD = 0;
   const H = NR.hub = {};
-  H.notify = text => { $('notification').textContent = text; $('notification').classList.add('visible'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('notification').classList.remove('visible'), 2800); };
+  H.notify = text => { const n = $('notification'); if (!n) return; n.textContent = text; n.classList.add('visible'); clearTimeout(toastTimer); toastTimer = setTimeout(() => n.classList.remove('visible'), 2800); };
   H.setWorld = mode => {
     P.world = mode;
     NR.saveProfile();
@@ -44,23 +44,24 @@
   }
   function renderPowers() {
     for (const [id, detailed] of [['arsenal-grid', false], ['armory-options', true]]) {
-      if (!$('armory-options')) continue;
+      const container = $(id);
+      if (!container) continue;
       const focused = document.activeElement?.closest('#' + id + ' [data-power]')?.dataset.power;
-      $(id).replaceChildren(...NR.powers.map(p => powerCard(p, detailed)));
-      if (focused) $(id).querySelector(`[data-power="${focused}"]`)?.focus({ preventScroll: true });
+      container.replaceChildren(...NR.powers.map(p => powerCard(p, detailed)));
+      if (focused) container.querySelector(`[data-power="${focused}"]`)?.focus({ preventScroll: true });
     }
     const power = NR.powers.find(p => p.id === P.tactical);
+    if (!power) return;
     if ($('tactical-icon')) $('tactical-icon').innerHTML = icon(power.icon);
     text('tactical-name', power.short);
   }
-  function showRecords() { NR.expeditionUI.showRecords(); }
   H.refreshPreferences = () => {
     H.setWorld(P.world);renderPowers();NR.ui.syncAudio?.();
     if ($('callsign')) $('callsign').value=P.name;
     text('operator-name',P.name);
     if ($('menu-wave')) $('menu-wave').textContent=P.bestWave||'—';
     document.querySelectorAll('[data-difficulty]').forEach(b=>{b.classList.toggle('chosen',b.dataset.difficulty===P.difficulty);b.setAttribute('aria-pressed',b.dataset.difficulty===P.difficulty);});
-    for(const key of ['shake','controls']){const b=$('tgl-'+key);b.textContent=P[key]?'ON':'OFF';b.classList.toggle('on',P[key]);b.setAttribute('aria-pressed',P[key]);}
+    for(const key of ['shake','controls']){const b=$('tgl-'+key); if (!b) continue; b.textContent=P[key]?'ON':'OFF';b.classList.toggle('on',P[key]);b.setAttribute('aria-pressed',P[key]);}
     document.body.classList.toggle('controls-hidden',!P.controls);
     if($('music-volume')) $('music-volume').value=P.musicVolume*100;
     if($('sfx-volume')) $('sfx-volume').value=P.sfxVolume*100;
@@ -89,6 +90,7 @@
     });
     ['shake', 'controls'].forEach(key => {
       const button = $('tgl-' + key);
+      if (!button) return;
       const sync = () => { button.textContent = P[key] ? 'ON' : 'OFF'; button.classList.toggle('on', P[key]); button.setAttribute('aria-pressed', !!P[key]); document.body.classList.toggle('controls-hidden', !P.controls); };
       sync(); button.addEventListener('click', () => { P[key] = !P[key]; NR.saveProfile(); sync(); });
     });
@@ -103,25 +105,30 @@
       } catch (_) { H.notify('Fullscreen unavailable in this browser. Landscape mode also works.'); }
     });
     text('service-status', NR.store.persistent ? 'OFFLINE READY · SAVED ON DEVICE' : 'TEMPORARY SESSION · STORAGE BLOCKED');
-    NR.expeditionUI.init();
+    if (NR.expeditionUI && NR.expeditionUI.init) NR.expeditionUI.init();
   };
   H.update = now => {
     if (now - lastHUD < 80) return; lastHUD = now;
     const G = NR.game, p = G.player, playing = G.state === 'playing';
     document.body.classList.toggle('playing', playing);
-    NR.expeditionUI.update();
+    if (NR.expeditionUI && NR.expeditionUI.update) NR.expeditionUI.update();
     if (!playing || !p || !$('parry-cd')) return;
+    const parryEl = document.querySelector('[data-act="parry"]');
+    const kunaiEl = document.querySelector('[data-act="kunai"]');
+    const attackEl = document.querySelector('[data-act="attack"]');
+    const tacEl = document.querySelector('[data-act="tactical"]');
+    const specEl = document.querySelector('[data-act="special"]');
     $('parry-cd').textContent=p.parryCd>0?p.parryCd.toFixed(1)+'s':'';
     $('kunai-count').textContent=p.kunaiCharges>0?p.kunaiCharges:Math.max(0,3-p.kunaiChargeT).toFixed(1)+'s';
-    document.querySelector('[data-act="parry"]').classList.toggle('not-ready',p.parryCd>0);
-    document.querySelector('[data-act="kunai"]').classList.toggle('not-ready',p.kunaiCharges===0);
-    document.querySelector('[data-act="attack"]').classList.toggle('counter-ready',p.counterT>0);
+    if (parryEl) parryEl.classList.toggle('not-ready',p.parryCd>0);
+    if (kunaiEl) kunaiEl.classList.toggle('not-ready',p.kunaiCharges===0);
+    if (attackEl) attackEl.classList.toggle('counter-ready',p.counterT>0);
     const seconds = Math.ceil(p.tacticalCd);
     $('tactical-cd').textContent = seconds > 0 ? seconds + 's' : '';
     $('storm-cd').textContent = p.energy >= p.maxEnergy ? '' : Math.floor(p.energy / p.maxEnergy * 100) + '%';
     $('dash-cd').textContent = p.dashCharges > 0 ? '' : '…';
-    document.querySelector('[data-act="tactical"]').classList.toggle('not-ready', seconds > 0);
-    document.querySelector('[data-act="special"]').classList.toggle('not-ready', p.energy < p.maxEnergy);
+    if (tacEl) tacEl.classList.toggle('not-ready', seconds > 0);
+    if (specEl) specEl.classList.toggle('not-ready', p.energy < p.maxEnergy);
     text('game-wave', `${P.world === 'day' ? 'DAYBREAK' : 'NIGHTFALL'} / ${G.difficulty.toUpperCase()} / ${G.mode === 'adventure' ? 'CHAPTER '+(G.chapter+1) : 'WAVE '+String(G.wave || 1).padStart(2, '0')}`);
     text('game-objective',  p.counterT>0?'COUNTER READY — STRIKE WITHIN 2s':p.shieldT > 0 ? 'AEGIS ACTIVE — DAMAGE BLOCKED' : p.overdriveT > 0 ? 'OVERDRIVE — DOUBLE KATANA DAMAGE' : G.chronoT > 0 ? 'CHRONO FIELD — TIME DILATED' : p.droneT > 0 ? 'ARC COMPANION — SUPPORT ACTIVE' : G.bossActive ? 'ELIMINATE SHOGUN-9' : `${G.enemies.length + G.spawnQueue.length} HOSTILES REMAINING`);
   };

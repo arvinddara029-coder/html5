@@ -597,6 +597,7 @@
     $("lb-heroes").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-creator"); });
     $("lb-shop").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-shop"); });
     $("lb-settings").addEventListener("click", () => { NR.audio.play("ui"); NR.ui.show("set"); });
+    if ($("lb-settings-nav")) $("lb-settings-nav").addEventListener("click", () => { NR.audio.play("ui"); NR.ui.show("set"); });
     $("lb-profile").addEventListener("click", () => { NR.audio.play("ui"); NR.expeditionUI.showRecords(); });
     document.querySelectorAll("[data-close]").forEach((b) =>
       b.addEventListener("click", () => { NR.audio.play("ui"); closeModal(b.dataset.close); }));

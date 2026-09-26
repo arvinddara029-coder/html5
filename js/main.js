@@ -51,11 +51,15 @@
       "Stone/Stone_01-128x128.png", "Stone/Stone_09-128x128.png", "Wood/Wood_01-128x128.png",
       "Tile/Tile_01-128x128.png", "Plaster/Plaster_01-512x512.png",
     ].concat(lookPaths);
-    U.assets.load(lobbyPaths, (k) => NR.ui.setLoading(0.05 + k * 0.85)).then(() => {
+    // Use the main asset lib (NR.assets) which knows how to load string paths.
+    // Fallback to U.assets if for some reason NR.assets is unavailable.
+    const loader = (NR.assets && NR.assets.load) ? NR.assets : U.assets;
+    loader.load(lobbyPaths, (k) => NR.ui.setLoading(0.05 + k * 0.85)).then(() => {
       NR.ui.setLoading(0.92);
       // stream the rest of the packs in the background (creator/shop instant access)
       const rest = NR.assets.allLayerPaths().filter((p) => !NR.assets.ready(p));
-      U.assets.load(rest, (k) => NR.ui.setLoading(0.92 + k * 0.08)).then(() => {
+      const loader2 = (NR.assets && NR.assets.load) ? NR.assets : U.assets;
+      loader2.load(rest, (k) => NR.ui.setLoading(0.92 + k * 0.08)).then(() => {
         NR.ui.setLoading(1);
         setTimeout(() => {
           G.toMenu();

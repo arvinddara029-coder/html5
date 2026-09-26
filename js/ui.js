@@ -36,19 +36,28 @@
     // settings toggles
     const mu = $("tgl-music"), sx = $("tgl-sfx");
     const syncTgl = () => {
-      mu.textContent = NR.audio.musicOn ? "ON" : "OFF";
-      sx.textContent = NR.audio.sfxOn ? "ON" : "OFF";
-      mu.classList.toggle("on", NR.audio.musicOn);
-      sx.classList.toggle("on", NR.audio.sfxOn);
-      mu.setAttribute('aria-pressed', NR.audio.musicOn); sx.setAttribute('aria-pressed', NR.audio.sfxOn);
+      if (mu) {
+        mu.textContent = NR.audio.musicOn ? "ON" : "OFF";
+        mu.classList.toggle("on", NR.audio.musicOn);
+        mu.setAttribute('aria-pressed', NR.audio.musicOn);
+      }
+      if (sx) {
+        sx.textContent = NR.audio.sfxOn ? "ON" : "OFF";
+        sx.classList.toggle("on", NR.audio.sfxOn);
+        sx.setAttribute('aria-pressed', NR.audio.sfxOn);
+      }
       const audible = NR.audio.sfxOn || NR.audio.musicOn;
-      $('game-mute').setAttribute('aria-label', audible ? 'Mute audio' : 'Unmute audio');
-      $('game-mute').style.opacity = audible ? '1' : '.5';
+      const gm = $('game-mute');
+      if (gm) {
+        gm.setAttribute('aria-label', audible ? 'Mute audio' : 'Unmute audio');
+        gm.style.opacity = audible ? '1' : '.5';
+      }
     };
     ui.syncAudio = syncTgl;
-    mu.classList.add("on"); sx.classList.add("on");
-    mu.addEventListener("click", () => { NR.audio.init(); NR.audio.toggleMusic(!NR.audio.musicOn); NR.store.setItem("nr_music", NR.audio.musicOn ? 1 : 0); syncTgl(); });
-    sx.addEventListener("click", () => { NR.audio.init(); NR.audio.toggleSfx(!NR.audio.sfxOn); NR.store.setItem("nr_sfx", NR.audio.sfxOn ? 1 : 0); syncTgl(); NR.audio.play("ui"); });
+    if (mu) mu.classList.add("on");
+    if (sx) sx.classList.add("on");
+    if (mu) mu.addEventListener("click", () => { NR.audio.init(); NR.audio.toggleMusic(!NR.audio.musicOn); NR.store.setItem("nr_music", NR.audio.musicOn ? 1 : 0); syncTgl(); });
+    if (sx) sx.addEventListener("click", () => { NR.audio.init(); NR.audio.toggleSfx(!NR.audio.sfxOn); NR.store.setItem("nr_sfx", NR.audio.sfxOn ? 1 : 0); syncTgl(); NR.audio.play("ui"); });
     if (NR.store.getItem("nr_music") === "0") NR.audio.musicOn = false;
     if (NR.store.getItem("nr_sfx") === "0") NR.audio.sfxOn = false;
     syncTgl();
@@ -70,9 +79,12 @@
     const on = !(NR.audio.sfxOn || NR.audio.musicOn);
     NR.audio.toggleMusic(on); NR.audio.toggleSfx(on);
     NR.store.setItem('nr_music', on ? 1 : 0); NR.store.setItem('nr_sfx', on ? 1 : 0);
-    for (const id of ['tgl-music', 'tgl-sfx']) { $(id).textContent = on ? 'ON' : 'OFF'; $(id).classList.toggle('on', on); }
-    $('game-mute').setAttribute('aria-label', on ? 'Mute audio' : 'Unmute audio');
-    $('game-mute').style.opacity = on ? '1' : '.5';
+    for (const id of ['tgl-music', 'tgl-sfx']) { const el = $(id); if (!el) continue; el.textContent = on ? 'ON' : 'OFF'; el.classList.toggle('on', on); }
+    const gm = $('game-mute');
+    if (gm) {
+      gm.setAttribute('aria-label', on ? 'Mute audio' : 'Unmute audio');
+      gm.style.opacity = on ? '1' : '.5';
+    }
   };
 
   ui.refreshHigh = function () {

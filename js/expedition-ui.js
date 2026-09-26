@@ -6,7 +6,7 @@
     `<svg class="ico" aria-hidden="true"><use href="#i-${name}"/></svg>`;
   const X = (NR.expeditionUI = { recordFilter: "all" });
   X.init = function () {
-    const on = (id, fn) => $(id).addEventListener("click", fn);
+    const on = (id, fn) => { const el = $(id); if (el) el.addEventListener("click", fn); };
     document.querySelectorAll("[data-mode]").forEach((b) =>
       b.addEventListener("click", () => {
         P.mode = b.dataset.mode;
@@ -47,18 +47,19 @@
       ["music-volume", "musicVolume"],
       ["sfx-volume", "sfxVolume"],
     ]) {
-      $(id).value = Math.round(P[key] * 100);
-      $(id).addEventListener("input", () => {
-        P[key] = Number($(id).value) / 100;
+      const el = $(id);
+      if (!el) continue;
+      el.value = Math.round(P[key] * 100);
+      el.addEventListener("input", () => {
+        P[key] = Number(el.value) / 100;
         NR.audio.setVolumes();
         NR.saveProfile();
       });
     }
-    NR.saveTransfer.init();
+    if (NR.saveTransfer && NR.saveTransfer.init) NR.saveTransfer.init();
     X.refresh();
   };
   X.refresh = function () {
-    const adv = P.mode === "adventure";
     document.querySelectorAll("[data-mode]").forEach((b) => {
       b.classList.toggle("selected", b.dataset.mode === P.mode);
       b.classList.toggle("sel", b.dataset.mode === P.mode);
@@ -68,8 +69,10 @@
     if (NR.lobby && NR.lobby.refreshCard) NR.lobby.refreshCard();
   };
   X.renderOperators = function () {
+    const opEl = $("operator-options");
+    if (!opEl) return;
     const focused = document.activeElement?.dataset.operator;
-    $("operator-options").replaceChildren(
+    opEl.replaceChildren(
       ...NR.characters.map((c) => {
         const b = document.createElement("button");
         b.className =
@@ -89,13 +92,14 @@
       }),
     );
     if (focused)
-      $("operator-options")
+      opEl
         .querySelector(`[data-operator="${focused}"]`)
         ?.focus({ preventScroll: true });
   };
   X.showRecords = function () {
     NR.ui.show("records");
     const board = $("leaderboard");
+    if (!board) return;
     board.replaceChildren();
     document.querySelectorAll("[data-record-filter]").forEach((b) => {
       b.classList.toggle("selected", b.dataset.recordFilter === X.recordFilter);
@@ -128,9 +132,10 @@
       row.append(rank, name, duration, score);
       board.append(row);
     });
-    $("achievement-count").textContent =
-      `${NR.unlockedAchievements.size} / ${NR.achievements.length}`;
-    $("achievement-grid").replaceChildren(
+    const ac = $("achievement-count");
+    if (ac) ac.textContent = `${NR.unlockedAchievements.size} / ${NR.achievements.length}`;
+    const ag = $("achievement-grid");
+    if (ag) ag.replaceChildren(
       ...NR.achievements.map((a) => {
         const el = document.createElement("div");
         el.className =
@@ -145,54 +150,70 @@
   };
   X.syncRun = function () {
     const G = NR.game;
+    if (!G) return;
     document.body.classList.toggle("adventure-run", G.mode === "adventure");
     const power = NR.powers.find((p) => p.id === G.tactical);
-    $("tactical-icon").innerHTML = icon(power.icon);
-    $("tactical-name").textContent = power.short;
-    $("journey-tip").hidden = G.mode !== "adventure";
+    if (!power) return;
+    const ti = $("tactical-icon");
+    if (ti) ti.innerHTML = icon(power.icon);
+    const tn = $("tactical-name");
+    if (tn) tn.textContent = power.short;
+    const jt = $("journey-tip");
+    if (jt) jt.hidden = G.mode !== "adventure";
   };
   X.update = function () {
     const G = NR.game,
       A = NR.adventure,
       playing = G.state === "playing";
-    $("interaction-prompt").hidden =
-      !playing || G.mode !== "adventure" || !A.prompt;
-    $("journey-tip").hidden =
+    const ip = $("interaction-prompt");
+    const jt = $("journey-tip");
+    const notif = $("notification");
+    if (ip) ip.hidden = !playing || G.mode !== "adventure" || !A.prompt;
+    if (jt) jt.hidden =
       !playing ||
       G.mode !== "adventure" ||
       A.tutorial <= 0 ||
       !!A.prompt ||
-      $("notification").classList.contains("visible") ||
+      (notif && notif.classList.contains("visible")) ||
       NR.hud.banners.length > 0;
     if (!playing || G.mode !== "adventure") return;
     const pct = Math.min(100, Math.round((G.player.x / NR.world.W) * 100));
-    $("expedition-sector").textContent = A.chapter.district;
-    $("expedition-relays").textContent =
-      `RELAYS ${A.relays.filter((r) => r.active).length} / 3`;
-    $("expedition-distance").textContent = pct + "%";
-    $("route-progress").style.width = pct + "%";
-    $("route-player").style.left = pct + "%";
-    $("expedition-objective").textContent = A.objective();
+    const es = $("expedition-sector");
+    if (es) es.textContent = A.chapter.district;
+    const er = $("expedition-relays");
+    if (er) er.textContent = `RELAYS ${A.relays.filter((r) => r.active).length} / 3`;
+    const ed = $("expedition-distance");
+    if (ed) ed.textContent = pct + "%";
+    const rp = $("route-progress");
+    if (rp) rp.style.width = pct + "%";
+    const rpl = $("route-player");
+    if (rpl) rpl.style.left = pct + "%";
+    const eo = $("expedition-objective");
+    if (eo) eo.textContent = A.objective();
     document
       .querySelectorAll(".route-track>span")
-      .forEach((el, i) => el.classList.toggle("online", A.relays[i].active));
-    if (A.prompt)
-      $("interaction-prompt").querySelector("span").textContent =
-        A.prompt.label;
+      .forEach((el, i) => el.classList.toggle("online", A.relays[i] && A.relays[i].active));
+    if (A.prompt && ip) {
+      const span = ip.querySelector("span");
+      if (span) span.textContent = A.prompt.label;
+    }
   };
   X.showVictory = function (G) {
     const A = NR.adventure;
-    $("victory-title").textContent =
-      G.chapter === 2 ? "PROTOCOL ZERO: BROKEN" : "CHAPTER COMPLETE";
-    $("victory-story").textContent =
+    const vt = $("victory-title");
+    if (vt) vt.textContent = G.chapter === 2 ? "PROTOCOL ZERO: BROKEN" : "CHAPTER COMPLETE";
+    const vs = $("victory-story");
+    if (vs) vs.textContent =
       G.chapter === 2
         ? "The reactor is silent. For the first time in years, the city belongs to its people. Your story is now part of it."
         : `${A.chapter.name} is back online. A new route has opened beyond the wall.`;
     const caches = A.caches.filter((c) => c.open).length,
       shards = A.shards.filter((s) => s.collected).length;
-    $("victory-stats").innerHTML =
+    const vstats = $("victory-stats");
+    if (vstats) vstats.innerHTML =
       `<div><strong>${NR.util.fmt(G.score)}</strong><span>SCORE</span></div><div><strong>${NR.util.fmtTime(G.time)}</strong><span>TIME</span></div><div><strong>${caches}/4</strong><span>CACHES</span></div><div><strong>${shards}/16</strong><span>SHARDS</span></div>`;
-    $("btn-next-chapter").hidden = G.chapter >= 2;
+    const bn = $("btn-next-chapter");
+    if (bn) bn.hidden = G.chapter >= 2;
     NR.ui.show("victory");
   };
 })();
