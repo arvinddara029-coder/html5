@@ -382,7 +382,7 @@ test("enemy sheets carry measured crop windows and feet lines", () => {
   // slime sheet is an 8x2 grid of 32x48 cells — multi-row slicing, never a doubled blob
   assert.equal(NR.sheets.slime.perRow, 8);
   assert.equal(NR.sheets.slime.fw, 32);
-  assert.equal(NR.sheets.slime.anims.idle.frames, 8);
+  assert.equal(NR.sheets.slime.anims.idle.frames, 5); // cells 5-7 are the melt-away, not the loop
   assert.equal(NR.sheets.slime.anims.hop.start, 8);
   assert.equal(NR.sheets.slime.fh, 48);
 });
