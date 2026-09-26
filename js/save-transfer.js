@@ -44,13 +44,13 @@
       world: ["day", "night"],
       difficulty: ["casual", "normal", "hard"],
       mode: ["adventure", "survival"],
-      character: ["ronin", "kestrel", "titan"],
+      character: NR.characters.map(c=>c.id),
     };
     for (const [k, values] of Object.entries(enums))
       if (!values.includes(p[k])) fail();
     for (const k of ["shake", "controls"])
       if (typeof p[k] !== "boolean") fail();
-    for (const k of ["chapter", "unlocked"]) if (!integer(p[k], 2)) fail();
+    for (const k of ["chapter", "unlocked"]) if (!integer(p[k], NR.adventure.chapters.length-1)) fail();
     if (p.chapter > p.unlocked) fail();
     for (const k of ["totalKills", "bestWave", "runs"])
       if (!integer(p[k], 1e7)) fail();
@@ -82,7 +82,7 @@
       for (const [key, max] of Object.entries({
         score: 1e8,
         wave: 10000,
-        chapter: 3,
+        chapter: NR.adventure.chapters.length,
         kills: 1e7,
         duration: 1e6,
         date: 1e14,
@@ -121,7 +121,34 @@
         "sfxVolume",
       ].map((k) => [k, p[k]]),
     );
+    // Retain currency, appearance and progression; older v1 backups did not carry them.
+    for(const [key,fallback,max] of [['xp',0,1e8],['level',1,99],['coins',500,1e8],['gems',10,1e8]]){
+      const value=p[key]===undefined?fallback:p[key];if(!integer(value,max))fail();profile[key]=value;
+    }
+    if(profile.level<1 || NR.economy.levelFromXp(profile.xp).level!==profile.level)fail();
+    profile.appearance={};
+    if(p.appearance!==undefined && !object(p.appearance))fail();
+    for(const [cat,def] of Object.entries(NR.profile.appearance)){
+      const id=p.appearance?.[cat] ?? def;
+      if(typeof id!=='string' || id && !NR.catalog[cat]?.some(o=>o.id===id))fail();
+      profile.appearance[cat]=id;
+    }
+    profile.pet=p.pet||'';
+    if(typeof profile.pet!=='string' || profile.pet && !NR.catalog.pet.some(o=>o.id===profile.pet))fail();
+    profile.owned={};
+    if(p.owned!==undefined && !object(p.owned))fail();
+    for(const [key,value] of Object.entries(p.owned||{})){
+      const split=key.indexOf(':'),cat=key.slice(0,split),id=key.slice(split+1);
+      if((value!==true && value!==1) || !NR.catalog[cat]?.some(o=>o.id===id))fail();profile.owned[key]=1;
+    }
+    const waveCheckpoint=b.waveCheckpoint||null,waveReceipt=b.waveReceipt||null;
+    if(waveCheckpoint && !NR.waveResume?.validate(waveCheckpoint))fail();
+    if(waveReceipt && !NR.waveResume?.validateReceipt(waveReceipt))fail();
+    let evolution;
+    if(b.evolution!==undefined){try{evolution=NR.evolution.validate(b.evolution,profile);}catch(_){fail();}}
     return {
+      ...(evolution?{evolution}:{}),
+      waveCheckpoint,waveReceipt,
       format: b.format,
       version: 1,
       profile,
@@ -137,11 +164,13 @@
       format: "neon-ronin-save",
       version: 1,
       profile: NR.profile,
+      waveCheckpoint:NR.waveResume?.get()||null,waveReceipt:NR.waveResume?.paid()||null,
+      ...(NR.evolution?.snapshot?{evolution:NR.evolution.snapshot()}:{}),
       audio: { music: NR.audio.musicOn, sfx: NR.audio.sfxOn },
       high: NR.game.high,
       records: NR.records.map((r) => ({
         ...r,
-        character: ["ronin", "kestrel", "titan"].includes(r.character)
+        character: NR.characters.some(c=>c.id===r.character)
           ? r.character
           : "ronin",
         kills: numeric(r.kills, 1e7) ? r.kills : 0,
@@ -171,6 +200,10 @@
     for (const [key, value] of writes)
       if (!NR.store.setItem(key, JSON.stringify(value))) persistent = false;
     Object.assign(NR.profile, b.profile);
+    if(b.evolution)NR.evolution.restore(b.evolution);
+    else if(NR.evolution){NR.evolution.slots=NR.evolution.slots.filter(id=>NR.evolution.spells.some(s=>s.id===id && s.level<=b.profile.level));NR.evolution.save();NR.evolution.renderBar?.();}
+    NR.store.setItem("nr_wave_resume_v1",JSON.stringify(b.waveCheckpoint));
+    NR.store.setItem("nr_wave_paid_v1",JSON.stringify(b.waveReceipt));
     NR.records = b.records;
     NR.unlockedAchievements = new Set(b.achievements);
     NR.game.high = b.high;

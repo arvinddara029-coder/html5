@@ -384,6 +384,7 @@
       const card = document.createElement("button");
       card.className = "opt-card" + (creator.look[creator.cat] === o.id ? " sel" : "") + (owned ? " owned" : "");
       card.dataset.id = o.id;
+      card.title = NR.evolution?.describe(creator.cat,o.id) || o.name;
       const thumb = NR.char.thumb(creator.cat, o.id, 64);
       card.append(thumb);
       const label = document.createElement("span");
@@ -412,6 +413,7 @@
           }
         }
         creator.look[creator.cat] = o.id;
+        if (NR.evolution) NR.hub.notify(NR.evolution.describe(creator.cat,o.id));
         applyLook(); renderOptions(); L.refreshCard();
         NR.audio.play("ui");
       });
@@ -573,7 +575,10 @@
           }
         });
       }
-      card.append(h, c, buy);
+      const power = document.createElement("p");
+      power.className = "item-power";
+      power.textContent = NR.evolution?.describe(cat,o.id) || "";
+      card.append(h, c, power, buy);
       return card;
     }));
     L.refreshWallet();

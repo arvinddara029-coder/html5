@@ -99,7 +99,7 @@
   if (!["adventure", "survival"].includes(P.mode)) P.mode = "adventure";
   const ROSTER = (NR.characters || []).map((c) => c.id);
   if (!ROSTER.length || !ROSTER.includes(P.character)) P.character = ROSTER[0] || "ronin";
-  const LAST_CHAPTER = Math.max(0, ((NR.adventure && NR.adventure.chapters.length) || 3) - 1);
+  const LAST_CHAPTER = Math.max(0, ((NR.adventure && NR.adventure.chapters.length) || NR.campaignChapterCount || 3) - 1);
   for (const key of ["chapter", "unlocked"])
     P[key] = Math.max(0, Math.min(LAST_CHAPTER, Math.floor(Number(P[key]) || 0)));
   P.chapter = Math.min(P.chapter, P.unlocked);

@@ -162,6 +162,7 @@
     "furyBonus",
   ];
   NR.checkpoint = {
+    playerFields,
     get() {
       return this.validate(read("nr_checkpoint_v3", null), NR.profile);
     },
@@ -173,9 +174,9 @@
         c.chapter < 0 ||
         c.chapter > Math.max(2, ((NR.adventure && NR.adventure.chapters.length) || 3) - 1) ||
         c.chapter > profile.unlocked ||
-        !finite(c.x, 6800) ||
+        !finite(c.x, NR.adventure?.chapters[c.chapter]?.length || 6800) ||
         c.x < 0 ||
-        !["ronin", "kestrel", "titan"].includes(c.character) ||
+        !NR.characters.some(o=>o.id===c.character) ||
         !["casual", "normal", "hard"].includes(c.difficulty) ||
         !NR.powers.some((p) => p.id === c.tactical)
       )
@@ -235,6 +236,10 @@
         c.player.lifesteal > 1
       )
         return null;
+      if (c.magic !== undefined && !(c.magic && ["damage","cost","cooldown"].every(k=>finite(c.magic[k],20) && c.magic[k]>=.25))) return null;
+      if (c.liveXp !== undefined && !finite(c.liveXp)) return null;
+      if (c.heroLevel !== undefined && (!Number.isInteger(c.heroLevel) || c.heroLevel<1 || c.heroLevel>99)) return null;
+      if (c.route !== undefined && (!c.route || !Number.isInteger(c.route.seed) || !finite(c.route.seed,4294967295) || !Number.isInteger(c.route.level) || c.route.level < 1 || c.route.level > 100000)) return null;
       return c;
     },
     save(G, A) {
@@ -243,6 +248,7 @@
       );
       const c = {
         version: 1,
+        ...(NR.evolution ? {route:{seed:NR.evolution.seed,level:NR.evolution.levels[G.chapter]}} : {}),
         chapter: G.chapter,
         character: G.character,
         difficulty: G.difficulty,
@@ -252,6 +258,8 @@
         score: G.score,
         time: G.time,
         stats: { ...G.stats },
+        ...(NR.evolution?.magic?{magic:{...NR.evolution.magic}}:{}),
+        liveXp:G.liveXp||0,heroLevel:G.player.evoLevel||NR.profile.level,
         relays: A.relays.filter((o) => o.active).map((o) => o.id),
         zones: A.zones.filter((o) => o.cleared).map((o) => o.id),
         caches: A.caches.filter((o) => o.open).map((o) => o.id),
@@ -267,6 +275,8 @@
       playerFields.forEach((k) => {
         p[k] = c.player[k];
       });
+      p.evoLevel=c.heroLevel||NR.profile.level;
+      if(c.magic && NR.evolution)NR.evolution.magic={...c.magic};
       p.x = c.x;
       p.y = NR.world.groundY;
       p.prevBottom = p.y;
