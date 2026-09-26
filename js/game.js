@@ -4,12 +4,12 @@
 
   const G = (NR.game = {
     state: "loading", // loading | menu | playing | upgrade | pause | over
-    score: 0, high: Number(localStorage.getItem("nr_high") || 0),
+    score: 0, high: Math.max(0, Math.min(1e8, Number(NR.store.getItem("nr_high")) || 0)),
     wave: 0, combo: 0, comboT: 0, time: 0,
-    enemies: [], bolts: [], shockwaves: [], pickups: [], spawnQueue: [],
+    enemies: [], bolts: [], shots: [], shockwaves: [], pickups: [], spawnQueue: [],
     bossActive: false, bossRef: null,
     enemyHpMul: 1, enemySpdMul: 1, enemyDmgMul: 1,
-    stats: { kills: 0, maxCombo: 0, storms: 0 },
+    stats: { kills: 0, maxCombo: 0, storms: 0, parries: 0, kunaiHits: 0, salvaged: 0 },
     timeScale: 1, slowT: 0, hitStopT: 0,
     cam: { x: 0, y: 0, sx: 0, sy: 0, trauma: 0 },
     waveDamageTaken: false, clearT: 0, startT: 0, deathT: 0, overShown: false,
@@ -21,28 +21,47 @@
   /* ================= lifecycle ================= */
   G.toMenu = function () {
     G.state = "menu";
-    G.enemies.length = 0; G.bolts.length = 0; G.shockwaves.length = 0;
+    I.reset();
+    G.enemies.length = 0; G.bolts.length = 0; G.shots.length = 0; G.shockwaves.length = 0;
     G.pickups.length = 0; G.spawnQueue.length = 0;
     F.reset();
     NR.ui.show("menu");
     NR.ui.refreshHigh();
+    NR.expeditionUI?.refresh();
   };
 
-  G.start = function () {
+  G.start = function (options = {}) {
+    const cp = options.resume ? NR.checkpoint.get() : null;
+    if(options.resume && !cp){NR.hub.notify('No valid checkpoint saved on this device.');return;}
+    G.mode=cp?'adventure':NR.profile.mode;
+    G.chapter=cp?cp.chapter:(Number.isInteger(options.chapter)?options.chapter:NR.profile.chapter);
+    G.chapter=U.clamp(G.chapter,0,NR.profile.unlocked);
+    G.character=cp?cp.character:NR.profile.character;
+    NR.adventure.configure(G.mode,G.chapter); NR.resize?.();
     NR.audio.init();
     if (!G.player) G.player = new NR.Player();
     G.player.reset();
-    G.enemies.length = 0; G.bolts.length = 0; G.shockwaves.length = 0;
+    NR.applyCharacter(G.player,G.character);
+    I.reset(); hud.banners.length = 0; hud.hurtVign = 0; hud.flashA = 0;
+    G.difficulty = cp ? cp.difficulty : NR.profile.difficulty;
+    G.tactical = cp ? cp.tactical : NR.profile.tactical;
+    G.runName = NR.profile.name;
+    G.chronoT = 0; G.finished = false;
+    G.enemies.length = 0; G.bolts.length = 0; G.shots.length = 0; G.shockwaves.length = 0;
     G.pickups.length = 0; G.spawnQueue.length = 0; F.reset();
     G.score = 0; G.combo = 0; G.comboT = 0; G.time = 0; G.wave = 0;
-    G.stats = { kills: 0, maxCombo: 0, storms: 0 };
+    G.stats = { kills: 0, maxCombo: 0, storms: 0, parries: 0, kunaiHits: 0, salvaged: 0 };
     G.bossActive = false; G.bossRef = null;
     G.timeScale = 1; G.slowT = 0; G.hitStopT = 0;
     G.overShown = false; G.deathT = 0; G.upgradeT = 0; G.clearT = 0;
+    G.cam.trauma = 0; G.cam.sx = 0; G.cam.sy = 0;
     G.state = "playing";
     NR.ui.hideAll();
-    G.cam.x = G.player.x - NR.view.w / 2; G.cam.y = W.H - NR.view.h;
+    G.cam.x = U.clamp(G.player.x - NR.view.w / 2,0,Math.max(0,W.W-NR.view.w)); G.cam.y = W.H - NR.view.h;
     G.startT = 1.0; // countdown to wave 1
+    NR.adventure.start(G,cp);
+    G.cam.x = U.clamp(G.player.x - NR.view.w / 2,0,Math.max(0,W.W-NR.view.w));
+    NR.expeditionUI?.syncRun();
     NR.audio.play("wave");
   };
 
@@ -71,8 +90,8 @@
   function startWave(n) {
     G.wave = n;
     G.waveDamageTaken = false;
-    G.enemyHpMul = 1 + (n - 1) * 0.07;
-    G.enemySpdMul = 1 + Math.min(0.55, (n - 1) * 0.03);
+    G.enemyHpMul = (1 + (n - 1) * 0.07) * (G.difficulty === "casual" ? .75 : G.difficulty === "hard" ? 1.35 : 1);
+    G.enemySpdMul = (1 + Math.min(0.55, (n - 1) * 0.03)) * (G.difficulty === "casual" ? .85 : G.difficulty === "hard" ? 1.15 : 1);
     G.enemyDmgMul = 1 + Math.max(0, n - 6) * 0.05;
     const comp = waveComp(n);
     let delay = 0.4;
@@ -80,6 +99,8 @@
     for (let i = 0; i < comp.crawlers; i++) q.push({ type: "crawler", t: (delay += U.rand(0.4, 0.8)) });
     for (let i = 0; i < comp.drones; i++) q.push({ type: "drone", t: (delay += U.rand(0.3, 0.7)) });
     for (let i = 0; i < comp.wraiths; i++) q.push({ type: "wraith", t: (delay += U.rand(0.4, 0.8)) });
+    if(n>=3 && !comp.boss) q.push({type:"sentry",t:(delay+=.8)});
+    if(n>=4 && !comp.boss) q.push({type:"sentinel",t:(delay+=.8)});
     if (comp.boss) {
       G.bossActive = true;
       const bx = G.player.x > W.W / 2 ? W.W * 0.28 : W.W * 0.72;
@@ -104,10 +125,12 @@
     let e;
     if (type === "crawler") {
       let x = side > 0 ? W.W - 90 : 90;
-      if (Math.abs(x - px) > Math.abs(W.W - x - px)) x = W.W - x; // spawn far from player
+      if (Math.abs(x - px) < Math.abs(W.W - x - px)) x = W.W - x; // spawn far from player
       e = new NR.Crawler(x, W.groundY, mul);
     } else if (type === "drone") {
       e = new NR.Drone(U.clamp(px + side * U.rand(380, 640), 120, W.W - 120), U.rand(220, 420), mul);
+    } else if(type === "sentry" || type === "sentinel") {
+      e = new (type === "sentry" ? NR.Sentry : NR.Sentinel)(U.clamp(px+side*500,100,W.W-100),W.groundY,mul);
     } else {
       e = new NR.Wraith(U.clamp(px + side * U.rand(300, 500), 100, W.W - 100), W.groundY - 200, mul);
     }
@@ -116,6 +139,7 @@
   }
 
   function onWaveCleared() {
+    if(G.wave>=5)NR.progress.award("wave");
     const perfect = !G.waveDamageTaken;
     if (perfect) {
       G.addScore(750, G.player.x, G.player.y - 120, true);
@@ -130,13 +154,15 @@
 
   G.closeUpgrade = function () {
     G.state = "playing";
-    G.startT = 1.6; // next wave countdown
+    G.startT = G.mode === "adventure" ? 0 : 1.6;
+    NR.adventure.checkpointAfterUpgrade(G);
   };
 
   /* ================= combat ================= */
   G.playerStrike = function (A) {
     const p = G.player;
     let hitAny = false;
+    const counter = p.counterT>0;
     for (const e of G.enemies) {
       if (e.dead || e.spawnT > 0) continue;
       const dx = e.x - p.x;
@@ -145,14 +171,18 @@
       const ey = e.y - e.h / 2, py = p.y - 45;
       if (Math.abs(ey - py) > 95 + e.h / 2) continue;
       const crit = U.chance(p.critCh);
-      const dmg = A.dmg * p.dmgMul * (crit ? 2 : 1);
+      const dmg = A.dmg * p.dmgMul * (p.overdriveT > 0 ? 2 : 1) * (crit ? 2 : 1) * (counter ? 1.75 : 1);
+      const beforeHp=e.hp;
       e.hurt(dmg, p.facing * A.kb, -A.kb * 0.35, crit, G);
+      if(e.hp>=beforeHp)continue;
       F.text(e.x, e.y - e.h - 12, Math.round(dmg), { col: crit ? "#ffe14d" : "#ffffff", size: crit ? 30 : 20, crit });
       p.addEnergy(6.5);
       if (p.lifesteal > 0) p.heal(dmg * p.lifesteal);
       hitAny = true;
     }
+    NR.adventure.strikeProps(p,A,G);
     if (hitAny) {
+      if(counter){p.counterT=0;F.text(p.x,p.y-135,"COUNTER ×1.75",{col:"#ffe5a1",size:19});}
       G.hitStop(A.heavy ? 0.09 : 0.045);
       G.shake(A.heavy ? 0.3 : 0.12);
     }
@@ -177,7 +207,9 @@
 
   G.hurtPlayer = function (dmg, dir, src) {
     const p = G.player;
-    if (p.dead || p.iframes > 0 || p.dashT > 0 || p.stormT > 0) return;
+    if (p.dead || p.iframes > 0 || p.dashT > 0 || p.stormT > 0 || p.shieldT > 0) return;
+    if (NR.combat.tryParry(G,dir,src)) return;
+    dmg *= (G.difficulty === "casual" ? .6 : G.difficulty === "hard" ? 1.4 : 1) * (p.damageTakenMul || 1);
     p.hp -= dmg;
     p.comboResetT = 99; // combo resets
     G.combo = 0; G.comboT = 0;
@@ -205,10 +237,12 @@
 
   G.onEnemyKilled = function (e) {
     G.stats.kills++;
+    NR.profile.totalKills++; NR.saveProfile();
     G.combo++;
     G.comboT = G.comboWindow();
     if (G.combo > G.stats.maxCombo) G.stats.maxCombo = G.combo;
     G.addScore(e.score, e.x, e.y - e.h - 6, false);
+    NR.progress.check(G);
     // giblets
     F.burst(e.x, e.y - e.h / 2, { n: 26, col: e.type === "crawler" ? "red" : e.type === "drone" ? "cyan" : "purple", spd: 430, life: 0.65 });
     F.shards(e.x, e.y - e.h / 2, 10, e.type === "crawler" ? "magenta" : "cyan");
@@ -221,6 +255,7 @@
   };
 
   G.onBossKilled = function (b) {
+    G.stats.kills++; NR.profile.totalKills++; NR.saveProfile(); NR.progress.check(G);
     G.bossActive = false; G.bossRef = null;
     G.addScore(b.score, b.x, b.y - 200, true);
     G.banner("TARGET ELIMINATED", "+" + U.fmt(b.score), "#ffe14d");
@@ -244,7 +279,7 @@
 
   /* ================= juice ================= */
   G.banner = (t, s, c) => hud.banner(t, s, c);
-  G.shake = (v) => { G.cam.trauma = Math.min(1, G.cam.trauma + v); };
+  G.shake = (v) => { if (!NR.profile.shake) return; G.cam.trauma = Math.min(1, G.cam.trauma + v); };
   G.flash = (col) => hud.flash(col);
   G.hitStop = (t) => { G.hitStopT = Math.max(G.hitStopT, t); };
   G.slowmo = (s, dur) => { G.timeScale = s; G.slowT = Math.max(G.slowT, dur); };
@@ -261,11 +296,15 @@
     hud.update(rd);
 
     if (G.state === "pause") { if (I.justPressed("pause")) G.togglePause(); return; }
-    if (G.state === "upgrade" || G.state === "over") return;
+    if (G.state === "upgrade" || G.state === "over" || G.state === "victory") return;
     if (G.state !== "playing") return;
     if (I.justPressed("pause")) { G.togglePause(); return; }
 
     G.time += rd;
+    G.chronoT = Math.max(0,G.chronoT-dt);
+
+    // Death takes priority over a pending wave-clear reward.
+    if (p.dead) G.upgradeT = 0;
 
     // delayed upgrade screen (game-time driven)
     if (G.upgradeT > 0) {
@@ -282,13 +321,13 @@
       G.deathT -= rd;
       if (G.deathT <= 0 && !G.overShown) {
         G.overShown = true;
-        finishRun();
+        G.finishRun(false);
         return;
       }
     }
 
     // wave start countdown
-    if (!p.dead && G.startT > 0 && G.startT < 900) {
+    if (G.mode === "survival" && !p.dead && G.startT > 0 && G.startT < 900) {
       G.startT -= rd;
       if (G.startT <= 0) {
         if (G.enemies.length === 0 && G.spawnQueue.length === 0 && !G.bossActive) startWave(G.wave + 1);
@@ -303,11 +342,15 @@
       if (q.t <= 0) { spawnEnemy(q.type); G.spawnQueue.splice(i, 1); }
     }
 
+    // Authored expedition logic shares combat, not wave scheduling.
+    NR.adventure.update(dt,G);
+    if(G.state !== "playing") return;
+
     // entities
     p.update(dt, G);
     for (let i = G.enemies.length - 1; i >= 0; i--) {
       const e = G.enemies[i];
-      e.update(dt, G);
+      e.update(dt * (G.chronoT>0?.35:1), G);
       // player contact damage
       if (!e.dead && e.spawnT <= 0 && !p.dead && e.touchCd <= 0) {
         const overlapX = Math.abs(e.x - p.x) < (e.w + p.w) / 2 - 6;
@@ -319,7 +362,8 @@
       }
       if (e.dead) G.enemies.splice(i, 1);
     }
-    for (let i = G.bolts.length - 1; i >= 0; i--) { G.bolts[i].update(dt, G); if (G.bolts[i].dead) G.bolts.splice(i, 1); }
+    for (let i = G.bolts.length - 1; i >= 0; i--) { G.bolts[i].update(dt * (G.chronoT>0?.35:1), G); if (G.bolts[i].dead) G.bolts.splice(i, 1); }
+    for(let i=G.shots.length-1;i>=0;i--){G.shots[i].update(dt,G);if(G.shots[i].dead)G.shots.splice(i,1);}
     for (let i = G.shockwaves.length - 1; i >= 0; i--) { G.shockwaves[i].update(dt, G); if (G.shockwaves[i].dead) G.shockwaves.splice(i, 1); }
     for (let i = G.pickups.length - 1; i >= 0; i--) { G.pickups[i].update(dt, G); if (G.pickups[i].dead) G.pickups.splice(i, 1); }
     F.update(dt);
@@ -329,7 +373,7 @@
     if (G.comboT > 0) { G.comboT -= dt; if (G.comboT <= 0) G.combo = 0; }
 
     // wave cleared?
-    if (G.wave > 0 && G.startT <= 0 && !G.bossActive && G.enemies.length === 0 && G.spawnQueue.length === 0 && !p.dead) {
+    if (G.mode === "survival" && G.wave > 0 && G.startT <= 0 && !G.bossActive && G.enemies.length === 0 && G.spawnQueue.length === 0 && !p.dead) {
       G.clearT += dt;
       if (G.clearT > 0.7) { G.clearT = 0; G.startT = 999; onWaveCleared(); }
     } else G.clearT = 0;
@@ -338,10 +382,11 @@
     const cam = G.cam, view = NR.view;
     const lookX = p.x + p.facing * 90;
     const tx = U.clamp(lookX - view.w / 2, 0, Math.max(0, W.W - view.w));
-    const tyMin = Math.min(0, W.H - view.h);
-    const ty = U.clamp(p.y - view.h * 0.62, tyMin, W.H - view.h);
+    const arenaBottom = W.H + (window.innerWidth < 600 ? view.h * .19 : view.h * .08);
+    const tyMin = Math.min(0, arenaBottom - view.h);
+    const ty = U.clamp(p.y - view.h * 0.58, tyMin, arenaBottom - view.h);
     cam.x = U.damp(cam.x, W.W > view.w ? tx : (W.W - view.w) / 2, 5, rd);
-    cam.y = U.damp(cam.y, W.H > view.h ? ty : (W.H - view.h) / 2, 4, rd);
+    cam.y = U.damp(cam.y, arenaBottom > view.h ? ty : (arenaBottom - view.h) / 2, 4, rd);
     cam.trauma = Math.max(0, cam.trauma - rd * 1.7);
     const sh = cam.trauma * cam.trauma * 24;
     cam.sx = U.rand(-sh, sh); cam.sy = U.rand(-sh, sh);
@@ -349,10 +394,16 @@
     // menu state? handled elsewhere
   };
 
-  function finishRun() {
-    G.state = "over";
+  G.finishRun = function (victory = false) {
+    if(G.finished)return;
+    G.finished=true;G.state=victory?'victory':'over';
     const newHigh = G.score > G.high;
-    if (newHigh) { G.high = G.score; localStorage.setItem("nr_high", String(G.high)); }
-    NR.ui.showGameOver(G, newHigh);
-  }
+    if (newHigh) { G.high = G.score; NR.store.setItem('nr_high', String(G.high)); }
+    if(G.mode==='survival')NR.profile.bestWave=Math.max(NR.profile.bestWave||0,G.wave);
+    NR.profile.runs++;NR.saveProfile();NR.progress.record(G,victory);
+    if(victory)NR.expeditionUI.showVictory(G);
+    else NR.ui.showGameOver(G,newHigh);
+    document.getElementById('run-save').textContent=NR.store.persistent?'Record saved on this device. No server or account needed.':'Storage is blocked. This record lasts only while this tab stays open.';
+    NR.expeditionUI.refresh();
+  };
 })();

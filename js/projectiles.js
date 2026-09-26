@@ -13,25 +13,28 @@
     update(dt, G) {
       this.life -= dt;
       if (this.life <= 0) { this.dead = true; return; }
-      this.x += this.vx * dt; this.y += this.vy * dt;
-      this.trailT -= dt;
-      if (this.trailT <= 0) {
-        this.trailT = 0.03;
-        F.burst(this.x, this.y, { n: 1, col: this.col, spd: 10, life: 0.25, size: 6, grav: 0 });
-      }
-      if (W.pointSolid(this.x, this.y) || this.x < -60 || this.x > W.W + 60 || this.y < -200) {
-        this.dead = true;
-        F.sparks(this.x, this.y, 6, this.col, 300);
+      const x0=this.x,y0=this.y,x1=x0+this.vx*dt,y1=y0+this.vy*dt,C=NR.combat;
+      let wall=Infinity;
+      for(const platform of W.platforms){const t=C.segmentBox(x0,y0,x1,y1,platform.x,platform.y,platform.w,platform.h);if(t!==null)wall=Math.min(wall,t);}
+      const ground=C.segmentBox(x0,y0,x1,y1,0,W.groundY,W.W,1000);
+      if(ground!==null)wall=Math.min(wall,ground);
+      const p=G.player,contact=p&&!p.dead?C.segmentEntity(x0,y0,x1,y1,p,this.r+4):null;
+      const t=Math.min(1,wall,contact===null?Infinity:contact);
+      this.x=x0+(x1-x0)*t;this.y=y0+(y1-y0)*t;
+      if(contact!==null&&contact<=wall){
+        this.dead=true;
+        const dir=Math.sign(this.vx)||1;
+        if(C.tryParry(G,dir,"bolt")){
+          const speed=Math.max(750,Math.hypot(this.vx,this.vy)),len=Math.hypot(this.vx,this.vy)||1;
+          G.shots.push(new NR.Kunai(this.x,this.y,-this.vx/len*speed,-this.vy/len*speed,32,true));
+        }else{NR.audio.play("boltHit");F.sparks(this.x,this.y,10,"red");G.hurtPlayer(this.dmg,dir,"bolt");}
         return;
       }
-      const p = G.player;
-      if (p && !p.dead && W.circleHits(this.x, this.y, this.r + 4, p)) {
-        this.dead = true;
-        NR.audio.play("boltHit");
-        F.sparks(this.x, this.y, 10, "red");
-        G.hurtPlayer(this.dmg, Math.sign(this.vx) || 1, "bolt");
-      }
+      if(wall<=1||this.x < -60||this.x>W.W+60||this.y < -200){this.dead=true;F.sparks(this.x,this.y,6,this.col,300);return;}
+      this.trailT-=dt;
+      if(this.trailT<=0){this.trailT=.03;F.burst(this.x,this.y,{n:1,col:this.col,spd:10,life:.25,size:6,grav:0});}
     }
+
     draw(ctx) {
       ctx.save();
       ctx.globalCompositeOperation = "lighter";

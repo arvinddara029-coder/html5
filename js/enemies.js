@@ -619,6 +619,7 @@
     }
   }
 
+  NR.Enemy = Enemy;
   NR.Crawler = Crawler;
   NR.Drone = Drone;
   NR.Wraith = Wraith;

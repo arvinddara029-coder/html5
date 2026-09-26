@@ -16,7 +16,10 @@
       this.x = W.W / 2; this.y = W.groundY; this.vx = 0; this.vy = 0;
       this.w = 36; this.h = 78; this.facing = 1;
       this.maxHp = 100; this.hp = 100;
-      this.energy = 0; this.maxEnergy = 100;
+      this.energy = 35; this.maxEnergy = 100;
+      this.tacticalCd = 0; this.shieldT = 0; this.overdriveT = 0; this.droneT = 0; this.droneShot = 0; this.footT=0;
+      this.damageTakenMul = 1; this.character="ronin"; this.trim="#8af5e1"; this.cloak="#cb3d92";
+      this.guardMul = 1; this.furyBonus = 0; this.ghostHp = 100;
       this.onGround = true; this.prevBottom = this.y; this.drop = 0;
       this.jumps = 0; this.coyote = 0; this.jumpBuf = 0;
       this.dashT = 0; this.dashDir = 1; this.dashCharges = 1; this.chargeT = 0; this.ghostT = 0;
@@ -29,11 +32,24 @@
       this.dashMax = 1; this.dashCdMul = 1; this.energyMul = 1;
       this.lifesteal = 0; this.critCh = 0.05; this.stormMul = 1;
       this.pose = {};
+      NR.combat.reset(this);
     }
 
     /* ================== UPDATE ================== */
     update(dt, G) {
       this.t += dt;
+      NR.combat.tick(this,dt);
+      this.tacticalCd = Math.max(0, this.tacticalCd - dt);
+      this.footT -= dt;
+      if(this.onGround && Math.abs(this.vx)>100 && this.footT<=0 && !this.dead){this.footT=.3/this.speedMul;NR.audio.play('step');}
+      this.droneT=Math.max(0,this.droneT-dt);
+      if(this.droneT>0 && !this.dead){
+        this.droneShot-=dt;
+        const target=G.enemies.filter(e=>!e.dead&&e.spawnT<=0&&U.dist(e.x,e.y,this.x,this.y)<720).sort((a,b)=>Math.abs(a.x-this.x)-Math.abs(b.x-this.x))[0];
+        if(target && this.droneShot<=0){this.droneShot=.5;target.hurt(13,Math.sign(target.x-this.x)*30,0,false,G);F.sparks(target.x,target.y-target.h/2,5,'cyan');NR.audio.play('shot');}
+      }
+      this.shieldT = Math.max(0, this.shieldT - dt);
+      this.overdriveT = Math.max(0, this.overdriveT - dt);
       this.iframes = Math.max(0, this.iframes - dt);
       this.drop = Math.max(0, this.drop - dt);
       this.comboResetT -= dt;
@@ -42,7 +58,7 @@
       if (this.hitstun > 0) {
         this.hitstun -= dt;
         this.vx = U.damp(this.vx, 0, 4, dt);
-      } else {
+      } else if (!this.dead) {
         this.control(dt, G);
       }
 
@@ -132,8 +148,7 @@
       if (this.jumpBuf > 0) {
         if (this.onGround || this.coyote > 0) {
           this.doJump(-1000, "jump");
-        } else if (this.jumps < this.jumpMax - 1) {
-          this.jumps++;
+        } else if (this.jumps < this.jumpMax) {
           this.doJump(-920, "djump");
           F.ring(this.x, this.y - 4, { col: "cyan", r1: 60, life: 0.3, lw: 4 });
           F.burst(this.x, this.y, { n: 8, col: "cyan", spd: 160, life: 0.3, up: 60 });
@@ -156,16 +171,45 @@
         G.shake(0.12);
       }
 
+      if (I.justPressed("parry")) NR.combat.guard(this);
+      if (I.justPressed("kunai")) NR.combat.throwKunai(this,G);
+
       // attack
-      if (I.justPressed("attack") && !storming && this.dashT <= 0) {
+      if ((I.justPressed("attack") || I.down("attack")) && !storming && this.dashT <= 0 && this.parryT <= 0) {
         if (this.attackT <= 0) this.startAttack(0);
         else if (this.attackIdx < ATTACKS.length - 1) this.queued = true;
       }
+
+      if (I.justPressed("tactical") && this.tacticalCd <= 0) this.castTactical(G);
 
       // blade storm
       if (I.justPressed("special") && this.energy >= this.maxEnergy && this.stormT <= 0 && this.dashT <= 0) {
         this.castStorm(G);
       }
+    }
+
+    castTactical(G) {
+      const power = NR.powers.find(p => p.id === G.tactical);
+      if (this.dead || (power.id === 'heal' && this.hp >= this.maxHp)) {
+        if (!this.dead) NR.hub.notify('Armor is already at full health.');
+        return;
+      }
+      this.tacticalCd = power.cooldown;
+      if (power.id === 'shield') this.shieldT = 3;
+      if (power.id === 'heal') { this.heal(35); F.text(this.x, this.y - 120, '+35 HP', { col: '#a5f2a1', size: 25 }); }
+      if (power.id === 'overdrive') this.overdriveT = 5;
+      if (power.id === 'chrono') G.chronoT = 5;
+      if (power.id === 'drone') { this.droneT = 8; this.droneShot = 0; }
+      if (power.id === 'pulse') {
+        for (const e of G.enemies) {
+          if (e.dead || e.spawnT > 0 || U.dist(e.x, e.y - e.h / 2, this.x, this.y - 40) > 380) continue;
+          e.hurt(45, (Math.sign(e.x - this.x) || 1) * 850, -380, false, G);
+          F.text(e.x, e.y - e.h - 10, '45', { col: '#ffd090', size: 24 });
+        }
+        G.shake(.3);
+      }
+      F.ring(this.x, this.y - 40, { col: power.id === 'pulse' ? 'orange' : 'cyan', r1: power.id === 'pulse' ? 380 : 130, life: .65, lw: 7 });
+      NR.audio.play(power.id === 'pulse' ? 'storm' : 'upgrade');
     }
 
     doJump(v, sfx) {
@@ -197,16 +241,19 @@
       G.slowmo(0.45, 0.35);
       F.ring(this.x, this.y - 50, { col: "cyan", r1: 460, life: 0.7, lw: 12 });
       G.stats.storms++;
+      NR.progress.check(G);
     }
 
     onLand() {
+      NR.audio.play("land");
       this.landT = 0.14;
       F.burst(this.x, this.y, { n: 7, col: "blue", spd: 170, life: 0.3, spread: 2.2, up: 30 });
     }
 
     addEnergy(n) {
+      const previous = this.energy;
       this.energy = Math.min(this.maxEnergy, this.energy + n * this.energyMul);
-      if (this.energy >= this.maxEnergy) NR.audio.play("ring");
+      if (previous < this.maxEnergy && this.energy >= this.maxEnergy) NR.audio.play("ring");
     }
     heal(n) { this.hp = Math.min(this.maxHp, this.hp + n); }
 
@@ -214,7 +261,7 @@
     computePose() {
       const P = this.pose;
       const speedK = U.clamp(Math.abs(this.vx) / 430, 0, 1.4);
-      P.x = this.x; P.y = this.y; P.facing = this.facing;
+      P.x = this.x; P.y = this.y; P.facing = this.facing; P.trim=this.trim; P.cloak=this.cloak; P.character=this.character;
       P.t = this.t;
       P.runAmt = this.onGround ? speedK : 0;
       P.air = !this.onGround;
@@ -233,12 +280,30 @@
         P.attacking = true;
       } else {
         P.attacking = false;
-        P.swordAng = P.air ? -0.7 : (-0.35 + Math.sin(this.t * 2.2) * 0.08);
+        P.swordAng = this.parryT>0 ? -1.3 : P.air ? -0.7 : (-0.35 + Math.sin(this.t * 2.2) * 0.08);
       }
     }
 
     /* ================== DRAW ================== */
     draw(ctx) {
+      if(this.parryT>0 || this.counterT>0){
+        ctx.save();ctx.translate(this.x,this.y-45);ctx.scale(this.facing,1);
+        ctx.strokeStyle=this.parryT>0?"#ffe7a2":"#ffe7a277";ctx.lineWidth=this.parryT>0?5:2;
+        ctx.beginPath();ctx.arc(0,0,58,-1.1,1.1);ctx.stroke();ctx.restore();
+      }
+      if(this.droneT>0){
+        const dx=this.x-this.facing*55,dy=this.y-130+Math.sin(this.t*5)*8;
+        ctx.save();ctx.fillStyle='#284851';ctx.fillRect(dx-16,dy-10,32,20);ctx.strokeStyle='#8af5e1';ctx.lineWidth=2;ctx.strokeRect(dx-16,dy-10,32,20);
+        NR.sprites.drawGlow(ctx,'cyan',dx,dy+14,13,.7);ctx.fillStyle='#8af5e1';ctx.fillRect(dx+this.facing*12-3,dy-2,6,4);ctx.restore();
+      }
+      if (this.shieldT > 0 || this.overdriveT > 0) {
+        ctx.save();
+        ctx.strokeStyle = this.shieldT > 0 ? '#c7afff' : '#f9ca62';
+        ctx.fillStyle = this.shieldT > 0 ? '#b394ff18' : '#f9ca6212';
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.ellipse(this.x, this.y - 42, 56 + Math.sin(this.t * 8) * 3, 64, 0, 0, U.TAU); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
       // dash afterimages
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
@@ -279,10 +344,10 @@
   function drawRonin(ctx, P, O) {
     ctx.save();
     ctx.translate(P.x, P.y);
-    ctx.scale(P.facing, 1);
+    ctx.scale(P.facing * (P.character === "titan" ? 1.18 : P.character === "kestrel" ? .9 : 1), 1);
     const ghost = O.ghost;
-    const BODY = ghost ? O.tint : "#12172e";
-    const TRIM = ghost ? O.tint : "#00fff4";
+    const BODY = ghost ? O.tint : "#25394b";
+    const TRIM = ghost ? O.tint : (P.trim || "#00fff4");
     const CLOAK = ghost ? "transparent" : "rgba(255,45,149,0.85)";
     const cr = (P.crouch || 0) * 10;
     const lean = P.lean || 0;
@@ -292,7 +357,7 @@
     if (!ghost) {
       const flap = Math.sin(P.t * 7) * 5 + (P.runAmt || 0) * 12 + (P.air ? 14 : 0);
       const grd = ctx.createLinearGradient(0, shY, -34 - flap, 0);
-      grd.addColorStop(0, "rgba(255,45,149,0.9)");
+      grd.addColorStop(0, P.cloak || "rgba(255,45,149,0.9)");
       grd.addColorStop(1, "rgba(120,10,70,0.15)");
       ctx.fillStyle = CLOAK === "transparent" ? "rgba(0,0,0,0)" : grd;
       ctx.beginPath();
@@ -314,7 +379,7 @@
       b1 = Math.max(0.06, -Math.sin(p - 0.7)) * 1.15 * sw + 0.06;
       b2 = Math.max(0.06, -Math.sin(p + Math.PI - 0.7)) * 1.15 * sw + 0.06;
     }
-    const legW = 7.5;
+    const legW = 9;
     drawLeg(ctx, 0, hipY, a2, b2, legW, ghost ? O.tint : "#0d1126"); // back leg
     drawLeg(ctx, 0, hipY, a1, b1, legW, BODY); // front leg
 
@@ -322,10 +387,25 @@
     const shX = lean * 12, shYv = shY;
     ctx.strokeStyle = BODY; ctx.lineWidth = 15; ctx.lineCap = "round";
     ctx.beginPath(); ctx.moveTo(0, hipY); ctx.lineTo(shX, shYv); ctx.stroke();
+    // Layered armor plates remain legible against both daytime and neon skylines.
+    if (!ghost) {
+      const armor = ctx.createLinearGradient(shX - 14, shYv, shX + 14, hipY);
+      armor.addColorStop(0, '#3b546b'); armor.addColorStop(.45, '#182a3a'); armor.addColorStop(1, '#2a3c52');
+      ctx.fillStyle = armor; ctx.strokeStyle = '#668692'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(shX - 13, shYv - 2); ctx.lineTo(shX + 12, shYv - 2);
+      ctx.lineTo(shX + 14, shYv + 10); ctx.lineTo(9, hipY); ctx.lineTo(-9, hipY);
+      ctx.lineTo(shX - 14, shYv + 10); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Segmented waist armor and sash.
+      ctx.fillStyle = '#152434'; ctx.fillRect(-11, hipY - 2, 22, 9);
+      ctx.strokeStyle = '#ce408c'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(-10, hipY); ctx.lineTo(10, hipY); ctx.stroke();
+      ctx.fillStyle = '#456070'; ctx.fillRect(shX - 16, shYv - 2, 8, 8);
+      ctx.fillRect(shX + 8, shYv - 2, 8, 8);
+    }
     // chest neon core
     if (!ghost) {
       NR.sprites.drawGlow(ctx, "cyan", shX + 2, shYv + 6, 12, P.storm ? 0.95 : 0.55);
-      ctx.fillStyle = "#00fff4";
+      ctx.fillStyle = TRIM;
       ctx.fillRect(shX - 1, shYv + 2, 5, 8);
     }
 
@@ -336,6 +416,12 @@
     if (!ghost) {
       ctx.fillStyle = "#141b3a";
       ctx.beginPath(); ctx.arc(hx - 2, hy - 2, 11, Math.PI * 0.65, Math.PI * 1.75); ctx.fill();
+      // Angular hood and faceplate.
+      ctx.fillStyle = '#20394d'; ctx.strokeStyle = '#54707d'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(hx - 11, hy + 2); ctx.lineTo(hx - 8, hy - 9);
+      ctx.lineTo(hx + 2, hy - 13); ctx.lineTo(hx + 11, hy - 5);
+      ctx.lineTo(hx + 9, hy + 7); ctx.lineTo(hx - 4, hy + 8); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#080f1c'; ctx.fillRect(hx, hy - 4, 10, 8);
       // visor
       ctx.strokeStyle = TRIM; ctx.lineWidth = 3; ctx.lineCap = "round";
       ctx.beginPath(); ctx.moveTo(hx + 2, hy - 1); ctx.lineTo(hx + 9, hy - 2); ctx.stroke();
