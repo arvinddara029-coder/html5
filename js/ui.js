@@ -19,12 +19,13 @@
   /* ---------------- wiring ---------------- */
   ui.init = function () {
     const G = NR.game;
-    const click = (id, fn) => $(id).addEventListener("click", () => { NR.audio.init(); NR.audio.play("ui"); fn(); });
+    const click = (id, fn) => {
+      const el = $(id);
+      if (!el) return;
+      el.addEventListener("click", () => { NR.audio.init(); NR.audio.play("ui"); fn(); });
+    };
 
-    click("btn-start", () => G.start());
-    click("btn-how", () => ui.show("how"));
     click("btn-how-back", () => ui.show(G.state === "pause" ? "pause" : "menu"));
-    click("btn-set", () => ui.show("set"));
     click("btn-set-back", () => ui.show("menu"));
     click("btn-resume", () => G.togglePause());
     click("btn-restart-p", () => G.start());
@@ -75,8 +76,9 @@
   };
 
   ui.refreshHigh = function () {
-    $("menu-high").textContent = U.fmt(NR.game.high || 0);
-    $("menu-wave").textContent = NR.profile.bestWave || "—";
+    const hi = $("menu-high"), wv = $("menu-wave");
+    if (hi) hi.textContent = U.fmt(NR.game.high || 0);
+    if (wv) wv.textContent = NR.profile.bestWave || "—";
   };
 
   /* ---------------- upgrade cards ---------------- */
@@ -113,6 +115,16 @@
     $("st-time").textContent = U.fmtTime(G.time);
     $("st-high").textContent = U.fmt(G.high);
     $("new-high").style.display = newHigh ? "block" : "none";
+    const rw = $("run-rewards");
+    if (rw) {
+      const r = G.lastReward;
+      if (r) {
+        const parts = [`🪙 +${(r.coins || 0).toLocaleString("en-US")}`, `✦ +${(r.xp || 0).toLocaleString("en-US")} XP`];
+        if (r.gems) parts.push(`💎 +${r.gems}`);
+        if (r.leveled > 0) parts.push(`<b>LEVEL ${NR.profile.level}!</b>`);
+        rw.innerHTML = "RUN REWARDS · " + parts.join(" · ");
+      } else rw.textContent = "";
+    }
     ui.show("over");
   };
 

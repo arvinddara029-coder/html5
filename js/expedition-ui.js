@@ -15,12 +15,15 @@
         NR.audio.play("ui");
       }),
     );
-    on("btn-operators", () => {
-      X.renderOperators();
-      NR.ui.show("operators");
-    });
+    const opsBtn = $("btn-operators");
+    if (opsBtn)
+      opsBtn.addEventListener("click", () => {
+        X.renderOperators();
+        NR.ui.show("operators");
+      });
     on("btn-operators-back", () => NR.ui.show("menu"));
-    on("btn-continue", () => NR.game.start({ resume: true }));
+    const cont = $("deploy-continue");
+    if (cont) cont.addEventListener("click", () => NR.game.start({ resume: true }));
     on("btn-retry-checkpoint", () => NR.game.start({ resume: true }));
     on("btn-next-chapter", () => {
       P.mode = "adventure";
@@ -55,70 +58,14 @@
     X.refresh();
   };
   X.refresh = function () {
-    const chapter = NR.adventure.chapters[P.chapter],
-      c = NR.characters.find((c) => c.id === P.character),
-      adv = P.mode === "adventure";
-    $("selected-operator").textContent = c.name;
-    $("selected-portrait").src = `assets/operators/${c.id}.svg`;
+    const adv = P.mode === "adventure";
     document.querySelectorAll("[data-mode]").forEach((b) => {
       b.classList.toggle("selected", b.dataset.mode === P.mode);
+      b.classList.toggle("sel", b.dataset.mode === P.mode);
       b.setAttribute("aria-pressed", b.dataset.mode === P.mode);
     });
-    $("campaign-route").hidden = !adv;
-    $("brief-title").textContent = adv
-      ? "Go beyond the neon."
-      : "Survive the uprising.";
-    $("brief-description").textContent = adv
-      ? chapter.description
-      : "Endless waves. Escalating enemies. A boss every five waves. Make every strike count.";
-    $("brief-operation").textContent = adv
-      ? "Side-scrolling adventure"
-      : "Endless wave survival";
-    $("brief-detail-label").textContent = adv
-      ? "MISSION GOAL"
-      : "BOSS ENCOUNTER";
-    $("brief-detail").textContent = adv
-      ? "3 relays + extraction"
-      : "Every 5 waves";
-    document.querySelector(".hero-tags").innerHTML = adv
-      ? "<span>3 CHAPTERS</span><span>EXPLORATION</span><span>SOLO</span>"
-      : "<span>ROGUELITE</span><span>WAVE SURVIVAL</span><span>SOLO</span>";
-    document.querySelector(".chapter-label").innerHTML = adv
-      ? `<i></i> CHAPTER ${String(P.chapter + 1).padStart(2, "0")}`
-      : "<i></i> ENDLESS SURVIVAL";
-    $("campaign-completion").textContent =
-      `CHAPTER ${String(P.chapter + 1).padStart(2, "0")} / 03`;
-    const cp = NR.checkpoint.get();
-    $("btn-continue").hidden = !cp || !adv;
-    $("btn-retry-checkpoint").hidden = !cp || NR.game.mode !== "adventure";
-    if (cp)
-      $("btn-continue").textContent =
-        `↳ CONTINUE · ${NR.adventure.chapters[cp.chapter].short.toUpperCase()} · RELAY ${cp.relays.length}/3`;
-    const active = document.activeElement?.dataset.chapter;
-    $("chapter-options").replaceChildren(
-      ...NR.adventure.chapters.map((ch) => {
-        const b = document.createElement("button"),
-          locked = ch.id > P.unlocked;
-        b.className =
-          "chapter-card chapter-" +
-          ch.biome +
-          (P.chapter === ch.id ? " selected" : "");
-        b.dataset.chapter = ch.id;
-        b.disabled = locked;
-        b.setAttribute("aria-pressed", P.chapter === ch.id);
-        b.innerHTML = `<span class="chapter-num">0${ch.id + 1}</span><span class="chapter-copy"><small>${ch.district}</small><strong>${ch.short}</strong><em>${locked ? "COMPLETE PREVIOUS CHAPTER" : P.chapter === ch.id ? "SELECTED DESTINATION" : "EXPLORE CHAPTER"}</em></span>${icon(locked ? "shield" : "arrow")}`;
-        b.addEventListener("click", () => {
-          P.chapter = ch.id;
-          NR.saveProfile();
-          X.refresh();
-        });
-        return b;
-      }),
-    );
-    if (active !== undefined)
-      $("chapter-options")
-        .querySelector(`[data-chapter="${active}"]`)
-        ?.focus({ preventScroll: true });
+    if (NR.lobby && NR.lobby.refreshDeploy) NR.lobby.refreshDeploy();
+    if (NR.lobby && NR.lobby.refreshCard) NR.lobby.refreshCard();
   };
   X.renderOperators = function () {
     const focused = document.activeElement?.dataset.operator;

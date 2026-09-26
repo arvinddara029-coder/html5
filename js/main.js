@@ -38,20 +38,31 @@
     resize();
     NR.ui.init();
     NR.ui.setLoading(0.05);
-    U.assets.load([
-      { name: "bg_far", src: "assets/bg_far.jpg" },
-      { name: "industrial", src: "assets/kenney/platformIndustrial_sheet.png" },
-      { name: "bg_day", src: "assets/bg_day.jpg" },
-      { name: "bg_garden", src: "assets/bg_garden.jpg" },
-      { name: "bg_reactor", src: "assets/bg_reactor.jpg" },
-      { name: "menu_hero", src: "assets/menu_hero.jpg" },
-      { name: "emblem", src: "assets/emblem.jpg" },
-    ], (k) => NR.ui.setLoading(0.05 + k * 0.95)).then(() => {
-      NR.ui.setLoading(1);
-      setTimeout(() => {
-        G.toMenu();
-        if (location.hash === "#auto") smokeTest();
-      }, 250);
+    // staged loading: lobby art + the hero's equipped layers first, everything else streams in
+    const lookPaths = NR.assets.layerPaths(NR.profile.appearance);
+    const lobbyPaths = [
+      "bg_far.jpg", "kenney/platformIndustrial_sheet.png", "bg_day.jpg", "bg_garden.jpg",
+      "bg_reactor.jpg", "menu_hero.jpg", "emblem.jpg", "lobby_bg.jpg",
+      "GandalfHardcore Emojis and Icons/GandalfHardcore Emojis and Icons/Coin.png",
+      "GandalfHardcore Emojis and Icons/GandalfHardcore Emojis and Icons/Quest marker.png",
+      "GandalfHardcore Emojis and Icons/GandalfHardcore Emojis and Icons/GandalfHardcore Emoji.png",
+      // terrain textures used by the arena
+      "Brick/Brick_01-512x512.png", "Metal/Metal_01-512x512.png", "Metal/Metal_08-512x512.png",
+      "Stone/Stone_01-128x128.png", "Stone/Stone_09-128x128.png", "Wood/Wood_01-128x128.png",
+      "Tile/Tile_01-128x128.png", "Plaster/Plaster_01-512x512.png",
+    ].concat(lookPaths);
+    U.assets.load(lobbyPaths, (k) => NR.ui.setLoading(0.05 + k * 0.85)).then(() => {
+      NR.ui.setLoading(0.92);
+      // stream the rest of the packs in the background (creator/shop instant access)
+      const rest = NR.assets.allLayerPaths().filter((p) => !NR.assets.ready(p));
+      U.assets.load(rest, (k) => NR.ui.setLoading(0.92 + k * 0.08)).then(() => {
+        NR.ui.setLoading(1);
+        setTimeout(() => {
+          G.toMenu();
+          if (location.hash === "#auto") smokeTest();
+        }, 250);
+      });
+      NR.lobby.init();
     });
     requestAnimationFrame(frame);
   }
@@ -106,6 +117,7 @@
     if (G.state !== "menu" && G.player) {
       NR.adventure.draw(ctx, cam, view);
       for (const p of G.pickups) p.draw(ctx);
+      NR.spriteRender.drawCorpses(ctx, G);
       for (const e of G.enemies) e.draw(ctx);
       for (const w of G.shockwaves) w.draw(ctx);
       if (!G.player.dead || G.deathT > 1.1) G.player.draw(ctx);

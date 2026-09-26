@@ -262,9 +262,10 @@
       const P = this.pose;
       const speedK = U.clamp(Math.abs(this.vx) / 430, 0, 1.4);
       P.x = this.x; P.y = this.y; P.facing = this.facing; P.trim=this.trim; P.cloak=this.cloak; P.character=this.character;
-      P.t = this.t;
+      P.t = this.t; P.appearance = NR.profile.appearance;
       P.runAmt = this.onGround ? speedK : 0;
       P.air = !this.onGround;
+      P.vy = this.vy;
       P.legPhase = this.legPhase;
       P.lean = U.clamp(this.vx / 900, -0.4, 0.4) + (this.dashT > 0 ? 0.55 : 0);
       P.crouch = this.landT > 0 ? (this.landT / 0.14) * 0.8 : (this.stormT > 0 ? 0.35 : 0);
@@ -278,6 +279,7 @@
         const p = U.clamp((A.dur - this.attackT) / A.dur * 1.15, 0, 1);
         P.swordAng = U.lerp(A.a0, A.a1, U.ease.outCubic(p));
         P.attacking = true;
+        P.atkP = p;
       } else {
         P.attacking = false;
         P.swordAng = this.parryT>0 ? -1.3 : P.air ? -0.7 : (-0.35 + Math.sin(this.t * 2.2) * 0.08);
@@ -309,14 +311,22 @@
       ctx.globalCompositeOperation = "lighter";
       for (const g of F.ghosts) {
         const a = (1 - g.t / g.life) * 0.45;
-        drawRonin(ctx, g.pose, { tint: `rgba(0,255,244,${a})`, ghost: true });
+        drawHero(ctx, g.pose, { tint: `rgba(0,255,244,${a})`, ghost: true });
       }
       ctx.restore();
 
       const P = this.pose;
       const blink = this.iframes > 0 && this.dashT <= 0 ? (Math.sin(this.t * 34) > 0 ? 0.45 : 1) : 1;
+      // pet companion trots along behind the hero
+      if (NR.profile.pet && !this.dead) {
+        const wisp = NR.profile.pet.indexOf("Wisp") >= 0;
+        const pscale = wisp ? 1.5 : 1.05;
+        const bob = wisp ? Math.sin(this.t * 4) * 10 - 34 : Math.abs(Math.sin(this.t * 9)) * -7;
+        NR.char.drawPet(ctx, NR.profile.pet, Math.floor(this.t * 9),
+          this.x - this.facing * 44, this.y - 2 + bob, pscale, this.facing > 0);
+      }
       ctx.globalAlpha = blink;
-      drawRonin(ctx, P, {});
+      drawHero(ctx, P, {});
       ctx.globalAlpha = 1;
 
       // storm orbiting blades
@@ -340,148 +350,48 @@
     }
   }
 
-  /* ---------- procedural ronin renderer ---------- */
-  function drawRonin(ctx, P, O) {
-    ctx.save();
-    ctx.translate(P.x, P.y);
-    ctx.scale(P.facing * (P.character === "titan" ? 1.18 : P.character === "kestrel" ? .9 : 1), 1);
+  /* ---------- layered hero renderer (Clockwork Raven sprite packs) ---------- */
+  const HERO_SCALE = 0.62;
+  function heroAnim(P) {
+    if (P.hurt) return "hurt";
+    if (P.attacking) return "attack";
+    if (P.air) return (P.vy || 0) < -40 ? "jump" : "fall";
+    if ((P.runAmt || 0) > 0.72) return "run";
+    if ((P.runAmt || 0) > 0.04) return "walk";
+    return "idle";
+  }
+  function heroFrame(P) {
+    if (!P.attacking) return 0;
+    const p = U.clamp(P.atkP || 0, 0, 1);
+    return Math.min(5, Math.floor(p * 6));
+  }
+  function drawHero(ctx, P, O) {
     const ghost = O.ghost;
-    const BODY = ghost ? O.tint : "#25394b";
-    const TRIM = ghost ? O.tint : (P.trim || "#00fff4");
-    const CLOAK = ghost ? "transparent" : "rgba(255,45,149,0.85)";
-    const cr = (P.crouch || 0) * 10;
-    const lean = P.lean || 0;
-    const hipY = -46 + cr, shY = hipY - 27 + cr * 0.4;
-
-    // --- cloak (fluttering) ---
-    if (!ghost) {
-      const flap = Math.sin(P.t * 7) * 5 + (P.runAmt || 0) * 12 + (P.air ? 14 : 0);
-      const grd = ctx.createLinearGradient(0, shY, -34 - flap, 0);
-      grd.addColorStop(0, P.cloak || "rgba(255,45,149,0.9)");
-      grd.addColorStop(1, "rgba(120,10,70,0.15)");
-      ctx.fillStyle = CLOAK === "transparent" ? "rgba(0,0,0,0)" : grd;
-      ctx.beginPath();
-      ctx.moveTo(2, shY + 2);
-      ctx.quadraticCurveTo(-26 - flap, shY + 18, -30 - flap * 1.5, -8 + Math.sin(P.t * 9) * 4);
-      ctx.quadraticCurveTo(-14, 2, -2, -6);
-      ctx.closePath(); ctx.fill();
-    }
-
-    // --- legs ---
-    let a1, a2, b1, b2; // thigh/shin angles
-    if (P.air) { a1 = 0.55; b1 = 1.15; a2 = -0.3; b2 = 0.75; }
-    else if (P.dash) { a1 = 0.9; b1 = 0.25; a2 = -1.05; b2 = 0.3; }
-    else {
-      const p = P.legPhase, sw = (P.runAmt || 0);
-      const idle = Math.sin(P.t * 2.2) * 0.04;
-      a1 = Math.sin(p) * 0.78 * sw + idle;
-      a2 = Math.sin(p + Math.PI) * 0.78 * sw + idle - 0.06;
-      b1 = Math.max(0.06, -Math.sin(p - 0.7)) * 1.15 * sw + 0.06;
-      b2 = Math.max(0.06, -Math.sin(p + Math.PI - 0.7)) * 1.15 * sw + 0.06;
-    }
-    const legW = 9;
-    drawLeg(ctx, 0, hipY, a2, b2, legW, ghost ? O.tint : "#0d1126"); // back leg
-    drawLeg(ctx, 0, hipY, a1, b1, legW, BODY); // front leg
-
-    // --- torso ---
-    const shX = lean * 12, shYv = shY;
-    ctx.strokeStyle = BODY; ctx.lineWidth = 15; ctx.lineCap = "round";
-    ctx.beginPath(); ctx.moveTo(0, hipY); ctx.lineTo(shX, shYv); ctx.stroke();
-    // Layered armor plates remain legible against both daytime and neon skylines.
-    if (!ghost) {
-      const armor = ctx.createLinearGradient(shX - 14, shYv, shX + 14, hipY);
-      armor.addColorStop(0, '#3b546b'); armor.addColorStop(.45, '#182a3a'); armor.addColorStop(1, '#2a3c52');
-      ctx.fillStyle = armor; ctx.strokeStyle = '#668692'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(shX - 13, shYv - 2); ctx.lineTo(shX + 12, shYv - 2);
-      ctx.lineTo(shX + 14, shYv + 10); ctx.lineTo(9, hipY); ctx.lineTo(-9, hipY);
-      ctx.lineTo(shX - 14, shYv + 10); ctx.closePath(); ctx.fill(); ctx.stroke();
-      // Segmented waist armor and sash.
-      ctx.fillStyle = '#152434'; ctx.fillRect(-11, hipY - 2, 22, 9);
-      ctx.strokeStyle = '#ce408c'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(-10, hipY); ctx.lineTo(10, hipY); ctx.stroke();
-      ctx.fillStyle = '#456070'; ctx.fillRect(shX - 16, shYv - 2, 8, 8);
-      ctx.fillRect(shX + 8, shYv - 2, 8, 8);
-    }
-    // chest neon core
-    if (!ghost) {
-      NR.sprites.drawGlow(ctx, "cyan", shX + 2, shYv + 6, 12, P.storm ? 0.95 : 0.55);
-      ctx.fillStyle = TRIM;
-      ctx.fillRect(shX - 1, shYv + 2, 5, 8);
-    }
-
-    // --- head (hood + visor) ---
-    const hx = shX + lean * 4, hy = shYv - 14;
-    ctx.fillStyle = ghost ? O.tint : "#0a0e22";
-    ctx.beginPath(); ctx.arc(hx, hy, 10, 0, U.TAU); ctx.fill();
-    if (!ghost) {
-      ctx.fillStyle = "#141b3a";
-      ctx.beginPath(); ctx.arc(hx - 2, hy - 2, 11, Math.PI * 0.65, Math.PI * 1.75); ctx.fill();
-      // Angular hood and faceplate.
-      ctx.fillStyle = '#20394d'; ctx.strokeStyle = '#54707d'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(hx - 11, hy + 2); ctx.lineTo(hx - 8, hy - 9);
-      ctx.lineTo(hx + 2, hy - 13); ctx.lineTo(hx + 11, hy - 5);
-      ctx.lineTo(hx + 9, hy + 7); ctx.lineTo(hx - 4, hy + 8); ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#080f1c'; ctx.fillRect(hx, hy - 4, 10, 8);
-      // visor
-      ctx.strokeStyle = TRIM; ctx.lineWidth = 3; ctx.lineCap = "round";
-      ctx.beginPath(); ctx.moveTo(hx + 2, hy - 1); ctx.lineTo(hx + 9, hy - 2); ctx.stroke();
-      NR.sprites.drawGlow(ctx, "cyan", hx + 7, hy - 1, 8, 0.8);
-    }
-
-    // --- back arm ---
-    const armSw = (P.runAmt || 0) * Math.sin(P.legPhase + Math.PI) * 0.55;
-    strokeLimb(ctx, shX - 1, shYv + 2, armSw + 0.25, 13, armSw + 0.75, 12, 5.5, ghost ? O.tint : "#0d1126");
-
-    // --- sword arm + katana ---
-    const sa = P.swordAng === undefined ? -0.35 : P.swordAng;
-    const elb = U.seg(shX, shYv + 2, sa * 0.45 + 0.3, 13);
-    const hand = U.seg(elb[0], elb[1], sa - 0.15, 14);
-    strokeSeg(ctx, shX, shYv + 2, elb[0], elb[1], 6, BODY);
-    strokeSeg(ctx, elb[0], elb[1], hand[0], hand[1], 5.5, BODY);
-    // katana
-    const bl = P.attacking ? 52 : 46;
-    const tip = U.seg(hand[0], hand[1], sa, bl);
-    const hilt = U.seg(hand[0], hand[1], sa, -9);
-    ctx.lineCap = "round";
-    ctx.strokeStyle = ghost ? O.tint : "#1a1030"; ctx.lineWidth = 5;
-    strokeSeg(ctx, hand[0], hand[1], hilt[0], hilt[1], 5, ghost ? O.tint : "#1a1030");
-    // guard
-    strokeSeg(ctx, hand[0] - 4, hand[1] + 2, hand[0] + 4, hand[1] - 2, 3, ghost ? O.tint : "#2a3560");
+    const built = NR.char.build(P.appearance || NR.profile.appearance);
+    const anim = heroAnim(P);
+    const frame = heroFrame(P);
     if (!ghost) {
       ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      ctx.strokeStyle = "rgba(0,255,244,0.55)"; ctx.lineWidth = 8;
-      ctx.beginPath(); ctx.moveTo(hand[0], hand[1]); ctx.lineTo(tip[0], tip[1]); ctx.stroke();
+      ctx.globalAlpha = 0.32;
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.ellipse(P.x, P.y + 2, 22, 6, 0, 0, U.TAU);
+      ctx.fill();
       ctx.restore();
     }
-    ctx.strokeStyle = ghost ? O.tint : "#eafffd"; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(hand[0], hand[1]); ctx.lineTo(tip[0], tip[1]); ctx.stroke();
-    if (!ghost) NR.sprites.drawGlow(ctx, "cyan", tip[0], tip[1], P.attacking ? 16 : 9, P.attacking ? 0.9 : 0.5);
-
-    // storm aura
+    NR.char.drawFrame(ctx, built, anim, frame, P.x, P.y, P.facing, {
+      scale: HERO_SCALE,
+      alpha: ghost ? 0.5 : 1,
+      tint: ghost ? O.tint : undefined,
+    });
     if (P.storm && !ghost) {
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
-      NR.sprites.drawGlow(ctx, "cyan", 0, -46, 90 + Math.sin(P.t * 20) * 14, 0.5);
+      NR.sprites.drawGlow(ctx, "cyan", P.x, P.y - 40, 70 + Math.sin(P.t * 20) * 12, 0.45);
       ctx.restore();
     }
-    ctx.restore();
-  }
-
-  function strokeSeg(ctx, x1, y1, x2, y2, w, col) {
-    ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = "round";
-    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
-  }
-  function strokeLimb(ctx, x, y, a1, l1, a2, l2, w, col) {
-    const j = U.seg(x, y, a1, l1);
-    const f = U.seg(j[0], j[1], a2, l2);
-    strokeSeg(ctx, x, y, j[0], j[1], w, col);
-    strokeSeg(ctx, j[0], j[1], f[0], f[1], w * 0.85, col);
-  }
-  function drawLeg(ctx, x, y, thigh, knee, w, col) {
-    strokeLimb(ctx, x, y, thigh, 21, knee, 20, w, col);
   }
 
   NR.Player = Player;
-  NR.drawRonin = drawRonin;
+  NR.drawHero = drawHero;
 })();
