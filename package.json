@@ -1,0 +1,38 @@
+{
+  "name": "apex-endless-horizons",
+  "version": "1.0.0",
+  "description": "A cinematic 3D endless driving game",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node scripts/smoke.mjs",
+    "test:visual": "node scripts/screenshot.mjs",
+    "format": "prettier --write src scripts index.html vite.config.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arvinddara029-coder/html5.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/arvinddara029-coder/html5/issues"
+  },
+  "homepage": "https://github.com/arvinddara029-coder/html5#readme",
+  "dependencies": {
+    "@fontsource/barlow-condensed": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
+    "lucide": "^1.48.0",
+    "three": "^0.186.1",
+    "vite": "^8.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@sparticuz/chromium": "^153.0.0",
+    "prettier": "^3.9.9"
+  },
+  "type": "module"
+}
