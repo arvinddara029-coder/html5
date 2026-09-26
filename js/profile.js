@@ -97,10 +97,11 @@
     P.difficulty = "normal";
   if (!/^[a-zA-Z0-9_]{3,16}$/.test(P.name)) P.name = "RONIN_01";
   if (!["adventure", "survival"].includes(P.mode)) P.mode = "adventure";
-  if (!["ronin", "kestrel", "titan"].includes(P.character))
-    P.character = "ronin";
+  const ROSTER = (NR.characters || []).map((c) => c.id);
+  if (!ROSTER.length || !ROSTER.includes(P.character)) P.character = ROSTER[0] || "ronin";
+  const LAST_CHAPTER = Math.max(0, ((NR.adventure && NR.adventure.chapters.length) || 3) - 1);
   for (const key of ["chapter", "unlocked"])
-    P[key] = Math.max(0, Math.min(2, Math.floor(Number(P[key]) || 0)));
+    P[key] = Math.max(0, Math.min(LAST_CHAPTER, Math.floor(Number(P[key]) || 0)));
   P.chapter = Math.min(P.chapter, P.unlocked);
   for (const key of ["totalKills", "bestWave", "runs"])
     P[key] = Math.max(0, Math.min(10000000, Math.floor(Number(P[key]) || 0)));

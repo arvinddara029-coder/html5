@@ -177,8 +177,8 @@
   });
 
   // pet sheets are multi-frame strips.
-  // Doggy & fox sheets are 2-row grids (row 0 = idle/walk, row 1 = run) of 32x32;
-  // the wisp is a single 5-frame row.
+  // Doggy & fox sheets are 2-row grids (row 0 = idle/sit-and-blink, row 1 = run)
+  // of 32x32 cells; the wisp is a single 5-frame row.
   const PET_FRAMES = {
     "GandalfHardcore doggy sheet.png": 6, "GandalfHardcore doggy sheet 2.png": 6,
     "GandalfHardcore doggy sheet 3.png": 6, "GandalfHardcore doggy sheet 4.png": 6,
@@ -189,6 +189,26 @@
     "GandalfHardcore doggy sheet.png": 2, "GandalfHardcore doggy sheet 2.png": 2,
     "GandalfHardcore doggy sheet 3.png": 2, "GandalfHardcore doggy sheet 4.png": 2,
     "GandalfHardcore doggy sheet 5.png": 2, "GandalfHardcore fox.png": 2, "GandalfHardcore Wisp.png": 1,
+  };
+  /* Measured per-row frame counts. The 6th cell of the idle row is EMPTY in
+     every doggy/fox sheet (and in the hat/backpack overlays) — playing it made
+     the companion blink out of existence once per loop. Row 1 really has 6. */
+  NR.petRowFrames = {
+    "GandalfHardcore doggy sheet.png": [5, 6], "GandalfHardcore doggy sheet 2.png": [5, 6],
+    "GandalfHardcore doggy sheet 3.png": [5, 6], "GandalfHardcore doggy sheet 4.png": [5, 6],
+    "GandalfHardcore doggy sheet 5.png": [5, 6], "GandalfHardcore fox.png": [5, 6],
+    "GandalfHardcore Wisp.png": [5],
+  };
+  /* matching wardrobe overlays (same grid, same blank cell) */
+  NR.petWardrobe = {
+    hat: "GandalfHardcore Pet companion/GandalfHardcore doggy hat.png",
+    backpack: "GandalfHardcore Pet companion/GandalfHardcore doggy backpack.png",
+  };
+  NR.petWear = {}; // petId -> "hat" | "backpack" | "" (doggy wardrobe overlays)
+  NR.petRowFramesFor = function (petId, row) {
+    const per = NR.petRowFrames[petId];
+    if (per && per[row | 0]) return per[row | 0];
+    return PET_FRAMES[petId] || 6;
   };
 
   /* ---------------- enemy sprite sheets ----------------
@@ -206,7 +226,8 @@
     fw: 32, fh: 48, perRow: 8,
     crop: { x: 0, y: 0, w: 32, h: 48 }, floor: 48,
     anims: {
-      idle: { path: `${SLIME}/Slime ${variant}.png`, frames: 8 },
+      // row 0 cells 5-7 are the melt-away (cell 7 is empty) — looping them made the slime blink out
+      idle: { path: `${SLIME}/Slime ${variant}.png`, frames: 5 },
       hop: { path: `${SLIME}/Slime ${variant}.png`, frames: 8, start: 8 },
       death: { path: `${SLIME}/Slime ${variant}.png`, frames: 3, start: 5 }, // squash-flat fade
     },
@@ -265,6 +286,15 @@
     slimeGreen: slimeDef("green"),
     slimeRed: slimeDef("red"),
     arrow: { fw: 32, fh: 32, anims: { idle: { path: "Tiny RPG Character Asset Pack 01 v2.0 -Free Soldier&Orc/Arrow(Projectile)/Arrow01(32x32).png", frames: 1 } } },
+    /* The orc pack ships a separate 6-frame cleave-effect layer. It was never
+       wired; the BRUTE draws it over its swing so heavy hits read as heavy. */
+    orcFx: {
+      fw: 100, fh: 100,
+      crop: { x: 0, y: 0, w: 100, h: 100 }, floor: 100,
+      anims: {
+        cleave: { path: `${ORC}/../Orc(Split Effects)/Orc-attack01_Effect.png`.replace("/Orc/../", "/"), frames: 6 },
+      },
+    },
     /* Sprite Pack 7 mercenaries — real combat kits, face RIGHT natively.
        Attack sheets are wider cells, so anims carry their own fw/fh/crop. */
     diego: {
@@ -277,6 +307,10 @@
         reload: { path: "Sprite Pack 7/1 - Diego/Reloading_while_standing (32 x 48).png", frames: 7 },
         // point-blank mode: drops to a knee (32px-low cells)
         crouch: { path: "Sprite Pack 7/1 - Diego/Crouching (32 x 32).png", frames: 1, fh: 32, crop: { x: 0, y: 2, w: 32, h: 30 }, floor: 32 },
+        stand: { path: "Sprite Pack 7/1 - Diego/Standing (32 x 48).png", frames: 1 },
+        jump: { path: "Sprite Pack 7/1 - Diego/Jump (32 x 48).png", frames: 1 },
+        jshoot: { path: "Sprite Pack 7/1 - Diego/Shooting_while_jumping (48 x 48).png", frames: 3, fw: 48, fh: 48, crop: { x: 0, y: 8, w: 34, h: 40 } },
+        rshoot: { path: "Sprite Pack 7/1 - Diego/Shooting_while_running (48 x 48).png", frames: 6, fw: 48, fh: 48, crop: { x: 0, y: 8, w: 34, h: 40 } },
         cshoot: { path: "Sprite Pack 7/1 - Diego/Shooting_while_crouching (48 x 32).png", frames: 3, fw: 48, fh: 32, crop: { x: 0, y: 2, w: 40, h: 30 }, floor: 32 },
         creload: { path: "Sprite Pack 7/1 - Diego/Reloading_while_crouching (32 x 32).png", frames: 7, fh: 32, crop: { x: 0, y: 2, w: 32, h: 30 }, floor: 32 },
         hurt: { path: "Sprite Pack 7/1 - Diego/Hurt (32 x 48).png", frames: 1 },
@@ -294,6 +328,7 @@
         aerial: { path: "Sprite Pack 7/2 - Holly/Aerial_swing (64 x 64).png", frames: 12, fw: 64, fh: 64, crop: { x: 7, y: 6, w: 50, h: 51 }, floor: 57 },
         smash: { path: "Sprite Pack 7/2 - Holly/Ground_smash (64 x 48).png", frames: 8, fw: 64, fh: 48, crop: { x: 9, y: 8, w: 48, h: 40 }, floor: 48 },
         duck: { path: "Sprite Pack 7/2 - Holly/Ducking (32 x 32).png", frames: 1 },
+        stand: { path: "Sprite Pack 7/2 - Holly/Standing (32 x 32).png", frames: 1 },
         hurt: { path: "Sprite Pack 7/2 - Holly/Hurt (32 x 32).png", frames: 1 },
         death: { path: "Sprite Pack 7/2 - Holly/Hurt (32 x 32).png", frames: 1 },
       },
@@ -311,6 +346,11 @@
         stab: { path: "Sprite Pack 7/3 - Gordon/Run_stab (80 x 48).png", frames: 8, fw: 80, fh: 48, crop: { x: 6, y: 7, w: 68, h: 41 }, floor: 48 },
         hurt: { path: "Sprite Pack 7/3 - Gordon/Hurt (48 x 48).png", frames: 1 },
         death: { path: "Sprite Pack 7/3 - Gordon/Hurt (48 x 48).png", frames: 1 },
+        stand: { path: "Sprite Pack 7/3 - Gordon/Standing (48 x 48).png", frames: 1 },
+        crouch: { path: "Sprite Pack 7/3 - Gordon/Crouching (48 x 48).png", frames: 1 },
+        jump: { path: "Sprite Pack 7/3 - Gordon/Jump (48 x 64).png", frames: 1, fh: 64, crop: { x: 4, y: 3, w: 44, h: 61 }, floor: 64 },
+        fall: { path: "Sprite Pack 7/3 - Gordon/Falling (48 x 64).png", frames: 1, fh: 64, crop: { x: 4, y: 3, w: 44, h: 61 }, floor: 64 },
+        landed: { path: "Sprite Pack 7/3 - Gordon/Landed (48 x 64).png", frames: 2, fh: 64, crop: { x: 4, y: 3, w: 44, h: 61 }, floor: 64 },
       },
     },
   };

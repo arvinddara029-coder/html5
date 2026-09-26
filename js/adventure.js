@@ -26,6 +26,8 @@
         "Follow the abandoned transit line. Restore three relays and find a way beyond the city wall.",
       objective: "Restore the transit relays",
       length: 6800,
+      boss: "ronin",
+      bossName: "KUROGANE THE RIVAL",
     },
     {
       id: 1,
@@ -38,6 +40,8 @@
         "Nature has reclaimed the skyway. Cross the broken gardens and bring the old freight lift back online.",
       objective: "Reconnect the garden grid",
       length: 6800,
+      boss: "brute",
+      bossName: "THORN, THE GARDEN WARDEN",
     },
     {
       id: 2,
@@ -50,9 +54,115 @@
         "The signal ends here. Break the reactor locks, confront SHOGUN-9 and shut down Protocol Zero.",
       objective: "Override the reactor locks",
       length: 6800,
+      boss: "mech",
+      bossName: "SHOGUN-9",
+    },
+    {
+      id: 3,
+      name: "THE SUNKEN FOUNDRY",
+      short: "Foundry",
+      district: "SECTOR 21",
+      biome: "reactor",
+      color: "#c08bff",
+      description:
+        "Below the reactor, the old foundry still burns. Something down here has learned the warlock rites.",
+      objective: "Silence the foundry choir",
+      length: 7400,
+      boss: "warlock",
+      bossName: "ARCH-WARLOCK VEXIS",
+    },
+    {
+      id: 4,
+      name: "THE SKYWARD DOCKS",
+      short: "Sky Docks",
+      district: "SECTOR 34",
+      biome: "garden",
+      color: "#ff9a7f",
+      description:
+        "Freight lifts and rotted gantries above the canopy. Goro the Breaker collects tolls in bones.",
+      objective: "Break the dock blockade",
+      length: 7400,
+      boss: "brute",
+      bossName: "GORO THE BREAKER",
+    },
+    {
+      id: 5,
+      name: "PROTOCOL PRIME",
+      short: "Prime Spire",
+      district: "THE SPIRE",
+      biome: "city",
+      color: "#ff5f8f",
+      description:
+        "The last climb. Every hunter the protocol owns is on this roof, and SHOGUN-9 PRIME is waiting.",
+      objective: "End Protocol Prime",
+      length: 8200,
+      boss: "mech",
+      bossName: "SHOGUN-9 PRIME",
+      finale: true,
     },
   ];
+  A.bossSkin = () => (A.chapter && A.chapter.boss) || "mech";
   const basePlatforms = W.platforms.map((p) => ({ ...p }));
+  /* Route layouts are authored as fractions of the chapter length, so every
+     chapter — including the longer late-campaign ones — gets the same rhythm of
+     platforms, relays, patrols, caches, hazards and shards. */
+  const PATTERNS = [
+    [
+      [0, 690, 290],
+      [310, 535, 260],
+      [620, 660, 220, 110, 35],
+    ],
+    [
+      [-60, 730, 260],
+      [230, 600, 230],
+      [500, 465, 240],
+      [800, 610, 220, 55, 100],
+    ],
+    [
+      [-90, 715, 240],
+      [185, 565, 245],
+      [480, 695, 250, 150, 0],
+      [840, 510, 240],
+    ],
+    // foundry: tight gantries with long horizontal shuttles
+    [
+      [-40, 700, 250, 140, 0],
+      [300, 545, 230],
+      [560, 690, 210],
+      [830, 470, 240, 60, 90],
+    ],
+    // sky docks: stacked freight lifts, mostly vertical travel
+    [
+      [-70, 720, 240],
+      [210, 585, 220, 45, 120],
+      [470, 640, 250],
+      [740, 445, 230, 120, 30],
+      [980, 610, 200],
+    ],
+    // prime spire: sparse, punishing gaps with fast moving platforms
+    [
+      [-30, 705, 230, 160, 0],
+      [330, 520, 220],
+      [600, 665, 210, 90, 60],
+      [880, 430, 240],
+    ],
+  ];
+  const HAZARDS = [
+    [[0.174, "spikes", 100], [0.422, "laser", 85], [0.647, "saw", 100], [0.859, "laser", 85]],
+    [[0.162, "spikes", 100], [0.4, "saw", 100], [0.625, "spikes", 100], [0.862, "saw", 100]],
+    [[0.144, "laser", 85], [0.371, "laser", 85], [0.621, "saw", 100], [0.871, "laser", 85]],
+    // foundry: molten saws and vent lasers, one extra trap
+    [[0.13, "saw", 100], [0.3, "laser", 85], [0.47, "saw", 100], [0.66, "laser", 85], [0.84, "spikes", 110]],
+    // sky docks: mostly spikes on the gantries
+    [[0.12, "spikes", 110], [0.29, "spikes", 100], [0.52, "laser", 85], [0.7, "saw", 100], [0.88, "spikes", 110]],
+    // prime spire: everything, tighter spacing
+    [[0.11, "laser", 85], [0.26, "saw", 100], [0.41, "laser", 85], [0.58, "spikes", 110], [0.73, "saw", 100], [0.89, "laser", 85]],
+  ];
+  const RELAY_F = [0.257, 0.5, 0.743];
+  const ZONE_F = [0.11, 0.345, 0.588, 0.82];
+  const CACHE_F = [0.073, 0.319, 0.567, 0.806];
+  const PROP_F = [0.091, 0.162, 0.324, 0.456, 0.574, 0.797];
+
   A.configure = function (mode, chapter) {
     A.active = mode === "adventure";
     A.chapter = A.chapters[chapter] || A.chapters[0];
@@ -66,32 +176,19 @@
       W.platforms = basePlatforms.map((p) => ({ ...p }));
       return;
     }
-    W.W = A.chapter.length;
+    const L = A.chapter.length;
+    const px = (f) => Math.round(f * L);
+    W.W = L;
     W.platforms = [];
     // Each district has a different traversal rhythm. Ground is always walkable;
     // elevated routes reward double jumps without blocking relay accessibility.
-    const patterns = [
-      [
-        [0, 690, 290],
-        [310, 535, 260],
-        [620, 660, 220, 110, 35],
-      ],
-      [
-        [-60, 730, 260],
-        [230, 600, 230],
-        [500, 465, 240],
-        [800, 610, 220, 55, 100],
-      ],
-      [
-        [-90, 715, 240],
-        [185, 565, 245],
-        [480, 695, 250, 150, 0],
-        [840, 510, 240],
-      ],
-    ];
-    for (let i = 0; i < 4; i++)
-      for (const [dx, y, w, ampX, ampY] of patterns[A.chapter.id]) {
-        const x = 650 + i * 1500 + dx;
+    const pattern = PATTERNS[A.chapter.id % PATTERNS.length];
+    const groups = Math.max(4, Math.round(L / 1700));
+    const step = (L - 1400) / groups;
+    for (let i = 0; i < groups; i++)
+      for (const [dx, y, w, ampX, ampY] of pattern) {
+        const x = 650 + i * step + dx;
+        if (x > L - 420) continue; // keep the extraction approach clear
         W.platforms.push({
           x,
           y,
@@ -102,62 +199,35 @@
             : {}),
         });
       }
-    A.relays = [1750, 3400, 5050].map((x, id) => ({ id, x, active: false }));
-    A.zones = [750, 2350, 4000, 5600].map((x, id) => ({
-      id,
-      x,
-      started: false,
-      cleared: false,
-      gate: x + 620,
-    }));
-    A.caches = [500, 2170, 3860, 5480].map((x, id) => ({ id, x, open: false }));
-    const dangers = [
-      [
-        [1180, "spikes", 100],
-        [2870, "laser", 85],
-        [4400, "saw", 100],
-        [5840, "laser", 85],
-      ],
-      [
-        [1100, "spikes", 100],
-        [2720, "saw", 100],
-        [4250, "spikes", 100],
-        [5860, "saw", 100],
-      ],
-      [
-        [980, "laser", 85],
-        [2520, "laser", 85],
-        [4220, "saw", 100],
-        [5920, "laser", 85],
-      ],
-    ];
-    A.hazards = dangers[A.chapter.id].map(([x, type, w], id) => ({
-      x,
+    A.relays = RELAY_F.map((f, id) => ({ id, x: px(f), active: false }));
+    A.zones = ZONE_F.map((f, id) => {
+      const x = px(f);
+      return { id, x, started: false, cleared: false, gate: x + 620 };
+    });
+    A.caches = CACHE_F.map((f, id) => ({ id, x: px(f), open: false }));
+    A.hazards = HAZARDS[A.chapter.id % HAZARDS.length].map(([f, type, w], id) => ({
+      x: px(f),
       type,
       w,
       id,
       phase: id * 0.9,
     }));
     A.shards = [];
-    for (let i = 0; i < 4; i++)
+    for (let i = 0; i < groups; i++)
       for (let j = 0; j < 4; j++) {
         const platform =
-          W.platforms[
-            i * patterns[A.chapter.id].length +
-              Math.min(j, patterns[A.chapter.id].length - 1)
-          ];
+          W.platforms[i * pattern.length + Math.min(j, pattern.length - 1)];
+        if (!platform) continue;
         A.shards.push({
-          id: i * 4 + j,
-          x:
-            platform.x +
-            platform.w * (j === 3 && A.chapter.id === 0 ? 0.75 : 0.4),
+          id: A.shards.length,
+          x: platform.x + platform.w * (j === 3 && A.chapter.id === 0 ? 0.75 : 0.4),
           y: platform.y - 45,
           collected: false,
         });
       }
-    A.props = [620, 1100, 2200, 3100, 3900, 5420].map((x, id) => ({
+    A.props = PROP_F.map((f, id) => ({
       id,
-      x: x + A.chapter.id * 25,
+      x: px(f) + A.chapter.id * 25,
       y: W.groundY,
       hp: 28,
       broken: false,
@@ -242,26 +312,43 @@
       G.enemies.push(e);
       F.teleport(e.x, e.y - e.h / 2, "orange");
     };
-    if (zone.id === 3 && G.chapter === 2) {
-      const boss = new NR.Boss(x + 120, y, m, 1);
+    const finale = zone.id === A.zones.length - 1 && !!A.chapter.boss;
+    if (finale) {
+      // every chapter ends on a real boss fight; later chapters field the
+      // warlock / brute bodies and a tougher SHOGUN frame
+      const bossNum = 1 + Math.floor(G.chapter / 2);
+      // bosses scale with the campaign so chapter 1 is a duel, not a wall
+      const boss = new NR.Boss(x + 120, y, m, bossNum, A.bossSkin(), 0.6 + G.chapter * 0.12);
       G.bossActive = true;
       G.bossRef = boss;
       add(boss);
-      G.banner("SHOGUN-9", "The final lock is a war machine.", "#ff826b");
+      if (G.chapter >= 3) add(new NR.Sentinel(x - 180, y, m)); // honour guard
+      G.banner(
+        A.chapter.bossName || "SHOGUN-9",
+        A.chapter.finale
+          ? "The last lock wears your face."
+          : "The final lock is holding something enormous.",
+        "#ff826b",
+      );
     } else {
+      const ch = G.chapter;
       add(new NR.Crawler(x - 100, y, m));
       add(new NR.Crawler(x + 150, y, m));
-      if (G.chapter >= 1 || zone.id >= 1) add(new NR.Slime(x + 40, y, m));
-      if (zone.id > 0 || G.chapter > 0) add(new NR.Sentry(x + 260, y, m));
-      if (zone.id > 1 || G.chapter > 0) add(new NR.Soldier(x - 40, y, m));
-      if (G.chapter >= 1 && zone.id >= 1) add(new NR.Rival(x + 120, y, m));
-      if (G.chapter >= 2) add(new NR.Warlock(x + 300, y - 50, m));
-      if (G.chapter >= 1 && zone.id >= 2) add(new NR.Gunner(x - 220, y, m));           // Diego covers the approach
-      if (G.chapter >= 2 && zone.id >= 1) add(new NR.Striker(x + 200, y, m));         // Holly hunts the reactor
-      if (G.chapter === 2 && zone.id >= 1) add(new NR.Blade(x - 320, y, m));          // Gordon guards the core
-      if (zone.id === 3 || G.chapter === 2) add(new NR.Sentinel(x + 60, y, m));
-      if (G.chapter > 0 && zone.id === 2)
-        add(new NR.Wraith(x + 200, y - 100, m));
+      if (ch >= 1 || zone.id >= 1) add(new NR.Slime(x + 40, y, m));
+      if (zone.id > 0 || ch > 0) add(new NR.Sentry(x + 260, y, m));
+      if (zone.id > 1 || ch > 0) add(new NR.Soldier(x - 40, y, m));
+      if (ch >= 1 && zone.id >= 1) add(new NR.Rival(x + 120, y, m));
+      if (ch >= 2) add(new NR.Warlock(x + 300, y - 50, m));
+      if (ch >= 1 && zone.id >= 2) add(new NR.Gunner(x - 220, y, m));           // Diego covers the approach
+      if (ch >= 2 && zone.id >= 1) add(new NR.Striker(x + 200, y, m));         // Holly hunts the reactor
+      if (ch >= 2 && zone.id >= 1) add(new NR.Blade(x - 320, y, m));           // Gordon guards the core
+      if (zone.id === 3 || ch >= 2) add(new NR.Sentinel(x + 60, y, m));
+      if (ch > 0 && zone.id === 2) add(new NR.Wraith(x + 200, y - 100, m));
+      // late campaign: the armoured heavy and the diving phantom join the patrols
+      if (ch >= 3 && zone.id >= 1) add(new NR.Brute(x + 340, y, m));
+      if (ch >= 3 && zone.id >= 2) add(new NR.Apparition(x - 260, y - 220, m));
+      if (ch >= 4) add(new NR.Drone(x + 420, y - 300, m));
+      if (ch >= 5) add(new NR.Apparition(x + 180, y - 260, m));
       G.banner(
         "CONTACT AHEAD",
         zone.id === 0
@@ -434,12 +521,13 @@
   };
   /* shared chapter-completion: score, awards, unlock, checkpoint clear, victory */
   function completeChapter(G) {
-    G.score += 1500;
+    const last = A.chapters.length - 1;
+    G.score += 1500 + G.chapter * 500; // deeper chapters pay more
     NR.progress.award("escape");
-    if (G.chapter === 2) NR.progress.award("zero");
+    if (G.chapter >= last) NR.progress.award("zero");
     NR.profile.unlocked = Math.max(
       NR.profile.unlocked,
-      Math.min(2, G.chapter + 1),
+      Math.min(last, G.chapter + 1),
     );
     NR.saveProfile();
     NR.checkpoint.clear();

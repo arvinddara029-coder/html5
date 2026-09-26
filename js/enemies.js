@@ -337,19 +337,59 @@
   }
 
   /* ============ BOSS — SHOGUN-9 ============ */
+  /* Three boss bodies share one fight script (phases, barrage, air-slam,
+     charge, stun window) so every chapter finale plays differently without
+     duplicating AI:
+       mech    — SHOGUN-9, the procedural war machine (chapters 1 & the finale)
+       warlock — ARCH-WARLOCK, the EVil Wizard 2 art at boss scale
+       brute   — GORO, the Tiny-RPG orc with its cleave-effect layer */
+  const BOSS_SKINS = {
+    mech: { sheet: null, w: 130, h: 176, name: "SHOGUN-9", col: "#ff8f3d" },
+    warlock: { sheet: "wizard", scale: 2.7, w: 120, h: 200, name: "ARCH-WARLOCK VEXIS", col: "#c08bff" },
+    brute: { sheet: "orc", scale: 4.6, w: 150, h: 165, name: "GORO THE BREAKER", col: "#ff6a4d" },
+    ronin: { sheet: "samurai", scale: 2.9, w: 130, h: 150, name: "KUROGANE THE RIVAL", col: "#8af5e1" },
+  };
   class Boss extends Enemy {
-    constructor(x, y, mul, bossNum) {
+    constructor(x, y, mul, bossNum, skin, hpScale) {
       super(x, y);
       this.type = "boss"; this.boss = true;
-      this.w = 130; this.h = 176;
-      this.maxHp = this.hp = Math.round(820 * mul * (1 + (bossNum - 1) * 0.5));
+      this.skin = BOSS_SKINS[skin] ? skin : "mech";
+      const S = BOSS_SKINS[this.skin];
+      this.w = S.w; this.h = S.h;
+      this.maxHp = this.hp = Math.round(
+        820 * mul * (1 + (bossNum - 1) * 0.5) * (hpScale || 1),
+      );
       this.dmg = 20; this.score = 4000;
       this.bossNum = bossNum;
+      this.bossName = S.name;
       this.state = "intro"; this.st = 0;
       this.phase = 1; this.legPh = 0; this.coreT = 0;
       this.atkCd = 1.6; this.burstN = 0; this.burstT = 0;
       // NOTE: never add a this.muzzleY data field — it shadows the muzzleY() method
       this.dropY = -260; this.x = x; this.y = this.dropY;
+      if (S.sheet) {
+        this.spr = NR.spriteRender.anim(S.sheet, { anim: "fall" });
+        this.fx = NR.spriteRender.anim("orcFx", { anim: "cleave" });
+      }
+    }
+    /* map the fight state onto the sprite sheet's own animations */
+    syncSkin() {
+      if (!this.spr) return;
+      const has = (n) => {
+        const def = NR.sheets[this.spr.sheet];
+        return !!(def && def.anims[n]);
+      };
+      const pick = (...names) => names.find((n) => has(n)) || "idle";
+      const want =
+        this.state === "intro" || this.state === "slamAir" ? pick(this.vy < 0 ? "jump" : "fall", "idle") :
+        this.state === "slamTel" || this.state === "chargeTel" ? pick("jump", "attack") :
+        this.state === "barrage" ? pick("attack2", "attack") :
+        this.state === "stunned" || this.stunned > 0 ? pick("hurt", "idle") :
+        this.state === "dying" ? pick("death", "hurt", "idle") :
+        this.state === "charging" ? pick("attack", "walk") :
+        Math.abs(this.vx) > 40 ? pick("walk", "idle") : "idle";
+      this.spr.set(want);
+      this.spr.update(1 / 60);
     }
     speedK() { return this.phase === 2 ? 1.35 : 1; }
     update(dt, G) {
@@ -476,6 +516,7 @@
       }
       this.legPh += Math.abs(this.vx) * dt * 0.05;
       this.phys(dt);
+      this.syncSkin();
       // contact damage is bigger on boss
       this.dmg = 22;
     }
@@ -499,7 +540,42 @@
       }
       return false;
     }
+    /* sheet-skinned bosses (warlock / brute) draw real pack art */
+    drawSkin(ctx) {
+      const S = BOSS_SKINS[this.skin];
+      ctx.save();
+      ctx.globalAlpha = 0.35; ctx.fillStyle = "#000";
+      ctx.beginPath(); ctx.ellipse(this.x, this.y + 4, this.w * 0.42, 12, 0, 0, U.TAU); ctx.fill();
+      ctx.restore();
+      // aura so a boss-scale sprite still reads as a boss
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      NR.sprites.drawGlow(ctx, this.phase === 2 ? "magenta" : "purple", this.x, this.y - this.h * 0.5,
+        this.h * (0.55 + Math.sin(this.t * 5) * 0.05), this.phase === 2 ? 0.4 : 0.26);
+      ctx.restore();
+      const dying = this.state === "dying" ? Math.max(0.25, 1 - this.st / 1.5) : 1;
+      const flash = this.flash > 0 ? "rgba(255,255,255,0.85)" : null;
+      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: S.scale * dying, alpha: dying });
+      // the orc pack's cleave-effect layer lands with the slam / charge
+      if (this.skin === "brute" && (this.state === "slamAir" || this.state === "charging")) {
+        this.fx.update(1 / 60);
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.85;
+        this.fx.draw(ctx, this.x + this.facing * 40, this.y - 30, this.facing, { scale: S.scale * 0.9 });
+        ctx.restore();
+      }
+      // cast telegraph for the warlock
+      if (this.skin === "warlock" && this.state === "barrage") {
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        NR.sprites.drawGlow(ctx, "purple", this.muzzle(), this.muzzleY(), 26 + Math.sin(this.t * 30) * 7, 0.9);
+        ctx.restore();
+      }
+      this.drawSpawnFx(ctx);
+    }
     draw(ctx) {
+      if (this.spr) { this.drawSkin(ctx); return; }
       const t = this.t;
       ctx.save();
       ctx.translate(this.x, this.y);
@@ -906,6 +982,7 @@
       this.maxHp = this.hp = Math.round(34 * mul);
       this.dmg = 5; this.score = 120;
       this.speed = 150; this.phase = "move"; this.phaseT = 0; this.burstLeft = 0; this.burstCd = 0;
+      this.hopCd = U.rand(2.4, 4.5); this.airFired = 0;
       this.spr = NR.spriteRender.anim("diego", { anim: "idle" });
     }
     update(dt, G) {
@@ -916,8 +993,9 @@
       this.facing = dx > 0 ? 1 : -1;
       if (this.stunned > 0) { this.stunned -= dt; this.vx = U.damp(this.vx, 0, 6, dt); this.spr.set("idle"); }
       else if (this.phase === "shoot") {
-        this.phaseT -= dt; this.burstCd -= dt; this.vx = U.damp(this.vx, 0, 12, dt);
-        this.spr.set(this.crouched ? "cshoot" : "shoot");
+        this.phaseT -= dt; this.burstCd -= dt;
+        this.vx = U.damp(this.vx, this.runShot ? this.vx : 0, this.runShot ? 2 : 12, dt);
+        this.spr.set(this.crouched ? "cshoot" : this.runShot ? "rshoot" : "shoot");
         if (this.burstCd <= 0 && this.burstLeft > 0) {
           this.burstLeft--;
           this.burstCd = 0.13;
@@ -930,16 +1008,37 @@
         this.phaseT -= dt; this.vx = U.damp(this.vx, 0, 8, dt);
         this.spr.set(this.crouched ? "creload" : "reload");
         if (this.phaseT <= 0) this.phase = "move";
+      } else if (this.phase === "hop") {
+        // leap clear of a rushing player and shoot mid-air (Jump + air-fire rows)
+        this.burstCd -= dt;
+        this.spr.set(this.vy < -60 ? "jump" : "jshoot");
+        if (this.burstCd <= 0 && this.airFired < 2) {
+          this.airFired++; this.burstCd = 0.16;
+          G.bolts.push(new NR.Bolt(this.x + this.facing * 28, this.y - 46, this.facing * 660, 90, { dmg: this.dmg * G.enemyDmgMul, col: "red", r: 5 }));
+          NR.audio.play("shot");
+        }
+        if (this.onGround && this.vy >= 0 && this.t > 0.2) { this.phase = "move"; this.hopCd = U.rand(3, 5.5); }
       } else {
         const dist = Math.abs(dx);
         const lined = Math.abs(p.y - this.y) < 120;
         this.crouched = dist < 220; // point-blank → drops to a knee for stability
-        if (dist < 300 && !this.crouched) this.vx = U.damp(this.vx, -Math.sign(dx) * this.speed * G.enemySpdMul, 5, dt); // too close — back off
+        this.hopCd -= dt;
+        if (dist < 250 && this.onGround && this.hopCd <= 0) {
+          // too close for comfort — hop backwards and answer from the air
+          this.phase = "hop"; this.airFired = 0; this.burstCd = 0.12;
+          this.vy = -620; this.vx = -Math.sign(dx) * 300; this.onGround = false;
+          NR.audio.play("jump");
+        } else if (dist < 300 && !this.crouched) this.vx = U.damp(this.vx, -Math.sign(dx) * this.speed * G.enemySpdMul, 5, dt); // too close — back off
         else if (dist > 480) this.vx = U.damp(this.vx, Math.sign(dx) * this.speed * G.enemySpdMul, 5, dt);  // too far — push in
         else { this.vx = U.damp(this.vx, 0, 5, dt);
-          if (lined) { this.phase = "shoot"; this.phaseT = 0.42; this.burstLeft = 3; this.burstCd = 0.05; this.spr.set(this.crouched ? "cshoot" : "shoot", true); }
+          if (lined) {
+            this.phase = "shoot"; this.phaseT = 0.42; this.burstLeft = 3; this.burstCd = 0.05;
+            this.runShot = Math.abs(this.vx) > 110; // firing on the move uses the run-fire row
+            this.spr.set(this.crouched ? "cshoot" : this.runShot ? "rshoot" : "shoot", true);
+          }
         }
-        if (this.phase === "move") this.spr.set(this.crouched ? "crouch" : (Math.abs(this.vx) > 40 ? "walk" : "idle"));
+        if (this.phase === "move")
+          this.spr.set(this.crouched ? "crouch" : Math.abs(this.vx) > 40 ? "walk" : (lined ? "stand" : "idle"));
       }
       this.spr.update(dt);
       this.phys(dt);
@@ -1047,6 +1146,7 @@
       this.dmg = 15; this.score = 380;
       this.speed = 230; this.state = "chase"; this.st = 0;
       this.dashCd = U.rand(1, 2); this.landed = null; // combo strikes already dealt
+      this.leapCd = U.rand(2.5, 4.5);
       this.comboAnim = "combo"; this.hitFrames = [5, 11, 16]; this.comboDur = 1.6;
       this.spr = NR.spriteRender.anim("gordon", { anim: "idle" });
     }
@@ -1060,7 +1160,15 @@
       else if (this.state === "chase") {
         const dist = Math.abs(dx);
         const lined = Math.abs(p.y - this.y) < 80;
-        if (dist > 460 && lined && this.dashCd <= 0) {
+        this.leapCd -= dt;
+        if (dist > 260 && dist < 470 && this.onGround && this.leapCd <= 0) {
+          // closing leap: Jump → Falling → Landed rows, with a shockwave on impact
+          this.state = "leap"; this.st = 0;
+          this.vy = -760; this.vx = Math.sign(dx) * Math.min(520, dist * 1.5);
+          this.onGround = false;
+          this.spr.set("jump", true);
+          NR.audio.play("jump");
+        } else if (dist > 460 && lined && this.dashCd <= 0) {
           this.state = "stab"; this.st = 0; this.landed = null;
           this.spr.set("stab", true);
         } else if (dist < 110 && lined) {
@@ -1073,6 +1181,23 @@
           this.vx = U.damp(this.vx, Math.sign(dx) * this.speed * G.enemySpdMul, 5, dt);
           this.spr.set(Math.abs(this.vx) > 40 ? "walk" : "idle");
         }
+      } else if (this.state === "leap") {
+        this.st += dt;
+        this.spr.set(this.vy < 0 ? "jump" : "fall");
+        if (this.onGround && this.vy >= 0) {
+          this.state = "land"; this.st = 0;
+          this.spr.set("landed", true);
+          NR.audio.play("slam");
+          G.shake(0.3);
+          F.burst(this.x, this.y - 6, { n: 16, col: "cyan", spd: 320, life: 0.45, up: 180 });
+          if (Math.abs(p.x - this.x) < 120 && Math.abs(p.y - this.y) < 100)
+            G.hurtPlayer(this.dmg * 0.8 * G.enemyDmgMul, this.facing, "slam");
+        }
+      } else if (this.state === "land") {
+        this.st += dt;
+        this.vx = U.damp(this.vx, 0, 12, dt);
+        this.spr.set(this.st > 0.34 ? "crouch" : "landed");
+        if (this.st > 0.6) { this.state = "chase"; this.st = 0; this.leapCd = U.rand(3.2, 5.2); this.facing = dx > 0 ? 1 : -1; }
       } else if (this.state === "stab") {
         this.st += dt;
         this.vx = this.facing * 640 * G.enemySpdMul; // full-commit dash
@@ -1098,10 +1223,10 @@
           }
         }
         if (this.spr.done || this.st > this.comboDur) { this.state = "cool"; this.st = 0; }
-      } else { // cool — short strafe recovery
+      } else { // cool — drops to a knee, then strafes back into the fight
         this.st += dt;
         this.vx = U.damp(this.vx, -Math.sign(dx) * this.speed * 0.5 * G.enemySpdMul, 5, dt);
-        this.spr.set("idle");
+        this.spr.set(this.st < 0.3 ? "crouch" : this.st > 0.7 ? "stand" : "idle");
         if (this.st > 0.85) { this.state = "chase"; this.st = 0; this.facing = dx > 0 ? 1 : -1; }
       }
       this.spr.update(dt);
@@ -1130,6 +1255,191 @@
     }
   }
 
+  /* ============ APPARITION — diving phantom (EVil Wizard 2 pack) ============
+     The warlock keeps its distance; the apparition does the opposite. It hangs
+     in the air on the Jump frame, drops on Fall, and casts Attack2 on impact —
+     the three wizard animations the roster never used. */
+  class Apparition extends Enemy {
+    constructor(x, y, mul) {
+      super(x, y);
+      this.type = "apparition"; this.flying = true;
+      this.w = 52; this.h = 130; this.barY = 160;
+      this.maxHp = this.hp = Math.round(72 * mul);
+      this.dmg = 18; this.score = 340;
+      this.speed = 190; this.state = "hover"; this.st = 0; this.hoverCd = U.rand(0.8, 1.8);
+      this.alpha = 0.92;
+      this.spr = NR.spriteRender.anim("wizard", { anim: "idle" });
+    }
+    update(dt, G) {
+      this.t += dt; this.st += dt; this.flash -= dt; this.touchCd -= dt;
+      if (this.spawnT > 0) { this.spawnT -= dt; this.spr.set("idle"); this.spr.update(dt); return; }
+      const p = G.player;
+      const dx = p.x - this.x;
+      this.facing = dx > 0 ? 1 : -1;
+      if (this.stunned > 0) {
+        this.stunned -= dt; this.state = "hover"; this.st = 0;
+        this.vx = U.damp(this.vx, 0, 6, dt); this.spr.set("hurt");
+      } else if (this.state === "hover") {
+        // drift above the hero, then commit
+        const wantX = p.x + Math.sin(this.t * 1.7) * 150;
+        const wantY = NR.world.groundY - 250 + Math.sin(this.t * 2.4) * 26;
+        this.vx = U.damp(this.vx, U.clamp((wantX - this.x) * 2.2, -this.speed, this.speed), 4, dt);
+        this.vy = U.damp(this.vy, U.clamp((wantY - this.y) * 2.4, -220, 220), 5, dt);
+        this.hoverCd -= dt;
+        this.spr.set(Math.abs(this.vx) > 60 ? "walk" : "idle");
+        if (this.hoverCd <= 0 && Math.abs(dx) < 420) { this.state = "rise"; this.st = 0; this.spr.set("jump", true); }
+      } else if (this.state === "rise") {
+        this.vy = U.damp(this.vy, -260, 6, dt);
+        this.vx = U.damp(this.vx, Math.sign(dx) * 120, 4, dt);
+        this.spr.set("jump");
+        if (this.st > 0.34) { this.state = "dive"; this.st = 0; this.spr.set("fall", true); NR.audio.play("dash"); }
+      } else if (this.state === "dive") {
+        this.vy = 900; this.vx = U.damp(this.vx, Math.sign(dx) * 260, 3, dt);
+        this.spr.set("fall");
+        if (U.chance(dt * 30)) F.burst(this.x, this.y - 60, { n: 1, col: "purple", spd: 40, life: 0.4, size: 6, grav: -80 });
+        if (this.y >= NR.world.groundY - 6) {
+          this.state = "cast"; this.st = 0; this.y = NR.world.groundY;
+          this.vx = 0; this.spr.set("attack2", true);
+          NR.audio.play("swing3");
+          G.shake(0.35);
+          F.burst(this.x, this.y - 10, { n: 22, col: "purple", spd: 380, life: 0.55, up: 200 });
+          // impact ring: hurts only if you stayed underneath
+          if (Math.abs(p.x - this.x) < 150 && p.y > NR.world.groundY - 120)
+            G.hurtPlayer(this.dmg * G.enemyDmgMul, Math.sign(p.x - this.x) || 1, "slam");
+        }
+      } else { // cast → back into the air
+        this.vx = U.damp(this.vx, 0, 10, dt);
+        this.spr.set("attack2");
+        if (this.st > 0.28 && this.st < 0.34) {
+          const a = U.angleTo(this.x, this.y - 70, p.x, p.y - 44);
+          for (const off of [-0.22, 0, 0.22]) {
+            const ang = a + off;
+            G.bolts.push(new NR.Bolt(this.x + this.facing * 30, this.y - 70,
+              Math.cos(ang) * 430, Math.sin(ang) * 430, { dmg: this.dmg * 0.6 * G.enemyDmgMul, col: "purple", r: 7 }));
+          }
+          NR.audio.play("shot");
+        }
+        if (this.st > 0.75) { this.state = "hover"; this.st = 0; this.hoverCd = U.rand(1.1, 2.1) / G.enemySpdMul; }
+      }
+      this.x += this.vx * dt; this.y += this.vy * dt;
+      this.x = U.clamp(this.x, 40, NR.world.W - 40);
+      this.y = U.clamp(this.y, 150, NR.world.groundY);
+      this.spr.update(dt);
+      if (U.chance(dt * 7)) F.burst(this.x + U.rand(-18, 18), this.y - U.rand(10, 110), { n: 1, col: "purple", spd: 24, life: 0.5, size: 5, grav: -50 });
+    }
+    die(G) {
+      if (this.dead) return;
+      NR.spriteRender.spawnCorpse(G, "wizard", this.x, this.y, this.facing, 1.1);
+      Enemy.prototype.die.call(this, G);
+    }
+    draw(ctx) {
+      ctx.save();
+      ctx.globalAlpha = 0.35; ctx.fillStyle = "#000";
+      ctx.beginPath(); ctx.ellipse(this.x, NR.world.groundY + 3, 28, 7, 0, 0, U.TAU); ctx.fill();
+      ctx.restore();
+      if (this.state === "dive") { // falling telegraph on the floor
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        NR.sprites.drawGlow(ctx, "purple", this.x, NR.world.groundY - 4, 40, 0.5);
+        ctx.restore();
+      }
+      const flash = this.flash > 0 ? "rgba(255,255,255,0.85)" : null;
+      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 1.1, alpha: this.alpha });
+      this.hpBar(ctx);
+      this.drawSpawnFx(ctx);
+    }
+  }
+
+  /* ============ BRUTE — armoured orc heavy (Tiny RPG orc + effect layer) ============
+     Slow, huge, and its swing draws the pack's separate cleave-effect sheet. */
+  class Brute extends Enemy {
+    constructor(x, y, mul) {
+      super(x, y);
+      this.type = "brute";
+      this.w = 96; this.h = 150; this.barY = 175;
+      this.maxHp = this.hp = Math.round(150 * mul);
+      this.dmg = 22; this.score = 420;
+      this.speed = 92; this.state = "walk"; this.st = 0; this.swingCd = U.rand(1.2, 2.2);
+      this.armored = true;
+      this.spr = NR.spriteRender.anim("orc", { anim: "idle" });
+      this.fx = NR.spriteRender.anim("orcFx", { anim: "cleave" });
+    }
+    hurt(dmg, kx, ky, crit, G) {
+      // front-facing plate soons 35% of the hit; flanking is rewarded
+      const front = Math.sign(G.player.x - this.x) === this.facing;
+      return super.hurt(dmg * (front && this.state !== "swing" ? 0.65 : 1), kx * 0.45, ky * 0.4, crit, G);
+    }
+    update(dt, G) {
+      this.t += dt; this.st += dt; this.flash -= dt; this.touchCd -= dt;
+      if (this.spawnT > 0) { this.spawnT -= dt; this.spr.set("idle"); this.spr.update(dt); return; }
+      const p = G.player;
+      const dx = p.x - this.x;
+      if (this.state !== "swing") this.facing = dx > 0 ? 1 : -1;
+      if (this.stunned > 0) {
+        this.stunned -= dt; this.state = "walk"; this.st = 0;
+        this.vx = U.damp(this.vx, 0, 7, dt); this.spr.set("hurt");
+      } else if (this.state === "wind") {
+        this.vx = U.damp(this.vx, 0, 12, dt);
+        this.spr.set("attack");
+        if (this.st > 0.42) {
+          this.state = "swing"; this.st = 0;
+          this.spr.set("attack2", true);
+          this.fx.set("cleave", true);
+          NR.audio.play("swing3");
+        }
+      } else if (this.state === "swing") {
+        this.vx = U.damp(this.vx, this.facing * 190, 6, dt);
+        this.spr.set("attack2");
+        this.fx.update(dt);
+        if (this.st > 0.1 && this.st < 0.2 && !this.landed) {
+          this.landed = true;
+          G.shake(0.3);
+          F.sparks(this.x + this.facing * 80, this.y - 70, 16, "yellow");
+          if (Math.abs(p.x - this.x) < 175 && Math.abs(p.y - this.y) < 120)
+            G.hurtPlayer(this.dmg * G.enemyDmgMul, this.facing, "slash");
+        }
+        if (this.st > 0.55) { this.state = "walk"; this.st = 0; this.landed = false; this.swingCd = U.rand(1.6, 2.6) / G.enemySpdMul; }
+      } else {
+        this.swingCd -= dt;
+        this.vx = U.damp(this.vx, Math.sign(dx) * this.speed * G.enemySpdMul, 4, dt);
+        this.spr.set(Math.abs(this.vx) > 30 ? "walk" : "idle");
+        if (Math.abs(dx) < 210 && Math.abs(p.y - this.y) < 110 && this.swingCd <= 0) {
+          this.state = "wind"; this.st = 0;
+        }
+      }
+      this.spr.update(dt);
+      this.phys(dt);
+    }
+    die(G) {
+      if (this.dead) return;
+      NR.spriteRender.spawnCorpse(G, "orc", this.x, this.y, this.facing, 4.2);
+      Enemy.prototype.die.call(this, G);
+    }
+    draw(ctx) {
+      ctx.save();
+      ctx.globalAlpha = 0.36; ctx.fillStyle = "#000";
+      ctx.beginPath(); ctx.ellipse(this.x, this.y + 4, 52, 12, 0, 0, U.TAU); ctx.fill();
+      ctx.restore();
+      if (this.state === "wind") { // charged-up tell
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        NR.sprites.drawGlow(ctx, "red", this.x, this.y - 90, 48 + Math.sin(this.t * 34) * 12, 0.45);
+        ctx.restore();
+      }
+      const flash = this.flash > 0 ? "rgba(255,255,255,0.85)" : null;
+      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 4.2 });
+      if (this.state === "swing") {
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.9;
+        this.fx.draw(ctx, this.x + this.facing * 30, this.y, this.facing, { scale: 4.2 });
+        ctx.restore();
+      }
+      this.hpBar(ctx);
+      this.drawSpawnFx(ctx);
+    }
+  }
+
   NR.Enemy = Enemy;
   NR.Crawler = Crawler;
   NR.Slime = Slime;
@@ -1142,4 +1452,7 @@
   NR.Gunner = Gunner;
   NR.Striker = Striker;
   NR.Blade = Blade;
+  NR.Apparition = Apparition;
+  NR.Brute = Brute;
+  NR.bossSkins = BOSS_SKINS;
 })();

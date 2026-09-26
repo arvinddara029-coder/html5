@@ -111,6 +111,8 @@
       gunners: n >= 4 ? Math.min(1 + Math.floor((n - 4) / 3), 3) : 0,
       strikers: n >= 8 ? Math.min(1 + Math.floor((n - 8) / 4), 2) : 0,
       blades: n >= 9 ? Math.min(1 + Math.floor((n - 9) / 4), 2) : 0,
+      brutes: n >= 10 ? Math.min(1 + Math.floor((n - 10) / 4), 2) : 0,
+      apparitions: n >= 11 ? Math.min(1 + Math.floor((n - 11) / 3), 3) : 0,
     };
   }
 
@@ -133,16 +135,19 @@
     for (let i = 0; i < (comp.gunners || 0); i++) q.push({ type: "gunner", t: (delay += U.rand(0.5, 1)) });
     for (let i = 0; i < (comp.strikers || 0); i++) q.push({ type: "striker", t: (delay += U.rand(0.6, 1.1)) });
     for (let i = 0; i < (comp.blades || 0); i++) q.push({ type: "blade", t: (delay += U.rand(0.6, 1.1)) });
+    for (let i = 0; i < (comp.brutes || 0); i++) q.push({ type: "brute", t: (delay += U.rand(0.7, 1.2)) });
+    for (let i = 0; i < (comp.apparitions || 0); i++) q.push({ type: "apparition", t: (delay += U.rand(0.5, 1)) });
     if(n>=3 && !comp.boss) q.push({type:"sentry",t:(delay+=.8)});
     if(n>=4 && !comp.boss) q.push({type:"sentinel",t:(delay+=.8)});
     if (comp.boss) {
       G.bossActive = true;
       const bx = G.player.x > W.W / 2 ? W.W * 0.28 : W.W * 0.72;
-      const boss = new NR.Boss(bx, W.groundY, G.enemyHpMul, Math.ceil(n / 5));
+      const skin = n % 15 === 10 ? "warlock" : n % 15 === 0 ? "brute" : "mech";
+      const boss = new NR.Boss(bx, W.groundY, G.enemyHpMul, Math.ceil(n / 5), skin);
       boss.spawnT = 0;
       G.enemies.push(boss);
       G.bossRef = boss;
-      G.banner("⚠ SHOGUN-9 ⚠", "WAVE " + n + " — eliminate the war machine", "#ff2d95");
+      G.banner("⚠ " + (boss.bossName || "SHOGUN-9") + " ⚠", "WAVE " + n + " — eliminate the war machine", "#ff2d95");
       NR.audio.play("warn");
     } else {
       G.banner("WAVE " + n, n === 1 ? "survive the onslaught" : U.pick([
@@ -179,11 +184,15 @@
       e = new NR.Striker(U.clamp(px + side * U.rand(380, 560), 80, W.W - 80), W.groundY, mul);
     } else if (type === "blade") {
       e = new NR.Blade(U.clamp(px + side * U.rand(420, 620), 90, W.W - 90), W.groundY, mul);
+    } else if (type === "brute") {
+      e = new NR.Brute(U.clamp(px + side * U.rand(460, 660), 90, W.W - 90), W.groundY, mul);
+    } else if (type === "apparition") {
+      e = new NR.Apparition(U.clamp(px + side * U.rand(340, 560), 90, W.W - 90), W.groundY - 240, mul);
     } else {
       e = new NR.Wraith(U.clamp(px + side * U.rand(300, 500), 100, W.W - 100), W.groundY - 200, mul);
     }
     F.teleport(e.x, e.y - e.h / 2,
-      type === "crawler" ? "red" : type === "drone" ? "cyan" : type === "slime" ? "blue" : type === "soldier" ? "orange" : type === "warlock" ? "purple" : type === "rival" ? "white" : type === "gunner" ? "yellow" : type === "striker" ? "orange" : type === "blade" ? "cyan" : "purple");
+      type === "crawler" ? "red" : type === "drone" ? "cyan" : type === "slime" ? "blue" : type === "soldier" ? "orange" : type === "warlock" ? "purple" : type === "rival" ? "white" : type === "gunner" ? "yellow" : type === "striker" ? "orange" : type === "blade" ? "cyan" : type === "brute" ? "red" : type === "apparition" ? "purple" : "purple");
     G.enemies.push(e);
   }
 
