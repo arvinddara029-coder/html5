@@ -90,11 +90,25 @@
 
   /* ================= hero stage ================= */
   const hero = { actor: null, raf: 0, last: 0, t: 0, wave: 0, saluteT: 0 };
+  const GUIDE_PATH = "GandalfHardcFREE NPC/GandalfHardcore Goddess NPC.png";
+  const GUIDE_FRAMES = 13; // 832x64 strip of 64x64 frames
   function heroLoop(now) {
     hero.raf = requestAnimationFrame(heroLoop);
     const dt = Math.min(0.05, (now - hero.last) / 1000 || 0.016);
     hero.last = now;
     hero.t += dt;
+    // guide sprite (Luna) — animated Goddess NPC strip
+    const gc = $("guide-canvas");
+    if (gc) {
+      const gimg = NR.assets.get(GUIDE_PATH);
+      const g2 = gc.getContext("2d");
+      g2.clearRect(0, 0, gc.width, gc.height);
+      g2.imageSmoothingEnabled = false;
+      if (gimg) {
+        const f = Math.floor(hero.t * 9) % GUIDE_FRAMES;
+        g2.drawImage(gimg, f * 64, 0, 64, 64, 0, 0, gc.width, gc.height);
+      }
+    }
     const cv = $("hero-canvas");
     if (!cv || !document.getElementById("scr-menu").classList.contains("active")) return;
     const g = cv.getContext("2d");
@@ -113,10 +127,22 @@
         hero.saluteT -= dt;
         if (hero.saluteT <= 0) a.play("idle");
       }
-      // pet follows behind
+      // pet follows behind (pet art faces right natively → no flip needed here)
       if (P.pet) {
-        const px = w / 2 - 78 + Math.sin(hero.t * 1.4) * 6;
-        NR.char.drawPet(g, P.pet, Math.floor(hero.t * 8), px, feetY - 6, 1.5, false);
+        const px = w / 2 - 95 + Math.sin(hero.t * 1.4) * 6;
+        const wisp = P.pet.indexOf("Wisp") >= 0;
+        const py = feetY - 2 - (wisp ? 40 : 0);
+        NR.char.drawPet(g, P.pet, Math.floor(hero.t * 8), px, py, 2.1, false);
+        // doggy wardrobe: hat ↔ backpack overlay, swapped every few seconds
+        if (P.pet.indexOf("doggy sheet") >= 0) {
+          const acc = NR.assets.get(Math.floor(hero.t / 5) % 2
+            ? "GandalfHardcore Pet companion/GandalfHardcore doggy hat.png"
+            : "GandalfHardcore Pet companion/GandalfHardcore doggy backpack.png");
+          if (acc) {
+            const af = Math.floor(hero.t * 8) % 6, s2 = 2.1;
+            g.drawImage(acc, af * 32, 0, 32, 32, px - (32 * s2) / 2, py - 32 * s2, 32 * s2, 32 * s2);
+          }
+        }
       }
       a.draw(g, w / 2, feetY + bob, { scale });
     }
@@ -152,6 +178,11 @@
       id: "guild", title: "Guild Wars", desc: "Season 3 — hold the arena against endless waves.",
       img: "assets/event_guild.jpg", art: "img", offset: 3 * 86400,
       tag: "SEASON 3", action: () => openModal("modal-deploy", "survival"),
+    },
+    {
+      id: "grandlobby", title: "The Grand Lobby", desc: "Seasonal rest hall is open — review your run archive and medals.",
+      img: "assets/lobby.png", art: "img", offset: 5 * 86400,
+      tag: "REST HUB", action: () => NR.ui.show("records"),
     },
   ];
   function fmtCountdown(ms) {
@@ -215,7 +246,36 @@
   L.openModal = openModal;
   function closeModal(id) { $(id) && $(id).classList.remove("open"); }
 
-  /* ================= deploy panel ================= */
+  /* ================= deploy panel — WORLD SELECT first ================= */
+  const WORLD_ART = ["bg_day.jpg", "bg_garden.jpg", "bg_reactor.jpg"];
+  const WORLD_TAG = ["TRANSIT LINE", "RECLAIMED GARDENS", "THE CORE"];
+  function worldCard(ch, selectable) {
+    const locked = ch.id > P.unlocked;
+    const cleared = ch.id < P.unlocked;
+    const b = document.createElement("button");
+    b.className =
+      "world-card" +
+      (selectable && P.chapter === ch.id ? " sel" : "") +
+      (locked ? " locked" : "") +
+      (cleared ? " cleared" : "");
+    b.dataset.chapter = ch.id;
+    b.disabled = locked;
+    b.innerHTML =
+      `<img class="wc-art" src="assets/${WORLD_ART[ch.id]}" alt="" loading="lazy"/>` +
+      `<span class="wc-shade"></span>` +
+      `<span class="wc-num">WORLD 0${ch.id + 1} · ${WORLD_TAG[ch.id]}</span>` +
+      `<span class="wc-body"><h4>${ch.short}</h4><p>${ch.district} · ${ch.description}</p></span>` +
+      `<span class="wc-state">${
+        locked
+          ? "🔒 CLEAR WORLD 0" + ch.id + " FIRST"
+          : cleared
+            ? "✔ CLEARED — REPLAY"
+            : selectable && P.chapter === ch.id
+              ? "◈ SELECTED"
+              : "READY"
+      }</span>`;
+    return b;
+  }
   function setMode(mode) {
     P.mode = mode;
     NR.saveProfile();
@@ -224,6 +284,7 @@
       b.setAttribute("aria-pressed", b.dataset.mode === mode);
     });
     $("deploy-chapters").style.display = mode === "adventure" ? "" : "none";
+    $("deploy-title").textContent = mode === "adventure" ? "SELECT YOUR WORLD" : "ARENA — WAVE SURVIVAL";
   }
   L.refreshDeploy = function () {
     if (!$("chapter-cards")) return;
@@ -232,24 +293,17 @@
       b.classList.toggle("sel", b.dataset.difficulty === P.difficulty));
     document.querySelectorAll("#deploy-world button").forEach((b) =>
       b.classList.toggle("sel", b.dataset.world === P.world));
-    // chapter cards
+    // big world cards — the world comes FIRST, before anything else
     const active = document.activeElement && document.activeElement.dataset.chapter;
     $("chapter-cards").replaceChildren(...NR.adventure.chapters.map((ch) => {
-      const locked = ch.id > P.unlocked;
-      const b = document.createElement("button");
-      b.className = "chapter-card" + (P.chapter === ch.id ? " sel" : "") + (locked ? " locked" : "");
-      b.dataset.chapter = ch.id;
-      b.disabled = locked;
-      b.innerHTML =
-        `<span class="cc-num">0${ch.id + 1}</span><h4>${ch.short}</h4><p>${ch.district} · ${ch.description}</p>` +
-        `<span class="cc-state ${locked ? "todo" : ""}">${locked ? "COMPLETE CHAPTER 0" + ch.id + " TO UNLOCK" : P.chapter === ch.id ? "SELECTED" : "READY"}</span>`;
+      const b = worldCard(ch, true);
       b.addEventListener("click", () => {
         P.chapter = ch.id; NR.saveProfile(); L.refreshDeploy(); NR.audio.play("ui");
       });
       return b;
     }));
     if (active !== undefined && active !== null && active !== false)
-      $(`chapter-cards`) && $("chapter-cards").querySelector(`[data-chapter="${active}"]`)?.focus({ preventScroll: true });
+      $("chapter-cards") && $("chapter-cards").querySelector(`[data-chapter="${active}"]`)?.focus({ preventScroll: true });
     // continue checkpoint
     const cp = NR.checkpoint.get();
     const cont = $("deploy-continue");
@@ -263,15 +317,9 @@
   function refreshMap() {
     if (!$("map-cards")) return;
     $("map-cards").replaceChildren(...NR.adventure.chapters.map((ch) => {
-      const locked = ch.id > P.unlocked;
-      const b = document.createElement("button");
-      b.className = "chapter-card" + (locked ? " locked" : "");
-      b.disabled = locked;
-      b.innerHTML =
-        `<span class="cc-num">0${ch.id + 1}</span><h4>${ch.name}</h4><p>${ch.description}</p>` +
-        `<span class="cc-state ${locked ? "todo" : ""}">${locked ? "LOCKED" : "UNLOCKED"}</span>`;
+      const b = worldCard(ch, false);
       b.addEventListener("click", () => {
-        if (locked) return;
+        if (ch.id > P.unlocked) return;
         P.chapter = ch.id; P.mode = "adventure"; NR.saveProfile();
         closeModal("modal-map"); openModal("modal-deploy");
         NR.audio.play("ui");
@@ -388,8 +436,8 @@
       if (pet) {
         const wisp = pet.indexOf("Wisp") >= 0;
         NR.char.drawPet(g, pet, Math.floor(creator.t * 8),
-          cv.width / 2 - 96, cv.height - 18 - (wisp ? 44 : 0) + Math.sin(creator.t * 3) * 4,
-          wisp ? 1.6 : 1.15, false);
+          cv.width / 2 - 96, cv.height - 18 - (wisp ? 56 : 0) + Math.sin(creator.t * 3) * 4,
+          wisp ? 2.2 : 2.0, false);
       }
     }
   }
@@ -543,7 +591,52 @@
   }
 
   /* ================= init ================= */
+  /* ================= COMBAT MANUAL demo strips =================
+     The elf-archer packs (idle/walk) + Warrior sheet act out the controls
+     live inside the HOW screen. */
+  const HOW_STRIPS = [
+    { id: "how-idle", path: "idle/sprite sheets/idle.png", fw: 46, fh: 55, frames: 10, cols: 10, fps: 8, scale: 2.1,
+      pre: { path: "walk/sprite sheets/from idle.png", fw: 45, fh: 58, frames: 2, cols: 2 } }, // settle-in transition
+    { id: "how-walk", path: "walk/sprite sheets/walk.png", fw: 45, fh: 58, frames: 24, cols: 4, fps: 14, scale: 2.0, flip: true },
+    { id: "how-combo", path: "GandalfHardcore Warrior.png", fw: 80, fh: 64, frames: 8, cols: 10, fps: 9, scale: 1.9, row: 9 },
+  ];
+  let howT = 0, howLast = 0;
+  function howLoop(now) {
+    requestAnimationFrame(howLoop);
+    if (!document.getElementById("scr-how").classList.contains("active")) { howLast = now; return; }
+    howT += Math.min(0.05, (now - howLast) / 1000 || 0.016); howLast = now;
+    for (const s of HOW_STRIPS) {
+      const cv = $(s.id); if (!cv) continue;
+      const img = NR.assets.get(s.path); if (!img) continue;
+      const g = cv.getContext("2d");
+      g.imageSmoothingEnabled = false;
+      g.clearRect(0, 0, cv.width, cv.height);
+      const preN = s.pre ? s.pre.frames : 0;
+      const total = preN + s.frames;
+      const f = Math.floor(howT * s.fps) % total;
+      let srcImg = img, sx, sy, sfw = s.fw, sfh = s.fh;
+      if (f < preN) { // play the transition strip first, then settle into the loop
+        const pimg = NR.assets.get(s.pre.path);
+        if (pimg) { srcImg = pimg; sfw = s.pre.fw; sfh = s.pre.fh; }
+        sx = f * sfw; sy = 0;
+      } else {
+        const fm = f - preN;
+        sx = (fm % s.cols) * sfw;
+        sy = s.row !== undefined ? s.row * sfh : Math.floor(fm / s.cols) * sfh;
+      }
+      g.save();
+      if (s.flip) { g.translate(cv.width, 0); g.scale(-1, 1); }
+      const dw = sfw * s.scale, dh = sfh * s.scale;
+      g.drawImage(srcImg, sx, sy, sfw, sfh, (cv.width - dw) / 2, (cv.height - dh) / 2, dw, dh);
+      g.restore();
+      // ground line under the actor
+      g.fillStyle = "rgba(0,255,244,0.5)";
+      g.fillRect((cv.width - dw) / 2 - 14, (cv.height + dh) / 2 - 2, dw + 28, 2);
+    }
+  }
+
   L.init = function () {
+    requestAnimationFrame(howLoop);
     coinFrames = buildCoin();
     // wallet icons
     for (const id of ["coin-icon", "shop-coin"]) {

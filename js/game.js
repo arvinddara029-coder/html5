@@ -39,6 +39,24 @@
     G.chapter=U.clamp(G.chapter,0,NR.profile.unlocked);
     G.character=cp?cp.character:NR.profile.character;
     NR.adventure.configure(G.mode,G.chapter); NR.resize?.();
+    // never let the hero go invisible: (re)queue every art dependency of the
+    // current look + pet + enemy sheets; the renderer rebuilds when they land
+    if (NR.assets && NR.assets.preload) {
+      NR.assets.preload(NR.assets.layerPaths(NR.profile.appearance));
+      if (NR.profile.pet) {
+        const po = (NR.catalog.pet || []).find((o) => o.id === NR.profile.pet);
+        if (po) NR.assets.preload([po.path]);
+      }
+      const SHEET_KEYS = ["orc", "soldier", "slime", "slimeGreen", "slimeRed", "wizard", "samurai", "diego", "holly", "gordon"];
+      const sheetPaths = [];
+      for (const sk of SHEET_KEYS)
+        for (const a of Object.keys(NR.sheets[sk].anims)) sheetPaths.push(NR.sheets[sk].anims[a].path);
+      NR.assets.preload(sheetPaths);
+      // the full rotating texture library (ground/plat/edge/veins per biome)
+      const texAll = [];
+      for (const k of Object.keys(NR.textures)) texAll.push(...NR.textures[k]);
+      NR.assets.preload(texAll);
+    }
     NR.audio.init();
     if (!G.player) G.player = new NR.Player();
     G.player.reset();
@@ -88,6 +106,11 @@
       wraiths: n >= 3 ? Math.min(Math.floor((n - 1) / 2), 4) : 0,
       slimes: n >= 2 ? Math.min(1 + Math.floor(n / 3), 4) : 0,
       soldiers: n >= 3 ? Math.min(Math.floor(n / 3), 3) : 0,
+      warlocks: n >= 6 ? Math.min(1 + Math.floor((n - 6) / 3), 3) : 0,
+      rivals: n >= 7 ? Math.min(Math.floor((n - 5) / 2), 2) : 0,
+      gunners: n >= 4 ? Math.min(1 + Math.floor((n - 4) / 3), 3) : 0,
+      strikers: n >= 8 ? Math.min(1 + Math.floor((n - 8) / 4), 2) : 0,
+      blades: n >= 9 ? Math.min(1 + Math.floor((n - 9) / 4), 2) : 0,
     };
   }
 
@@ -105,6 +128,11 @@
     for (let i = 0; i < comp.drones; i++) q.push({ type: "drone", t: (delay += U.rand(0.3, 0.7)) });
     for (let i = 0; i < comp.soldiers; i++) q.push({ type: "soldier", t: (delay += U.rand(0.5, 1)) });
     for (let i = 0; i < comp.wraiths; i++) q.push({ type: "wraith", t: (delay += U.rand(0.4, 0.8)) });
+    for (let i = 0; i < (comp.warlocks || 0); i++) q.push({ type: "warlock", t: (delay += U.rand(0.5, 1)) });
+    for (let i = 0; i < (comp.rivals || 0); i++) q.push({ type: "rival", t: (delay += U.rand(0.6, 1.1)) });
+    for (let i = 0; i < (comp.gunners || 0); i++) q.push({ type: "gunner", t: (delay += U.rand(0.5, 1)) });
+    for (let i = 0; i < (comp.strikers || 0); i++) q.push({ type: "striker", t: (delay += U.rand(0.6, 1.1)) });
+    for (let i = 0; i < (comp.blades || 0); i++) q.push({ type: "blade", t: (delay += U.rand(0.6, 1.1)) });
     if(n>=3 && !comp.boss) q.push({type:"sentry",t:(delay+=.8)});
     if(n>=4 && !comp.boss) q.push({type:"sentinel",t:(delay+=.8)});
     if (comp.boss) {
@@ -141,11 +169,21 @@
       e = new NR.Soldier(U.clamp(px + side * U.rand(320, 560), 80, W.W - 80), W.groundY, mul);
     } else if(type === "sentry" || type === "sentinel") {
       e = new (type === "sentry" ? NR.Sentry : NR.Sentinel)(U.clamp(px+side*500,100,W.W-100),W.groundY,mul);
+    } else if (type === "warlock") {
+      e = new NR.Warlock(U.clamp(px + side * U.rand(380, 560), 90, W.W - 90), W.groundY - 60, mul);
+    } else if (type === "rival") {
+      e = new NR.Rival(U.clamp(px + side * U.rand(420, 600), 90, W.W - 90), W.groundY, mul);
+    } else if (type === "gunner") {
+      e = new NR.Gunner(U.clamp(px + side * U.rand(320, 520), 80, W.W - 80), W.groundY, mul);
+    } else if (type === "striker") {
+      e = new NR.Striker(U.clamp(px + side * U.rand(380, 560), 80, W.W - 80), W.groundY, mul);
+    } else if (type === "blade") {
+      e = new NR.Blade(U.clamp(px + side * U.rand(420, 620), 90, W.W - 90), W.groundY, mul);
     } else {
       e = new NR.Wraith(U.clamp(px + side * U.rand(300, 500), 100, W.W - 100), W.groundY - 200, mul);
     }
     F.teleport(e.x, e.y - e.h / 2,
-      type === "crawler" ? "red" : type === "drone" ? "cyan" : type === "slime" ? "blue" : type === "soldier" ? "orange" : "purple");
+      type === "crawler" ? "red" : type === "drone" ? "cyan" : type === "slime" ? "blue" : type === "soldier" ? "orange" : type === "warlock" ? "purple" : type === "rival" ? "white" : type === "gunner" ? "yellow" : type === "striker" ? "orange" : type === "blade" ? "cyan" : "purple");
     G.enemies.push(e);
   }
 

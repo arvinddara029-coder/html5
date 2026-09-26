@@ -322,3 +322,234 @@ test("lobby and profile default looks agree", () => {
   assert.equal(m[7], A.gloves);
   assert.equal(m[8], A.weapon);
 });
+
+/* ---------------- the Arena fix-pack (user-reported bugs) ---------------- */
+
+test("DAY is the primary atmosphere (profile default and sanitizer)", () => {
+  const { NR } = skyward();
+  assert.equal(NR.profile.world, "day");
+  const hostile = skyward({ nr_profile: JSON.stringify({ world: "void" }) });
+  assert.equal(hostile.NR.profile.world, "day");
+});
+
+test("hero renderer mirrors the LEFT-facing art when facing right", () => {
+  const { NR } = skyward();
+  const calls = [];
+  const spy = new Proxy(
+    {},
+    {
+      get: (t, k) => {
+        if (k === "globalAlpha" || k === "globalCompositeOperation" || k === "fillStyle" || k === "imageSmoothingEnabled") return undefined;
+        return (...args) => { calls.push([k, ...args]); };
+      },
+      set: () => true,
+    },
+  );
+  const built = NR.char.build(NR.profile.appearance);
+  NR.char.drawFrame(spy, built, "idle", 0, 100, 200, 1, { scale: 1 });
+  assert.ok(
+    calls.some((c) => c[0] === "scale" && c[1] === -1 && c[2] === 1),
+    "facing right must mirror the left-facing hero art with scale(-1,1)",
+  );
+});
+
+test("pet strips slice one row only — no doubled pets, run row available", () => {
+  const { NR } = skyward();
+  assert.equal(NR.petRows["GandalfHardcore fox.png"], 2);
+  assert.equal(NR.petRows["GandalfHardcore Wisp.png"], 1);
+  const idle = NR.char.petFrames("GandalfHardcore fox.png", 0);
+  const run = NR.char.petFrames("GandalfHardcore fox.png", 1);
+  assert.equal(idle.length, 6);
+  assert.equal(run.length, 6);
+  // frames come from a single 32px row, never the stacked 64px sheet
+  assert.equal(idle[0].height, 32);
+  assert.equal(idle[0].width, 32);
+});
+
+test("enemy sheets carry measured crop windows and feet lines", () => {
+  const { NR } = skyward();
+  for (const key of ["orc", "soldier", "samurai", "wizard", "slime"]) {
+    const def = NR.sheets[key];
+    assert.ok(def.crop && def.crop.w > 0 && def.crop.h > 0, `${key} needs a crop window`);
+    assert.ok(def.floor !== undefined, `${key} needs a floor line`);
+    assert.ok(def.floor >= def.crop.y && def.floor <= def.crop.y + def.crop.h, `${key} floor inside crop`);
+  }
+  assert.equal(NR.sheets.soldier.faceLeft, true, "soldier art faces left");
+  assert.equal(NR.sheets.samurai.faceLeft, true, "samurai art faces left");
+  // slime sheet is an 8x2 grid of 32x48 cells — multi-row slicing, never a doubled blob
+  assert.equal(NR.sheets.slime.perRow, 8);
+  assert.equal(NR.sheets.slime.fw, 32);
+  assert.equal(NR.sheets.slime.anims.idle.frames, 8);
+  assert.equal(NR.sheets.slime.anims.hop.start, 8);
+  assert.equal(NR.sheets.slime.fh, 48);
+});
+
+test("warlock and rival packs are registered and fight", () => {
+  const { NR } = skyward();
+  assert.equal(typeof NR.Warlock, "function");
+  assert.equal(typeof NR.Rival, "function");
+  const G = NR.game;
+  NR.profile.mode = "survival";
+  G.start();
+  // warlock volleys twin-orbs when in range
+  const wl = new NR.Warlock(G.player.x - 420, NR.world.groundY - 40, 1);
+  wl.spawnT = 0; wl.castCd = 0.01;
+  G.enemies.push(wl);
+  let bolts = 0;
+  for (let i = 0; i < 300 && bolts < 2; i++) { wl.update(0.016, G); bolts = G.bolts.length; }
+  assert.ok(G.bolts.length >= 2, "warlock should hurl shadow orbs");
+  assert.ok(wl.y < NR.world.groundY, "warlock hovers above the ground line");
+  // rival circles, winds up, and commits to a slash
+  const rv = new NR.Rival(G.player.x - 180, NR.world.groundY, 1);
+  rv.spawnT = 0; rv.st = 99; // pre-charge the duel clock
+  G.enemies.push(rv);
+  let sawSlash = false;
+  for (let i = 0; i < 200 && !sawSlash; i++) { rv.update(0.016, G); if (rv.state === "slash") sawSlash = true; }
+  assert.ok(sawSlash, "rival should wind up and slash in melee range");
+});
+
+test("slime variant follows the chapter biome", () => {
+  const { NR } = skyward();
+  const G = NR.game;
+  NR.profile.mode = "adventure";
+  NR.profile.chapter = 1; NR.profile.unlocked = 2;
+  G.start({ chapter: 1 });
+  const s = new NR.Slime(500, NR.world.groundY, 1);
+  assert.equal(s.variant, "slimeGreen", "garden chapter fields green slimes");
+  G.start({ chapter: 2 });
+  const s2 = new NR.Slime(500, NR.world.groundY, 1);
+  assert.equal(s2.variant, "slimeRed", "reactor chapter fields red slimes");
+});
+
+test("reaching the extraction gate with everything cleared FINISHES the level", () => {
+  const { NR } = skyward();
+  const G = NR.game;
+  NR.profile.mode = "adventure";
+  NR.profile.unlocked = 0; NR.profile.chapter = 0;
+  G.start({ chapter: 0 });
+  const A = NR.adventure;
+  assert.ok(A.active);
+  // simulate: all patrols dead, all relays restored, player walks to the gate
+  A.zones.forEach((z) => { z.started = true; z.cleared = true; });
+  A.relays.forEach((r) => { r.active = true; });
+  G.enemies.length = 0;
+  G.player.x = NR.world.W - 200;
+  G.player.y = NR.world.groundY;
+  let victory = false;
+  for (let i = 0; i < 80; i++) {
+    A.update(0.03, G);
+    if (G.state === "victory") { victory = true; break; }
+  }
+  assert.ok(victory, "walking into the extraction gate must complete the chapter");
+  assert.equal(NR.profile.unlocked, 1, "chapter 1 unlocked after the win");
+});
+
+test("the gate stays locked until relays and patrols are done", () => {
+  const { NR } = skyward();
+  const G = NR.game;
+  NR.profile.mode = "adventure";
+  NR.profile.unlocked = 0; NR.profile.chapter = 0;
+  G.start({ chapter: 0 });
+  const A = NR.adventure;
+  // patrols beaten but relays NOT restored → the gate must refuse
+  A.zones.forEach((z) => { z.started = true; z.cleared = true; });
+  G.enemies.length = 0;
+  G.player.x = NR.world.W - 200;
+  for (let i = 0; i < 40; i++) A.update(0.03, G);
+  assert.notEqual(G.state, "victory", "no free victory with relays missing");
+  assert.ok(A.prompt && A.prompt.kind === "locked", "gate should report what is missing");
+  assert.match(A.prompt.label, /RELAYS 0\/3/, "tells the player exactly what remains");
+});
+
+test("Sprite Pack 7 mercenaries are registered and fight", () => {
+  const { NR } = skyward();
+  assert.equal(typeof NR.Gunner, "function", "Diego gunner");
+  assert.equal(typeof NR.Striker, "function", "Holly striker");
+  assert.equal(typeof NR.Blade, "function", "Gordon blade");
+  // wide attack cells carry their own geometry
+  for (const [k, anim, fw] of [["diego", "shoot", 48], ["holly", "smash", 64], ["gordon", "combo", 80]]) {
+    const a = NR.sheets[k].anims[anim];
+    assert.equal(a.fw, fw, `${k}.${anim} wide cell`);
+    assert.ok(a.crop && a.crop.w > 0, `${k}.${anim} crop`);
+  }
+  const G = NR.game;
+  NR.profile.mode = "survival";
+  G.start();
+  // gunner: in rifle range it plants and fires a burst
+  const gn = new NR.Gunner(G.player.x - 380, NR.world.groundY, 1);
+  gn.spawnT = 0;
+  G.enemies.push(gn);
+  for (let i = 0; i < 300 && !G.bolts.length; i++) gn.update(0.016, G);
+  assert.ok(G.bolts.length >= 1, "gunner should fire rifle rounds");
+  G.bolts.length = 0;
+  // striker: leaps and lands into a twin shockwave
+  const st = new NR.Striker(G.player.x - 260, NR.world.groundY, 1);
+  st.spawnT = 0; st.st = 99;
+  G.enemies.push(st);
+  for (let i = 0; i < 400 && !G.shockwaves.length; i++) st.update(0.016, G);
+  assert.ok(G.shockwaves.length >= 2, "striker ground-pound should emit twin shockwaves");
+  // blade: closes in and commits to the combo
+  const bl = new NR.Blade(G.player.x - 90, NR.world.groundY, 1);
+  bl.spawnT = 0;
+  G.enemies.push(bl);
+  let sawCombo = false;
+  for (let i = 0; i < 200 && !sawCombo; i++) { bl.update(0.016, G); if (bl.state === "combo") sawCombo = true; }
+  assert.ok(sawCombo, "blade should commit to a combo at close range");
+});
+
+test("wave 9 fields the Sprite Pack 7 roster", () => {
+  const { NR } = skyward();
+  const G = NR.game;
+  NR.profile.mode = "survival";
+  G.start();
+  G.wave = 8;
+  G.startT = 0.4;
+  G.enemies.length = 0; G.spawnQueue.length = 0; G.bossActive = false;
+  G.player.dead = false;
+  const types = new Set();
+  for (let i = 0; i < 160; i++) {
+    G.update(0.05, 0.05);
+    for (const q of G.spawnQueue) types.add(q.type);
+    for (const e of G.enemies) types.add(e.type);
+    if (types.has("gunner") && types.has("striker") && types.has("blade")) break;
+  }
+  assert.equal(G.wave, 9);
+  assert.ok(types.has("gunner"), "wave 9 fields a gunner");
+  assert.ok(types.has("striker"), "wave 9 fields a striker");
+  assert.ok(types.has("blade"), "wave 9 fields a blade");
+});
+
+test("boss barrage never shadows the muzzle methods (regression)", () => {
+  const { NR } = skyward();
+  const G = NR.game;
+  NR.profile.mode = "survival";
+  G.start();
+  const boss = new NR.Boss(G.player.x + 400, NR.world.groundY, 1, 1);
+  boss.spawnT = 0; boss.st = 99; boss.state = "barrage"; boss.burstT = 0;
+  G.enemies.push(boss);
+  for (let i = 0; i < 120; i++) boss.update(0.05, G); // must not throw
+  assert.ok(G.bolts.length > 0, "barrage should vent a fan of rounds");
+  assert.equal(typeof boss.muzzle, "function");
+  assert.equal(typeof boss.muzzleY, "function");
+});
+
+test("late survival waves field warlocks and rivals", () => {
+  const { NR } = skyward();
+  const G = NR.game;
+  NR.profile.mode = "survival";
+  G.start();
+  G.wave = 6;
+  G.startT = 0.4;
+  G.enemies.length = 0; G.spawnQueue.length = 0; G.bossActive = false;
+  G.player.dead = false;
+  const types = new Set();
+  for (let i = 0; i < 120; i++) {
+    G.update(0.05, 0.05);
+    for (const q of G.spawnQueue) types.add(q.type);
+    for (const e of G.enemies) types.add(e.type);
+    if (types.has("warlock") && types.has("rival")) break;
+  }
+  assert.equal(G.wave, 7);
+  assert.ok(types.has("warlock"), "wave 7 should field a warlock");
+  assert.ok(types.has("rival"), "wave 7 should field a rival");
+});

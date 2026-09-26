@@ -1,4 +1,8 @@
-/* ============ SKYWARD — sheet-based sprite renderer for enemies & projectiles ============ */
+/* ============ SKYWARD — sheet-based sprite renderer for enemies & projectiles ============
+   Sheets declare a measured `crop` window (tight art bounds inside each cell)
+   plus a `floor` line (cell-y of the feet). Frames are sliced to the window and
+   drawn with the floor pinned to the entity's ground y — no more floating,
+   no more postage-stamp characters. `faceLeft` mirrors art that faces left. */
 (function () {
   const S = (NR.spriteRender = {});
   const cache = Object.create(null); // "sheet|anim|frame" -> canvas
@@ -14,17 +18,29 @@
     if (!img) return null;
     const key = sheetKey + "|" + anim + "|" + i;
     if (cache[key]) return cache[key];
+    // anims may override the cell geometry (Sprite Pack 7 attack sheets are wider)
+    const fw = a.fw || def.fw, fh = a.fh || def.fh;
+    const perRow = a.perRow || def.perRow || 0;
+    const base = a.start || 0; // anims may begin mid-sheet (slime row 1 = hop)
+    const sx = perRow ? ((base + i) % perRow) * fw : (base + i) * fw;
+    const sy = perRow ? Math.floor((base + i) / perRow) * fh : 0;
+    const c = a.crop || def.crop || { x: 0, y: 0, w: fw, h: fh };
     const cv = document.createElement("canvas");
-    cv.width = def.fw; cv.height = def.fh;
+    cv.width = c.w; cv.height = c.h;
     const g = cv.getContext("2d");
     g.imageSmoothingEnabled = false;
-    try { g.drawImage(img, i * def.fw, 0, def.fw, def.fh, 0, 0, def.fw, def.fh); } catch (_) {}
+    try { g.drawImage(img, sx + c.x, sy + c.y, c.w, c.h, 0, 0, c.w, c.h); } catch (_) {}
+    // feet line within the cropped window (per-anim override allowed)
+    cv._floor = (a.floor !== undefined ? a.floor : def.floor !== undefined ? def.floor : c.y + c.h) - c.y;
     cache[key] = cv;
     return cv;
   }
 
-  /* pixels from the bottom of a cell to the feet (keeps sprites grounded) */
-  const FEET = { orc: 14, soldier: 12, samurai: 10, slime: 8 };
+  /* pixels from the cropped window top to the feet, for legacy callers */
+  S.feetOf = function (sheetKey, anim) {
+    const cv = frame(sheetKey, anim || "idle", 0);
+    return cv ? cv._floor : 0;
+  };
 
   /* anim controller bound to one sheet */
   S.anim = function (sheetKey, opts) {
@@ -44,6 +60,7 @@
     };
     a.set = function (name, restart) {
       if (a.anim === name && !restart) return;
+      if (!NR.sheets[sheetKey] || !NR.sheets[sheetKey].anims[name]) return; // sheet may lack the anim
       a.anim = name; a.frame = 0; a.t = 0; a.done = false;
       a.fps = o.fps || FPS[name] || 10;
     };
@@ -53,28 +70,30 @@
       while (a.t >= 1) {
         a.t -= 1;
         a.frame++;
-        if (a.frame >= n) { a.frame = n - 1; a.done = true; }
+        if (a.frame >= n) { a.frame = 0; }
       }
     };
+    // x = entity center, y = ground y (feet). Art rises from the floor line.
     a.draw = function (ctx, x, y, facing, opts2) {
       const def = NR.sheets[sheetKey];
       if (!def) return;
       const cv = frame(sheetKey, a.anim, a.frame);
       if (!cv) return;
       const scale = (opts2 && opts2.scale) || 1;
-      const inset = ((opts2 && opts2.inset !== undefined) ? opts2.inset : FEET[sheetKey] || 0) * scale;
-      const w = def.fw * scale, h = def.fh * scale;
+      const w = cv.width * scale, h = cv.height * scale;
+      const floorPx = cv._floor * scale; // distance from window top to feet
+      const flip = def.faceLeft ? facing > 0 : facing < 0;
       ctx.save();
-      ctx.translate(x, y - inset);
-      if (facing < 0) ctx.scale(-1, 1);
+      ctx.translate(x, y);
+      if (flip) ctx.scale(-1, 1);
       if (opts2 && opts2.alpha !== undefined) ctx.globalAlpha = opts2.alpha;
       if (opts2 && opts2.flash) {
-        ctx.drawImage(cv, -w / 2, -h, w, h);
+        ctx.drawImage(cv, -w / 2, -floorPx, w, h);
         ctx.globalCompositeOperation = "source-atop";
         ctx.fillStyle = opts2.flash;
-        ctx.fillRect(-w / 2, -h, w, h);
+        ctx.fillRect(-w / 2, -floorPx, w, h);
       } else {
-        ctx.drawImage(cv, -w / 2, -h, w, h);
+        ctx.drawImage(cv, -w / 2, -floorPx, w, h);
       }
       ctx.restore();
     };
@@ -114,15 +133,20 @@
   S.drawCorpses = function (ctx, G) {
     if (!G.corpses) return;
     for (const c of G.corpses) {
-      const cv = frame(c.sheet, "death", Math.min(3, c.frame));
-      if (!cv) continue;
       const def = NR.sheets[c.sheet];
-      const w = def.fw * c.scale, h = def.fh * c.scale;
+      if (!def) continue;
+      const deathAnim = def.anims.death ? "death" : "idle";
+      const n = def.anims[deathAnim].frames;
+      const cv = frame(c.sheet, deathAnim, Math.min(n - 1, c.frame));
+      if (!cv) continue;
+      const w = cv.width * c.scale, h = cv.height * c.scale;
+      const floorPx = cv._floor * c.scale;
+      const flip = def.faceLeft ? c.facing > 0 : c.facing < 0;
       ctx.save();
       ctx.globalAlpha = Math.max(0, 1 - c.t / c.life);
-      ctx.translate(c.x, c.y - (FEET[c.sheet] || 0) * c.scale);
-      if (c.facing < 0) ctx.scale(-1, 1);
-      ctx.drawImage(cv, -w / 2, -h, w, h);
+      ctx.translate(c.x, c.y);
+      if (flip) ctx.scale(-1, 1);
+      ctx.drawImage(cv, -w / 2, -floorPx, w, h);
       ctx.restore();
     }
   };
