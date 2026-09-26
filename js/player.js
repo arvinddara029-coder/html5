@@ -403,6 +403,8 @@
         NR.char.drawPet(ctx, petId, this.petFrame | 0, this.petX, this.petY - 2 + bob,
           pscale, this.petFlip, row);
       }
+      NR.superRuntime?.companion(ctx,this);
+      NR.superRuntime?.relic(ctx,this);
       ctx.globalAlpha = blink;
       drawHero(ctx, P, {});
       ctx.globalAlpha = 1;
@@ -451,6 +453,7 @@
     return P.animFrame | 0;
   }
   function drawHero(ctx, P, O) {
+    if (NR.superRuntime?.hero(ctx,P,O)) return;
     const ghost = O.ghost;
     const built = NR.char.build(P.appearance || NR.profile.appearance);
     const anim = P.anim || heroAnim(P);

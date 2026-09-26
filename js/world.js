@@ -163,6 +163,7 @@
     } catch (_) {
       img = U.assets.get(keyShort);
     }
+    if (NR.adventure?.active && NR.evolution?.background) img = NR.assets.get(NR.evolution.background) || img;
     if (img) {
       const f = 0.18;
       const drawH = view.h * (day || scenic ? 1.08 : 0.9);

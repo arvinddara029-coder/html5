@@ -38,6 +38,7 @@
     G.chapter=cp?cp.chapter:(Number.isInteger(options.chapter)?options.chapter:NR.profile.chapter);
     G.chapter=U.clamp(G.chapter,0,NR.profile.unlocked);
     G.character=cp?cp.character:NR.profile.character;
+    if(cp?.route && NR.evolution) { NR.evolution.seed=cp.route.seed; NR.evolution.levels[G.chapter]=cp.route.level; NR.evolution.save(); }
     NR.adventure.configure(G.mode,G.chapter); NR.resize?.();
     // never let the hero go invisible: (re)queue every art dependency of the
     // current look + pet + enemy sheets; the renderer rebuilds when they land
@@ -61,6 +62,9 @@
     if (!G.player) G.player = new NR.Player();
     G.player.reset();
     NR.applyCharacter(G.player,G.character);
+    NR.evolution?.apply(G.player);
+    G.rewardLedger = { score: 0, kills: 0, wave: 0, gems: 0, liveXp:0 };
+    G.liveXp=0;G.replayKills=0;G.runId=Date.now().toString(36)+Math.random().toString(36).slice(2,10);
     I.reset(); hud.banners.length = 0; hud.hurtVign = 0; hud.flashA = 0;
     G.difficulty = cp ? cp.difficulty : NR.profile.difficulty;
     G.tactical = cp ? cp.tactical : NR.profile.tactical;
@@ -79,9 +83,24 @@
     G.cam.x = U.clamp(G.player.x - NR.view.w / 2,0,Math.max(0,W.W-NR.view.w)); G.cam.y = W.H - NR.view.h;
     G.startT = 1.0; // countdown to wave 1
     NR.adventure.start(G,cp);
+    NR.superRuntime?.prepare();
     G.cam.x = U.clamp(G.player.x - NR.view.w / 2,0,Math.max(0,W.W-NR.view.w));
     NR.expeditionUI?.syncRun();
     NR.audio.play("wave");
+  };
+
+  // Continue the live encounter: defeated enemies stay defeated, no duplicate rewards.
+  G.continueEncounter = function () {
+    if (G.state !== "over" || !G.player) return;
+    const p = G.player;
+    p.dead = false; p.hp = p.maxHp; p.ghostHp = p.hp; p.energy = 100;
+    p.x = Math.max(100,Math.min(NR.world.W-250,p.x)); p.y = NR.world.groundY;
+    p.vx = p.vy = 0; p.iframes = 3; p.dashCharges = p.dashMax;
+    p.computePose(); G.deathT=0; G.overShown=false; G.finished=false; G.rewarded=false;
+    G.bolts.length=0; G.shockwaves.length=0; G.clearT=0; G.upgradeT=0;
+    G.state="playing"; G.timeScale=1; G.hitStopT=0; G.slowT=0;
+    NR.input.reset(); NR.ui.hideAll();
+    G.banner("CONTINUED", "Same encounter · 3 seconds of protection", "#b4e784");
   };
 
   G.togglePause = function () {
@@ -118,11 +137,15 @@
 
   function startWave(n) {
     G.wave = n;
+    NR.waveResume?.save();
     G.waveDamageTaken = false;
     G.enemyHpMul = (1 + (n - 1) * 0.07) * (G.difficulty === "casual" ? .75 : G.difficulty === "hard" ? 1.35 : 1);
     G.enemySpdMul = (1 + Math.min(0.55, (n - 1) * 0.03)) * (G.difficulty === "casual" ? .85 : G.difficulty === "hard" ? 1.15 : 1);
     G.enemyDmgMul = 1 + Math.max(0, n - 6) * 0.05;
     const comp = waveComp(n);
+    if(NR.superRuntime && !comp.boss) {
+      for(let i=0;i<Math.min(3,1+Math.floor(n/4));i++) G.enemies.push(NR.superRuntime.spawn(180+i*180,W.groundY,(n+i)%4));
+    }
     let delay = 0.4;
     const q = G.spawnQueue;
     for (let i = 0; i < comp.crawlers; i++) q.push({ type: "crawler", t: (delay += U.rand(0.4, 0.8)) });
@@ -240,6 +263,7 @@
     }
     NR.adventure.strikeProps(p,A,G);
     if (hitAny) {
+      NR.evolution?.weaponMagic();
       if(counter){p.counterT=0;F.text(p.x,p.y-135,"COUNTER ×1.75",{col:"#ffe5a1",size:19});}
       G.hitStop(A.heavy ? 0.09 : 0.045);
       G.shake(A.heavy ? 0.3 : 0.12);
@@ -295,6 +319,7 @@
 
   G.onEnemyKilled = function (e) {
     G.stats.kills++;
+    NR.evolution?.rewardKill();
     NR.profile.totalKills++; NR.saveProfile();
     G.combo++;
     G.comboT = G.comboWindow();
@@ -313,7 +338,7 @@
   };
 
   G.onBossKilled = function (b) {
-    G.stats.kills++; NR.profile.totalKills++; NR.saveProfile(); NR.progress.check(G);
+    G.stats.kills++; NR.evolution?.rewardKill(); NR.profile.totalKills++; NR.saveProfile(); NR.progress.check(G);
     G.bossActive = false; G.bossRef = null;
     G.addScore(b.score, b.x, b.y - 200, true);
     G.banner("TARGET ELIMINATED", "+" + U.fmt(b.score), "#ffe14d");
@@ -402,6 +427,7 @@
 
     // Authored expedition logic shares combat, not wave scheduling.
     NR.adventure.update(dt,G);
+    NR.evolution?.tick(dt);
     if(G.state !== "playing") return;
 
     // entities
@@ -461,12 +487,16 @@
     // Skyward progression: coins + XP for every run, gems for milestones
     if (!G.rewarded) {
       G.rewarded = true;
-      const reward = NR.economy.awardRun({
-        score: G.score, kills: G.stats.kills, wave: G.mode === "survival" ? G.wave : G.chapter + 1,
-      });
+      const totals = { score: G.score, kills: G.stats.kills, wave: G.mode === "survival" ? Math.max(0,G.wave-1) : victory ? G.chapter+1 : 0 };
+      const ledger = G.rewardLedger || {score:0,kills:0,wave:0,gems:0};
+      const reward = NR.economy.awardRun({...Object.fromEntries(Object.entries(totals).map(([k,v])=>[k,Math.max(0,v-ledger[k])])),xpCredit:Math.max(0,(G.liveXp||0)-(ledger.liveXp||0))});
       let gems = 0;
-      if (G.mode === "survival" && G.wave >= 5) gems += Math.floor(G.wave / 5) * 5;
-      if (G.mode === "adventure" && G.finished) gems += 25;
+      if (G.mode === "survival" && G.wave >= 5) gems += Math.floor(Math.max(0,G.wave-1) / 5) * 5;
+      if (G.mode === "adventure" && victory) gems += 25;
+      const totalGems = gems;
+      gems = Math.max(0,gems-ledger.gems);
+      G.rewardLedger = {...Object.fromEntries(Object.entries(totals).map(([k,v])=>[k,Math.max(v,ledger[k]||0)])),gems:Math.max(totalGems,ledger.gems),liveXp:Math.max(G.liveXp||0,ledger.liveXp||0)};
+      NR.waveResume?.markPaid();
       if (gems > 0) NR.economy.addGems(gems);
       G.lastReward = { ...reward, gems };
       NR.progress.check(G);

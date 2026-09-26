@@ -2,6 +2,12 @@
 (function () {
   const U = NR.util;
   const DEFS = [
+    { id:"arcane",ico:"✦",name:"ARCANE AMPLIFIER",desc:"+20% Vault spell and equipment magic power this run.",rar:"epic",w:2,
+      can:()=>!!NR.evolution && (NR.evolution.magic?.damage||1)<4,apply:()=>{NR.evolution.magic.damage*=1.2;} },
+    { id:"spellcost",ico:"◈",name:"EFFICIENT CHANNEL",desc:"Vault spells cost 10% less energy this run.",rar:"rare",w:2,
+      can:()=>!!NR.evolution && (NR.evolution.magic?.cost||1)>.6,apply:()=>{NR.evolution.magic.cost*=.9;} },
+    { id:"spelltime",ico:"◷",name:"TIMEWEAVE",desc:"Vault spells recharge 10% faster this run.",rar:"rare",w:2,
+      can:()=>!!NR.evolution && (NR.evolution.magic?.cooldown||1)>.55,apply:()=>{NR.evolution.magic.cooldown*=.9;} },
     { id: "blade", ico: "⚔️", name: "MASTER'S EDGE", desc: "+25% katana damage on every strike.", rar: "common", w: 3,
       can: () => true, apply: (p) => { p.dmgMul *= 1.25; } },
     { id: "vital", ico: "❤️", name: "SECOND WIND", desc: "+25 max HP and restore 40 HP now.", rar: "common", w: 3,

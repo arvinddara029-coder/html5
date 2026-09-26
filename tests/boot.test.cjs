@@ -148,6 +148,7 @@ function makeDom(strict) {
       if (strict && !HTML_IDS.has(id)) return null; // real browsers return null
       return (byId[id] = byId[id] || el("div"));
     },
+    createTextNode: (text) => ({ textContent: text }),
     createElement: el,
     createElementNS: (ns, tag) => el(tag),
     querySelector: () => el("div"),
@@ -746,4 +747,112 @@ test("the whole roster of enemy art is reachable from real gameplay", () => {
   for (const type of ["crawler", "slime", "soldier", "drone", "wraith", "warlock", "rival",
     "gunner", "striker", "blade", "sentry", "sentinel", "brute", "apparition", "boss"])
     assert.ok(used.has(type), `${type} actually appears in a chapter or wave`);
+});
+
+/* Evolution expansion regressions, using the same full script graph as index.html. */
+test('evolution: ten-slot cap, level locks and removal', () => {
+  const { NR } = engine();
+  const E=NR.evolution;
+  E.equip('phoenix');
+  assert.equal(E.slots.includes('phoenix'),false);
+  NR.profile.level=20;
+  E.slots=[];
+  for(const s of E.spells) E.equip(s.id);
+  assert.equal(E.slots.length,10);
+  E.equip(E.slots[0]);
+  assert.equal(E.slots.length,9);
+  E.equip('phoenix');
+  assert.equal(E.slots.length,10);
+});
+test('evolution: spells consume energy once, observe cooldown and pause', () => {
+  const { NR }=engine();const G=NR.game,E=NR.evolution;
+  G.start();G.player.energy=100;
+  assert.equal(E.cast('ember'),true);
+  assert.equal(G.player.energy,84);
+  assert.equal(E.cast('ember'),false);
+  E.tick(9);G.state='pause';
+  assert.equal(E.cast('ember'),false);
+  G.state='playing';assert.equal(E.cast('ember'),true);
+});
+test('evolution: generated route stable on retry, changes per level and world', () => {
+  const { NR }=engine();const A=NR.adventure,E=NR.evolution;
+  const layout=()=>JSON.stringify(NR.world.platforms);
+  A.configure('adventure',0);const first=layout();
+  A.configure('adventure',0);assert.equal(layout(),first);
+  E.levels[0]++;A.configure('adventure',0);assert.notEqual(layout(),first);
+  assert.equal(A.relays.length,3);assert.equal(A.zones.length,4);
+  for(const p of NR.world.platforms){assert.ok(p.x>0 && p.x+p.w<NR.world.W);assert.ok(p.y<NR.world.groundY);}
+});
+test('evolution: continue preserves encounter and cannot duplicate defeat rewards', () => {
+  const { NR }=engine();const G=NR.game;
+  NR.profile.mode='survival';G.start();G.wave=4;G.score=600;G.stats.kills=5;
+  G.player.dead=true;G.finishRun(false);
+  const coins=NR.profile.coins,xp=NR.profile.xp;
+  G.continueEncounter();
+  assert.equal(G.wave,4);assert.equal(G.player.dead,false);assert.equal(G.player.hp,G.player.maxHp);
+  assert.equal(G.player.iframes,3);
+  G.player.dead=true;G.finishRun(false);
+  assert.equal(NR.profile.coins,coins);assert.equal(NR.profile.xp,xp);
+});
+test('evolution: every super asset is indexed, replacements and backgrounds exist', () => {
+  const { NR }=engine();
+  assert.ok(NR.superManifest.length>2000);
+  assert.ok(NR.evolution.assetReplacements>0);
+  for(const p of NR.superManifest)assert.ok(fs.existsSync(path.join(root,'assets',p)),p);
+  NR.adventure.configure('adventure',0);
+  assert.ok(NR.evolution.background.includes('super/'));
+});
+
+test('super expansion: every measured actor loads, draws and fights without script errors',()=>{
+  const E=engine(),{NR}=E;NR.game.start();
+  const ctx=E.context.document.createElement('canvas').getContext('2d');
+  for(const a of NR.superContent.actors){
+    assert.ok(a.clips.length>0,a.name);
+    for(const clip of a.clips){assert.ok(clip.bounds[2]>clip.bounds[0]);for(const f of clip.frames)assert.ok(fs.existsSync(path.join(root,'assets',f.path)),f.path);}
+    NR.superRuntime.preloadActor(a);
+    NR.superRuntime.drawActor(ctx,a,'walk',1,300,NR.world.groundY,80,1,1);
+    if(['enemy','guardian'].includes(a.role)){
+      const e=new NR.SuperEnemy(450,NR.world.groundY,1,a.id);e.spawnT=0;NR.game.enemies=[e];
+      for(let i=0;i<30;i++){e.update(.016,NR.game);e.draw(ctx);}
+      e.hurt(10000,0,0,false,NR.game);assert.equal(e.dead,true);
+    }
+  }
+});
+test('live level-up immediately strengthens current player and unlocks abilities',()=>{
+  const {NR}=engine();const G=NR.game;G.start();
+  NR.profile.xp=110;NR.profile.level=1;G.player.evoLevel=1;
+  const hp=G.player.maxHp,dmg=G.player.dmgMul;
+  NR.evolution.rewardKill();
+  assert.equal(NR.profile.level,2);assert.equal(G.player.maxHp,hp+4);assert.ok(G.player.dmgMul>dmg);
+  NR.evolution.equip('frost');assert.ok(NR.evolution.slots.includes('frost'));
+});
+test('portable backup preserves purchases, all six chapters, hero, relic, HUD and vault',()=>{
+  const {NR}=engine();NR.profile.coins=1000;
+  assert.equal(NR.economy.buy('skin','Male Skin3'),true);
+  NR.profile.unlocked=5;NR.profile.chapter=5;NR.profile.character='vex';
+  NR.evolution.hero=NR.superContent.actors.find(a=>a.role==='hero').id;
+  NR.evolution.relic=NR.superContent.relics[0].id;
+  NR.evolution.layout.jump=[.2,.4];NR.game.toMenu();
+  const text=NR.saveTransfer.exportText();const b=NR.saveTransfer.validate(text);
+  assert.equal(b.profile.owned['skin:Male Skin3'],1);
+  assert.equal(b.profile.chapter,5);assert.equal(b.profile.character,'vex');
+  NR.evolution.hero='';NR.evolution.layout={};NR.saveTransfer.apply(text);
+  assert.equal(NR.evolution.hero,b.evolution.hero);assert.equal(NR.evolution.layout.jump[0],.2);
+  const malformed=JSON.parse(text);malformed.evolution.slots=Array(11).fill('ember');
+  assert.throws(()=>NR.saveTransfer.apply(JSON.stringify(malformed)));
+});
+test('saved survival wave resumes with upgrades, without repeated XP or coin payouts',()=>{
+  const {NR}=engine(),G=NR.game;NR.profile.mode='survival';G.start();G.wave=4;G.player.dmgMul*=2;
+  NR.waveResume.save();const damage=G.player.dmgMul;
+  G.stats.kills=1;NR.evolution.rewardKill();G.score=120;G.player.dead=true;G.finishRun(false);
+  const coins=NR.profile.coins,xp=NR.profile.xp;
+  G.toMenu();assert.equal(NR.waveResume.resume(),true);assert.equal(G.wave,3);assert.equal(G.player.dmgMul,damage);
+  G.wave=4;G.stats.kills=1;NR.evolution.rewardKill();G.score=120;G.player.dead=true;G.finishRun(false);
+  assert.equal(NR.profile.xp,xp);assert.equal(NR.profile.coins,coins);
+});
+test('all original super files have explicit coverage status and all eleven FBX exports have guardian sprites',()=>{
+  const {NR}=engine();const coverage=NR.superContent.coverage;
+  for(const p of NR.superManifest)assert.ok(coverage[p],p);
+  assert.equal(NR.superContent.actors.filter(a=>a.role==='guardian').length,11);
+  for(const p of NR.superManifest.filter(p=>p.endsWith('.fbx')))assert.equal(coverage[p],'runtime-mapped');
 });

@@ -3,6 +3,7 @@
    packs (special skins, hats, masks, capes, weapons, auras), so picking an
    operator visibly changes the hero instead of only the stat sheet. */
 (function () {
+  NR.campaignChapterCount=6; // Profile loads before adventure; keep the full campaign unlock range.
   NR.characters = [
     {
       id: "ronin",

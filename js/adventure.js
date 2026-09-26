@@ -233,6 +233,8 @@
       broken: false,
     }));
   };
+  const configure = A.configure;
+  A.configure = function (...args) { configure(...args); NR.evolution?.generate(); };
   A.hurtProp = function (o, damage, G) {
     if (!A.active || o.broken) return false;
     o.hp -= damage;
@@ -275,6 +277,9 @@
       G.difficulty === "casual" ? 0.85 : G.difficulty === "hard" ? 1.15 : 1;
     G.enemyDmgMul = 1 + G.chapter * 0.1;
     G.startT = 0;
+    const level = NR.evolution?.levels[G.chapter] || 1;
+    G.enemyHpMul *= 1 + (level-1)*.08;
+    G.enemyDmgMul *= 1 + (level-1)*.04;
     if (checkpoint) {
       for (const key of ["relays", "zones", "caches", "shards", "props"]) {
         const field = {
@@ -290,9 +295,11 @@
         });
       }
       NR.checkpoint.restorePlayer(G.player, checkpoint);
+      NR.evolution?.onLevelUp(G.player.evoLevel,NR.profile.level);
       G.score = checkpoint.score;
       G.time = checkpoint.time;
       G.stats = { ...G.stats, ...checkpoint.stats };
+      G.liveXp=checkpoint.liveXp||0;
       G.banner("CHECKPOINT RESTORED", "Your journey continues.", "#d5fa5b");
     } else
       G.banner(
@@ -314,6 +321,7 @@
     };
     const finale = zone.id === A.zones.length - 1 && !!A.chapter.boss;
     if (finale) {
+      const guardian=NR.superRuntime?.guardian(x-200,y);if(guardian)add(guardian);
       // every chapter ends on a real boss fight; later chapters field the
       // warlock / brute bodies and a tougher SHOGUN frame
       const bossNum = 1 + Math.floor(G.chapter / 2);
@@ -332,6 +340,12 @@
       );
     } else {
       const ch = G.chapter;
+      if(NR.superRuntime) add(NR.superRuntime.spawn(x+200,y,zone.id));
+      if (NR.evolution) {
+        const evo=NR.evolution,level=evo.levels[ch],h=evo.hash(`${evo.seed}:${ch}:${level}:${zone.id}`);
+        const types=[NR.Slime,NR.Soldier,NR.Rival,NR.Gunner];
+        for(let i=0;i<Math.min(3,1+Math.floor(level/4));i++) add(new types[(h+i)%types.length](x-160+i*140,y,m));
+      }
       add(new NR.Crawler(x - 100, y, m));
       add(new NR.Crawler(x + 150, y, m));
       if (ch >= 1 || zone.id >= 1) add(new NR.Slime(x + 40, y, m));
@@ -493,6 +507,7 @@
         if (A.caches.every((c) => c.open)) NR.progress.award("cache");
       } else if (kind === "relay") {
         o.active = true;
+        NR.economy.applyXp(30,"Relay restored");
         p.heal(20);
         p.dashCharges = p.dashMax;
         p.tacticalCd = 0;
@@ -530,6 +545,7 @@
       Math.min(last, G.chapter + 1),
     );
     NR.saveProfile();
+    if (NR.evolution) { NR.evolution.levels[G.chapter]=Math.min(100000,NR.evolution.levels[G.chapter]+1); NR.evolution.save(); }
     NR.checkpoint.clear();
     NR.audio.sample("victory");
     G.finishRun(true);

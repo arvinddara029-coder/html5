@@ -219,6 +219,7 @@ test("slime and soldier enemies are registered and simulate", () => {
   const slime = new NR.Slime(400, NR.world.groundY, 1);
   const soldier = new NR.Soldier(G.player.x - 240, NR.world.groundY, 1);
   soldier.spawnT = 0;
+  soldier.cd = 0; // deterministic shot windup; random strafing can leave the 300px range
   slime.spawnT = 0;
   assert.equal(slime.type, "slime");
   assert.equal(soldier.type, "soldier");

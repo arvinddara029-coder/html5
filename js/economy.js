@@ -23,6 +23,7 @@
       E.pendingLevelUps = (E.pendingLevelUps || 0) + (now.level - before);
       NR.audio && NR.audio.play && NR.audio.play("ring");
     }
+    if (now.level > before) NR.evolution?.onLevelUp(before,now.level);
     if (why) E.lastGain = why;
     NR.saveProfile();
     return now;
@@ -153,7 +154,7 @@
   /* ---------- run rewards ---------- */
   E.awardRun = function (stats) {
     const coins = Math.floor((stats.score || 0) / 12) + (stats.kills || 0) * 4 + (stats.wave || 0) * 25;
-    const xp = (stats.kills || 0) * 12 + Math.floor((stats.score || 0) / 90) + (stats.wave || 0) * 30;
+    const xp = Math.max(0,(stats.kills || 0) * 12 + Math.floor((stats.score || 0) / 90) + (stats.wave || 0) * 30 - (stats.xpCredit || 0));
     E.addCoins(coins);
     const before = P.level || 1;
     E.applyXp(xp);

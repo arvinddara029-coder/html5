@@ -719,7 +719,7 @@
     }
     die(G) {
       if (this.dead) return;
-      NR.spriteRender.spawnCorpse(G, this.variant || "slime", this.x, this.y, this.facing, 1.9);
+      NR.spriteRender.spawnCorpse(G, this.variant || "slime", this.x, this.y, this.facing, NR.sheets[this.variant]?.renderScale || 1.9);
       Enemy.prototype.die.call(this, G);
     }
     draw(ctx) {
@@ -728,7 +728,7 @@
       ctx.beginPath(); ctx.ellipse(this.x, this.y + 3, 30, 7, 0, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
       const flash = this.flash > 0 ? "rgba(255,255,255,0.9)" : null;
-      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 1.9 });
+      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: NR.sheets[this.variant]?.renderScale || 1.9 });
       this.hpBar(ctx);
       this.drawSpawnFx(ctx);
     }

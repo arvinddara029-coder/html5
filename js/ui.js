@@ -191,7 +191,7 @@
       ctx.fillRect(sx, hy + 2, 2, hh - 4);
     }
     ctx.font = "700 11px Orbitron"; ctx.fillStyle = "#ffd6e0";
-    ctx.fillText(`${Math.ceil(p.hp)} / ${p.maxHp}`, hx + 8, hy + hh / 2 + 1);
+    ctx.fillText(`${Math.ceil(p.hp)} / ${Math.ceil(p.maxHp)}`, hx + 8, hy + hh / 2 + 1);
 
     /* ---- energy ---- */
     const ey = hy + hh + 7, ew = hw * 0.72, eh = 9;
