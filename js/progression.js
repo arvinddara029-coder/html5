@@ -144,6 +144,23 @@
       NR.records = NR.records.slice(0, 20);
       NR.store.setItem("nr_records_v3", JSON.stringify(NR.records));
     },
+    /* validated online results — only reachable through NR.net.submitLeaderboard,
+       which applies plausibility bounds + rate limits before calling this */
+    recordOnline(entry) {
+      if (!entry || typeof entry !== "object") return false;
+      const mode = String(entry.mode || "online");
+      const best = NR.profile.onlineBest || {};
+      const key = mode;
+      const prev = best[key] || { wave: 0, score: 0 };
+      const wave = Math.max(0, Math.min(500, Number(entry.wave) | 0));
+      const score = Math.max(0, Math.min(5e7, Number(entry.score) | 0));
+      if (wave < prev.wave && score <= prev.score) return false; // not an improvement
+      best[key] = { wave: Math.max(prev.wave, wave), score: Math.max(prev.score, score), name: NR.profile.name, date: Date.now() };
+      NR.profile.onlineBest = best;
+      NR.saveProfile();
+      NR.diag?.game(`online best recorded (${mode}): wave ${best[key].wave} · score ${best[key].score}`);
+      return true;
+    },
   };
   const playerFields = [
     "maxHp",

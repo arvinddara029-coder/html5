@@ -5,10 +5,49 @@
   const SCREENS = ["load", "menu", "how", "set", "pause", "up", "over", "armory", "records", "operators", "victory", "credits"];
   const ui = (NR.ui = {});
 
+  /* ---- glow-text cache: shadowBlur is the single most expensive canvas op,
+     and the old HUD used it every frame for score, combo and banners (the
+     boss-fight lag). Each unique string is blurred ONCE into an offscreen
+     canvas and then blitted with a cheap drawImage. ---- */
+  const glowCache = new Map();
+  const gradCache = new Map();
+  function glowText(ctx, text, x, y, font, fill, glowCol, blur, align, maxW) {
+    try {
+      const key = text + "|" + font + "|" + glowCol + "|" + blur;
+      let c = glowCache.get(key);
+      if (!c) {
+        const meas = document.createElement("canvas").getContext("2d");
+        meas.font = font;
+        const w = Math.min(maxW || 2000, Math.ceil(meas.measureText(text).width) + blur * 2 + 8);
+        const fs = parseInt(font) || 16;
+        c = document.createElement("canvas");
+        c.width = Math.max(4, w); c.height = Math.ceil(fs * 1.9) + blur * 2;
+        const g = c.getContext("2d");
+        g.font = font; g.textAlign = "center"; g.textBaseline = "alphabetic";
+        g.shadowColor = glowCol; g.shadowBlur = blur; g.fillStyle = fill;
+        g.fillText(text, c.width / 2, blur + fs * 1.05, maxW || c.width - 4);
+        if (glowCache.size > 80) glowCache.delete(glowCache.keys().next().value); // bounded
+        glowCache.set(key, c);
+      }
+      ctx.save();
+      ctx.font = font;
+      const fs = parseInt(font) || 16;
+      const dx = align === "right" ? x - c.width + blur : align === "center" ? x - c.width / 2 : x - blur;
+      // cached baseline sits at (blur + fs*1.05) from the canvas top
+      ctx.drawImage(c, dx, y - (blur + fs * 1.05));
+      ctx.restore();
+    } catch (_) {
+      // fallback: plain text, never crash the HUD
+      ctx.font = font; ctx.fillStyle = fill; ctx.textAlign = align || "left";
+      ctx.fillText(text, x, y, maxW || undefined);
+    }
+  }
+
   ui.show = function (name) {
     NR.input.reset();
     document.body.classList.toggle("playing", name === null && NR.game?.state === "playing");
     for (const s of SCREENS) $("scr-" + s).classList.toggle("active", s === name);
+    if (name === "menu") NR.lobby?.refreshResumeBanner?.(); // auto-resume stays current
   };
   ui.hideAll = () => ui.show(null);
 
@@ -132,6 +171,13 @@
     $("st-time").textContent = U.fmtTime(G.time);
     $("st-high").textContent = U.fmt(G.high);
     $("new-high").style.display = newHigh ? "block" : "none";
+    // rewarded-ad bonus button: explicit opt-in, reset per death screen
+    const adBtn = $("btn-reward-ad");
+    if (adBtn) {
+      adBtn.disabled = false;
+      adBtn.textContent = "▶ WATCH AD · BONUS COINS (OPTIONAL)";
+      adBtn.style.display = NR.crazy && NR.crazy.available ? "" : "none";
+    }
     const rw = $("run-rewards");
     if (rw) {
       const r = G.lastReward;
@@ -223,13 +269,9 @@
       }
     }
 
-    /* ---- score ---- */
+    /* ---- score (glow pre-rendered once per value — no per-frame shadowBlur) ---- */
     ctx.textAlign = "right";
-    ctx.font = `700 ${compact ? 23 : 28}px "Barlow Condensed"`;
-    ctx.fillStyle = "#fff";
-    ctx.shadowColor = "rgba(0,255,244,0.7)"; ctx.shadowBlur = 14;
-    ctx.fillText(U.fmt(G.score), W - 22, 30);
-    ctx.shadowBlur = 0;
+    glowText(ctx, U.fmt(G.score), W - 22, 30, `700 ${compact ? 23 : 28}px "Barlow Condensed"`, "#fff", "rgba(0,255,244,0.7)", 14, "right");
     ctx.font = `500 ${compact ? 8 : 10}px "DM Sans"`; ctx.fillStyle = "#9baeb0";
     ctx.fillText("SCORE · BEST " + U.fmt(Math.max(G.high, G.score)), W - 22, 52);
 
@@ -249,9 +291,9 @@
       ctx.save();
       ctx.translate(W - 30, H * 0.24);
       ctx.rotate(0.04);
-      ctx.shadowColor = cc; ctx.shadowBlur = 18;
-      ctx.fillText(`${G.combo} HITS`, 0, 0);
+      glowText(ctx, `${G.combo} HITS`, 0, 0, `900 ${22 + Math.min(G.combo, 30)}px Orbitron`, cc, cc, 18, "center");
       ctx.font = "700 15px Orbitron";
+      ctx.fillStyle = cc;
       ctx.fillText(`×${G.mult().toFixed(1)}`, 0, 34);
       ctx.restore();
       // combo timer bar
@@ -269,12 +311,15 @@
       ctx.fillStyle = "rgba(5,8,18,0.8)";
       ctx.fillRect(bx - 3, by - 3, bw + 6, 18);
       const bk = U.clamp(b.hp / b.maxHp, 0, 1);
-      const bg2 = ctx.createLinearGradient(bx, 0, bx + bw, 0);
-      bg2.addColorStop(0, b.phase === 2 ? "#ff2d95" : "#ff8f3d"); bg2.addColorStop(1, "#ff2d5f");
+      const gKey = "boss" + (b.phase === 2 ? "2" : "1") + "|" + Math.round(bw);
+      let bg2 = gradCache.get(gKey);
+      if (!bg2) { bg2 = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+        bg2.addColorStop(0, b.phase === 2 ? "#ff2d95" : "#ff8f3d"); bg2.addColorStop(1, "#ff2d5f");
+        gradCache.set(gKey, bg2); }
       ctx.fillStyle = bg2;
       ctx.fillRect(bx, by, bw * bk, 12);
       ctx.font = "900 11px Orbitron"; ctx.textAlign = "center"; ctx.fillStyle = "#ffd9c9";
-      ctx.fillText(`SHOGUN-9 ${b.phase === 2 ? "— OVERDRIVE" : ""}`, W / 2, by + 26);
+      ctx.fillText(`${b.bossName || "BOSS"} ${b.phase === 2 ? "— OVERDRIVE" : ""}`, W / 2, by + 26);
     }
 
     /* ---- banners ---- */
@@ -292,13 +337,9 @@
       const labelWidth = Math.min(W * .94, Math.max(ctx.measureText(bn.text).width, bn.sub.length * 7) + 44);
       ctx.fillStyle = 'rgba(6,15,25,.72)';
       U.roundRect(ctx, -labelWidth/2, -34, labelWidth, bn.sub ? 91 : 62, 6); ctx.fill();
-      ctx.shadowColor = bn.col; ctx.shadowBlur = 26;
-      ctx.fillStyle = bn.col;
-      ctx.fillText(bn.text, 0, 0);
+      glowText(ctx, bn.text, 0, 0, `700 ${Math.min(54, W / 13)}px "Barlow Condensed"`, bn.col, bn.col, 26, "center");
       if (bn.sub) {
-        ctx.font = "600 18px Rajdhani";
-        ctx.fillStyle = "#dfe9ff"; ctx.shadowBlur = 8;
-        ctx.fillText(bn.sub, 0, 36, W * 0.88);
+        glowText(ctx, bn.sub, 0, 36, "600 18px Rajdhani", "#dfe9ff", bn.col, 8, "center", W * 0.88);
       }
       ctx.restore();
     }

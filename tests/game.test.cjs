@@ -93,6 +93,7 @@ function engine(seed = {}) {
     "utils",
     "assetlib",
     "characters",
+    "heroes",
     "profile",
     "economy",
     "progression",
@@ -100,16 +101,24 @@ function engine(seed = {}) {
     "character",
     "input",
     "audio",
+    "audiomap",
     "sprites",
     "spriterender",
     "particles",
+    "pool",
+    "vfx",
     "world",
     "projectiles",
     "combat",
     "player",
+    "abilities",
     "enemies",
     "expedition-enemies",
     "adventure",
+    "levelsys",
+    "bossdefs",
+    "net",
+    "crazy",
     "upgrades",
   ])
     vm.runInContext(
@@ -150,7 +159,7 @@ test("static build contains no backend or API client", () => {
 });
 test("malformed profile and enum values recover safely", () => {
   const { NR } = engine({ nr_profile: "{bad json" });
-  assert.equal(NR.profile.character, "ronin");
+  assert.equal(NR.profile.character, "kaito"); // starter hero (ronin was migrated)
   const p = engine({
     nr_profile: JSON.stringify({
       mode: "invalid",
@@ -161,7 +170,7 @@ test("malformed profile and enum values recover safely", () => {
     }),
   }).NR.profile;
   assert.equal(p.mode, "adventure");
-  assert.equal(p.character, "ronin");
+  assert.equal(p.character, "kaito");
   assert.equal(p.chapter, 1);
   assert.equal(p.tactical, "shield");
 });
@@ -173,9 +182,9 @@ test("operators have distinct health, jumps, dash and armor", () => {
   assert.equal(p.jumpMax, 3);
   assert.equal(p.dashMax, 2);
   p.reset();
-  NR.applyCharacter(p, "titan");
-  assert.equal(p.maxHp, 150);
-  assert.equal(p.damageTakenMul, 0.8);
+  NR.applyCharacter(p, "onyx"); // "titan" migrated to ONYX, the iron warden
+  assert.equal(p.maxHp, 170);
+  assert.equal(p.damageTakenMul, 0.7);
   assert.equal(p.dmgMul, 1.25);
 });
 test("adventure and survival configure different world widths and schedulers", () => {

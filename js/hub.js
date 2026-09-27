@@ -106,6 +106,30 @@
     });
     text('service-status', NR.store.persistent ? 'OFFLINE READY · SAVED ON DEVICE' : 'TEMPORARY SESSION · STORAGE BLOCKED');
     if (NR.expeditionUI && NR.expeditionUI.init) NR.expeditionUI.init();
+    // NOTE: no global hover-sound listener. A document-wide mouseover handler
+    // fired repeatedly while the cursor travelled across the UI (the unwanted
+    // background chirp). Clicks remain audible via each button's own handler;
+    // deliberate hover cues are opt-in per element with [data-sfx-hover].
+    document.addEventListener(
+      "click",
+      (e) => {
+        if (e.target.closest && e.target.closest("[data-sfx-hover]")) NR.audio.play("uiHover");
+      },
+      { passive: true }
+    );
+    // extended settings (FPS / quality / HUD scale / diagnostics)
+    NR.settings?.init?.();
+    // rewarded-ad bonus button on the game-over screen (explicit opt-in)
+    const adBtn = document.getElementById("btn-reward-ad");
+    if (adBtn) adBtn.addEventListener("click", () => {
+      NR.crazy.showRewarded(() => {
+        const bonus = 150 + (NR.profile.level || 1) * 25;
+        NR.economy.addCoins(bonus);
+        NR.hub.notify(`Reward granted: +${bonus} coins!`);
+        adBtn.disabled = true;
+        adBtn.textContent = "REWARD CLAIMED ✓";
+      }, "gameover-bonus");
+    });
   };
   H.update = now => {
     if (now - lastHUD < 80) return; lastHUD = now;
@@ -116,20 +140,38 @@
     const parryEl = document.querySelector('[data-act="parry"]');
     const kunaiEl = document.querySelector('[data-act="kunai"]');
     const attackEl = document.querySelector('[data-act="attack"]');
-    const tacEl = document.querySelector('[data-act="tactical"]');
     const specEl = document.querySelector('[data-act="special"]');
     $('parry-cd').textContent=p.parryCd>0?p.parryCd.toFixed(1)+'s':'';
     $('kunai-count').textContent=p.kunaiCharges>0?p.kunaiCharges:Math.max(0,3-p.kunaiChargeT).toFixed(1)+'s';
     if (parryEl) parryEl.classList.toggle('not-ready',p.parryCd>0);
     if (kunaiEl) kunaiEl.classList.toggle('not-ready',p.kunaiCharges===0);
     if (attackEl) attackEl.classList.toggle('counter-ready',p.counterT>0);
-    const seconds = Math.ceil(p.tacticalCd);
-    $('tactical-cd').textContent = seconds > 0 ? seconds + 's' : '';
+    // hero signature kit buttons (E / Z / X)
+    const KIT_ACTS = ["tactical", "ability2", "ability3"]; // input action ids, in slot order
+    for (let i = 0; i < 3; i++) {
+      const el = document.querySelector(`[data-act="${KIT_ACTS[i]}"]`);
+      const cdEl = document.querySelector(`#ab${i+1}-cd`);
+      if (!el || !cdEl || !p.ab) continue;
+      const kit = NR.abilities;
+      if (!kit) continue;
+      const def = kit.def(p.ab.slots[i]);
+      const ready = kit.slotReady(p, i);
+      const cd = p.ab.cd[i];
+      cdEl.textContent = !ready && def && def.oncePerRun ? 'USED'
+        : cd > 0 ? Math.ceil(cd) + 's'
+        : def && def.energy && p.energy < def.energy ? def.energy + '⚡' : '';
+      el.classList.toggle('not-ready', !ready);
+      el.classList.toggle('spent', !!(def && def.oncePerRun && G.sukunaUsed));
+      const nameEl = document.querySelector(`#ab${i+1}-name`);
+      if (nameEl && def) nameEl.textContent = def.short;
+    }
     $('storm-cd').textContent = p.energy >= p.maxEnergy ? '' : Math.floor(p.energy / p.maxEnergy * 100) + '%';
     $('dash-cd').textContent = p.dashCharges > 0 ? '' : '…';
-    if (tacEl) tacEl.classList.toggle('not-ready', seconds > 0);
     if (specEl) specEl.classList.toggle('not-ready', p.energy < p.maxEnergy);
-    text('game-wave', `${P.world === 'day' ? 'DAYBREAK' : 'NIGHTFALL'} / ${G.difficulty.toUpperCase()} / ${G.mode === 'adventure' ? 'CHAPTER '+(G.chapter+1) : 'WAVE '+String(G.wave || 1).padStart(2, '0')}`);
-    text('game-objective',  p.counterT>0?'COUNTER READY — STRIKE WITHIN 2s':p.shieldT > 0 ? 'AEGIS ACTIVE — DAMAGE BLOCKED' : p.overdriveT > 0 ? 'OVERDRIVE — DOUBLE KATANA DAMAGE' : G.chronoT > 0 ? 'CHRONO FIELD — TIME DILATED' : p.droneT > 0 ? 'ARC COMPANION — SUPPORT ACTIVE' : G.bossActive ? 'ELIMINATE SHOGUN-9' : `${G.enemies.length + G.spawnQueue.length} HOSTILES REMAINING`);
+    const modeTag = G.mode === 'adventure' ? 'CAMPAIGN · W'+(G.chapter+1)+' · L'+(NR.levelsys ? NR.levelsys.currentLevel() : 1)
+      : G.mode === 'survive' ? 'SURVIVE · '+(p.t !== undefined ? NR.util.fmtTime(G.surviveT||0) : '')
+      : 'WAVE '+String(G.wave || 1).padStart(2, '0');
+    text('game-wave', `${P.world === 'day' ? 'DAYBREAK' : 'NIGHTFALL'} / ${G.difficulty.toUpperCase()} / ${modeTag}`);
+    text('game-objective',  p.sukunaT>0?'SUKUNASLICE — THE BLADE REALM IS OPEN':p.counterT>0?'COUNTER READY — STRIKE WITHIN 2s':p.shieldT > 0 ? 'AEGIS ACTIVE — DAMAGE BLOCKED' : p.overdriveT > 0 ? 'OVERDRIVE — DOUBLE KATANA DAMAGE' : G.chronoT > 0 ? 'CHRONO FIELD — TIME DILATED' : p.droneT > 0 ? 'ARC COMPANION — SUPPORT ACTIVE' : G.bossActive ? 'ELIMINATE '+(G.bossRef && G.bossRef.bossName || 'THE BOSS') : `${G.enemies.length + G.spawnQueue.length} HOSTILES REMAINING`);
   };
 })();
