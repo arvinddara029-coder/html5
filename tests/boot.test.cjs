@@ -877,7 +877,10 @@ test("SUKUNA SLICE: hero flies for 5s and every on-screen enemy is cut in two", 
   assert.ok(halves >= 10, "each slain enemy leaves two halves");
   assert.ok(G.stats.kills >= kills + 5, "sliced enemies count as kills");
   assert.ok(boss.hp < bossHp && !boss.dead, "bosses take heavy damage but are not one-shot");
-  assert.ok(NR.sukuna.cooldown > 0 && !NR.sukuna.ready(), "then it recharges");
+  assert.ok(G.player.sukunaUsed && !NR.sukuna.ready(), "single use: not ready again this run");
+  assert.equal(NR.sukuna.cast(), false, "a second cast in the same run is refused");
+  G.start();
+  assert.equal(NR.sukuna.ready(), true, "a new run gets a fresh Sukuna Slice");
 });
 
 test("world levels: endless per-world track, Level 8 world boss opens the next world", () => {
@@ -929,4 +932,248 @@ test("hero roster: distinct bodies with real stat differences", () => {
   assert.ok(stats.mordred[0] > stats.elara[0], "the knight is tankier than the heroine");
   assert.ok(stats.elara[1] > stats.mordred[1], "the heroine is faster than the knight");
   assert.equal(JSON.parse(E.store.nr_hero_v1 || E.store.getItem?.("nr_hero_v1") || "{}").id !== undefined, true, "choice persists");
+});
+
+/* ---------------- items, abilities, vault, CrazyGames, online ---------------- */
+test("items: every item has a price or is free, stronger items cost more, levels unlock cheap ones", () => {
+  const { NR } = engine(), IT = NR.items, EC = NR.economy, P = NR.profile;
+  let priced = 0, free = 0;
+  for (const cat of Object.keys(NR.catalog)) for (const o of NR.catalog[cat]) {
+    const pr = EC.price(cat, o.id);
+    if (IT.isFree(cat, o.id)) { free++; continue; }
+    assert.ok(pr && ((pr.coins || 0) > 0 || (pr.gems || 0) > 0), `${cat}:${o.id} has a price`);
+    priced++;
+    const [st] = IT.stats(cat, o.id), rank = IT.rank(cat, o.id);
+    assert.ok(st.value > 0 && rank >= 1 && rank <= 6, `${cat}:${o.id} has a stat`);
+  }
+  assert.ok(priced > 100 && free > 10);
+  // price follows rank
+  const all = [];
+  for (const cat of ["weapon", "top", "hair"]) for (const o of NR.catalog[cat]) { const pr = EC.price(cat, o.id); if (pr && pr.coins && !IT.isFree(cat, o.id)) all.push([IT.rank(cat, o.id), pr.coins]); }
+  const lo = all.filter((x) => x[0] < 2).map((x) => x[1]), hi = all.filter((x) => x[0] > 4).map((x) => x[1]);
+  if (lo.length && hi.length) assert.ok(Math.max(...lo) <= Math.min(...hi), "weak items are cheaper than strong ones");
+  // level unlocks
+  const lvItems = [];
+  for (const cat of Object.keys(NR.catalog)) for (const o of NR.catalog[cat]) { const lv = IT.unlockLevel(cat, o.id); if (lv) lvItems.push([cat, o.id, lv]); }
+  assert.ok(lvItems.length > 5, "some items unlock by level");
+  const [cat, id, lv] = lvItems[0];
+  P.level = lv - 1; P.owned = {};
+  assert.equal(EC.owned(cat, id), false);
+  P.level = lv;
+  assert.equal(EC.owned(cat, id), true, "reaching the level makes it free");
+  // bars markup: +X% text, never plain prose
+  const bars = IT.bars("weapon", NR.catalog.weapon[3].id);
+  assert.ok(bars.children.length >= 2);
+});
+
+test("items: buy → EQUIP → equipped, and the ! info opens how-to-use", () => {
+  const { NR } = engine(), IT = NR.items, EC = NR.economy, P = NR.profile;
+  P.coins = 99999; P.gems = 999; P.level = 1;
+  const g = String(P.appearance.skin).startsWith("Female") ? "f" : "m";
+  const o = NR.catalog.weapon.find((x) => (x.g === g || x.g === "any") && !EC.owned("weapon", x.id));
+  assert.ok(o, "an unowned weapon exists");
+  assert.equal(EC.buy("weapon", o.id), true);
+  assert.equal(EC.owned("weapon", o.id), true);
+  assert.notEqual(P.appearance.weapon, o.id, "buying does not auto-equip");
+  assert.equal(IT.equip("weapon", o.id), true);
+  assert.equal(P.appearance.weapon, o.id);
+  assert.equal(IT.equipped("weapon", o.id), true);
+  IT.info("weapon", o.id);
+  const card = IT.shopCard("weapon", o, () => {});
+  assert.ok(card.children.some((c) => c.className === "info-i"), "card has a ! button");
+});
+
+test("hero abilities: every hero has three distinct abilities that hit enemies and respect cooldowns", () => {
+  const E = engine(), { NR } = E, G = NR.game, HA = NR.abilities, H = NR.heroes;
+  const names = new Set();
+  for (const h of H.ROSTER) {
+    const defs = HA.forHero(h.id);
+    assert.equal(defs.length, 3, h.id + " has 3 abilities");
+    for (const d of defs) { assert.ok(!names.has(d.name), d.name + " unique"); names.add(d.name); }
+    H.select(h.id);
+    NR.profile.mode = "survival"; G.start(); G.startT = 1e9; G.spawnQueue = [];
+    const p = G.player, gy = NR.world.groundY;
+    G.enemies = [];
+    for (let i = 0; i < 4; i++) { const e = new NR.Soldier(p.x + 120 + i * 60, gy, 3); e.spawnT = 0; G.enemies.push(e); }
+    const hp0 = G.enemies.reduce((s, e) => s + e.hp, 0);
+    for (let i = 0; i < 3; i++) {
+      p.facing = 1;
+      assert.equal(HA.tryCast(p, i), true, `${h.id} ability ${i + 1} casts`);
+      assert.equal(HA.tryCast(p, i), false, "cooldown blocks a second cast");
+      play(E, 50);
+    }
+    const hp1 = G.enemies.filter((e) => !e.dead).reduce((s, e) => s + e.hp, 0);
+    const offensive = HA.forHero(h.id).some((d) => d.dmg > 0);
+    if (offensive) assert.ok(hp1 < hp0, h.id + " abilities damage enemies");
+    play(E, 60 * 21);
+    assert.equal(HA.cooldown(G.player, 0), 0, "cooldowns recover");
+  }
+  H.select("kaito");
+});
+
+test("vault: tabs render, a monster summon can be bought, equipped and called with T", () => {
+  const E = engine(), { NR } = E, G = NR.game, V = NR.vault, HA = NR.abilities, P = NR.profile;
+  P.coins = 99999; P.gems = 999;
+  V.open();
+  for (const t of ["items", "pets", "companions", "summons", "spells", "relics"]) V.open(t);
+  const a = V.summons().find((x) => x.role === "enemy");
+  assert.ok(a, "monster summons exist");
+  assert.equal(V.buy("summon", a), true);
+  V.setSummon(a.id);
+  assert.equal(V.summon(), a.id);
+  NR.profile.mode = "survival"; G.start(); G.startT = 1e9; G.spawnQueue = [];
+  const e = new NR.Soldier(G.player.x + 200, NR.world.groundY, 2); e.spawnT = 0; G.enemies = [e];
+  NR.input.pressed.summon = true;
+  play(E, 1);
+  assert.equal(HA.allies.length, 1, "T calls the equipped monster");
+  const hp = e.hp;
+  play(E, 240);
+  assert.ok(e.hp < hp || e.dead, "the summon attacks enemies");
+  play(E, 60 * 17);
+  assert.equal(HA.allies.length, 0, "the summon leaves after its time");
+});
+
+test("CrazyGames + online modules are safe without the SDK or PeerJS", async () => {
+  const { NR } = engine();
+  assert.equal(await NR.crazy.init(), false, "no SDK → offline, no throw");
+  assert.equal(await NR.crazy.rewardCoins(), false);
+  assert.equal(await NR.crazy.midgame("boss"), "skipped");
+  assert.ok(NR.crazy.inviteLink("ABCDE").includes("room=ABCDE"));
+  NR.onlineUI.open();
+  NR.net.board.record(7, "solo", "");
+  NR.net.board.merge([{ n: "<script>", w: 99, m: "coop", d: 1 }, { n: "x", w: "bad", m: "nope" }]);
+  const top = NR.net.board.top(5, "wave");
+  assert.equal(top[0].w, 99);
+  assert.ok(!/[<>]/.test(top[0].n), "names are sanitised");
+});
+
+/* fake PeerJS: two game instances talk through an in-memory broker */
+function fakePeer(hub) {
+  const tick = (fn) => Promise.resolve().then(fn);
+  class Emitter { constructor() { this.h = {}; } on(e, f) { (this.h[e] = this.h[e] || []).push(f); return this; } off(e, f) { this.h[e] = (this.h[e] || []).filter((x) => x !== f); } emit(e, ...a) { for (const f of (this.h[e] || []).slice()) f(...a); } }
+  class Conn extends Emitter {
+    constructor(peer) { super(); this.peer = peer; this.open = false; }
+    send(m) { const o = this.other, c = JSON.parse(JSON.stringify(m)); hub.bytes = (hub.bytes || 0) + JSON.stringify(m).length; tick(() => o.open && o.emit("data", c)); }
+    close() { if (!this.open) return; this.open = false; const o = this.other; tick(() => { if (o.open) { o.open = false; o.emit("close"); } }); this.emit("close"); }
+  }
+  return class Peer extends Emitter {
+    constructor(id) { super(); if (typeof id !== "string") id = "anon-" + Math.random().toString(36).slice(2); this.id = id; this.destroyed = false;
+      tick(() => { if (hub.peers.has(id)) { this.emit("error", { type: "unavailable-id" }); return; } hub.peers.set(id, this); this.emit("open", id); }); }
+    connect(id) {
+      const a = new Conn(id);
+      tick(() => {
+        const t = hub.peers.get(id);
+        if (!t) { this.emit("error", { type: "peer-unavailable" }); return; }
+        const b = new Conn(this.id); a.other = b; b.other = a; a.open = b.open = true;
+        t.emit("connection", b); b.emit("open"); a.emit("open");
+      });
+      return a;
+    }
+    call() { return null; }
+    destroy() { this.destroyed = true; hub.peers.delete(this.id); }
+    reconnect() {}
+  };
+}
+const settle = async (n = 6) => { for (let i = 0; i < n; i++) await new Promise((r) => setImmediate(r)); };
+
+test("online co-op: invite by room code, both heroes in the lobby, shared waves, chat", async () => {
+  const hub = { peers: new Map() };
+  const A = engine(), B = engine();
+  A.context.Peer = fakePeer(hub); B.context.Peer = fakePeer(hub);
+  const NA = A.NR.net, NB = B.NR.net;
+  B.NR.heroes.select("ryu");
+  assert.equal(await NA.host("coop"), true);
+  await settle();
+  const code = NA.room;
+  assert.ok(/^[A-Z0-9]{5}$/.test(code));
+  assert.equal(await NB.join(code), true);
+  await settle();
+  assert.equal(NA.members.length, 2, "host sees the friend");
+  assert.equal(NB.members.length, 2, "friend sees the host");
+  assert.equal(NB.members.find((m) => m.pid === 0).heroId, A.NR.heroes.current().id);
+  assert.equal(NA.members.find((m) => m.pid === 1).heroId, "ryu", "the friend's hero is shown in the lobby");
+  // a third player is refused (duo)
+  const C = engine(); C.context.Peer = fakePeer(hub);
+  let err = ""; C.NR.net.on("error", (m) => (err = m));
+  assert.notEqual(await C.NR.net.join(code), true);
+  assert.match(err, /full/i);
+  // chat both ways
+  const got = []; NA.on("chat", (c) => got.push(c.text));
+  NB.chat("hello <b>host</b>");
+  await settle();
+  assert.ok(got.includes("hello <b>host</b>"), "chat reaches the host as plain text");
+  // start the shared run
+  assert.equal(NA.start(), true);
+  await settle();
+  const GA = A.NR.game, GB = B.NR.game;
+  assert.equal(GA.others.length, 1); assert.equal(GB.others.length, 1);
+  assert.equal(GB.netGuest, true);
+  assert.equal(GA.others[0].heroId, "ryu", "host runs the friend with the friend's hero");
+  for (let i = 0; i < 40; i++) {
+    play(A, 8); play(B, 8, { drive: () => { B.NR.input.keys.ArrowRight = i < 20; } });
+    await settle(2);
+  }
+  if (process.env.NR_BYTES) console.log("net bytes for ~5.3s of co-op:", hub.bytes);
+  assert.ok(GA.wave >= 1 && GB.wave === GA.wave, "the friend sees the same wave");
+  assert.ok(GA.enemies.length > 0, "enemies spawned");
+  assert.equal(GB.enemies.length, GA.enemies.length, "the friend sees every enemy");
+  assert.ok(Math.abs(GB.enemies[0].x - GA.enemies[0].x) < 60, "enemy positions match");
+  assert.ok(GA.others[0].x > A.NR.world.W / 2, "the friend's hero walked right on the host");
+  // a partner going down does not end the run while the other lives
+  Object.assign(GA.others[0], { iframes: 0, dashT: 0, shieldT: 0, stormT: 0, parryT: 0 });
+  GA.player = GA.others[0]; GA.hurtPlayer(9999, 1, "test"); GA.player = GA.me;
+  assert.equal(GA.others[0].dead, true);
+  play(A, 30); await settle();
+  assert.equal(GA.state, "playing", "run continues with one fighter up");
+  // host leaves → friend gets a clean message, no crash
+  let lost = ""; NB.on("error", (m) => (lost = m));
+  await NA.leave();
+  await settle();
+  assert.match(lost, /host left|connection/i);
+  assert.equal(NB.role, null);
+});
+
+test("online PvP 1v1: no monsters, blades hurt the other player, last one standing wins", async () => {
+  const hub = { peers: new Map() };
+  const A = engine(), B = engine();
+  A.context.Peer = fakePeer(hub); B.context.Peer = fakePeer(hub);
+  const NA = A.NR.net, NB = B.NR.net;
+  await NA.host("pvp1"); await settle();
+  await NB.join(NA.room); await settle();
+  assert.equal(NB.mode, "pvp1");
+  const ends = []; NA.on("end", (r) => ends.push(["A", r])); NB.on("end", (r) => ends.push(["B", r]));
+  NA.start(); await settle();
+  const GA = A.NR.game;
+  assert.equal(GA.pvp, true);
+  assert.notEqual(GA.me.team, GA.others[0].team, "opposite teams");
+  play(A, 120); await settle();
+  assert.equal(GA.enemies.length, 0, "no monsters in PvP");
+  const foe = GA.others[0];
+  foe.x = GA.me.x + 80; foe.y = GA.me.y; GA.me.facing = 1;
+  const hp = foe.hp;
+  GA.playerStrike({ dmg: 30, rng: 165, kb: 300 });
+  assert.ok(foe.hp < hp, "your blade hurts the other player");
+  for (let i = 0; i < 40 && !foe.dead; i++) { foe.iframes = 0; GA.playerStrike({ dmg: 60, rng: 165, kb: 300 }); }
+  assert.equal(foe.dead, true);
+  for (let i = 0; i < 20; i++) { play(A, 4); await settle(2); }
+  assert.ok(ends.some(([w, r]) => w === "A" && r.pvp && r.won), "host wins");
+  assert.ok(ends.some(([w, r]) => w === "B" && r.pvp && !r.won), "friend is told they lost");
+});
+
+test("worlds: SURVIVE levels jump to a random world each level, WAVE FIGHT changes world after a boss", () => {
+  const E = engine(), { NR } = E, G = NR.game, PO = NR.polish, P = NR.profile;
+  let same = 0;
+  for (let n = 2; n < 60; n++) if (PO.worldFor(n) === PO.worldFor(n - 1)) same++;
+  assert.equal(same, 0, "two levels in a row never share a world");
+  P.mode = "adventure"; P.advLevel = 7; G.start();
+  assert.equal(G.chapter, PO.worldFor(7));
+  assert.equal(NR.evolution.levels[G.chapter], 7, "the level counter is shared by all worlds");
+  NR.levels.onClear(G.chapter, 7);
+  assert.equal(P.advLevel, 8);
+  P.mode = "survival"; G.start();
+  const before = G.chapter;
+  const boss = new NR.Boss(600, NR.world.groundY, 1, 1, "demon"); G.bossActive = true; G.bossRef = boss;
+  G.onBossKilled(boss);
+  E.timers.splice(0).forEach((f) => f());
+  assert.notEqual(G.chapter, before, "a new world after the boss");
 });

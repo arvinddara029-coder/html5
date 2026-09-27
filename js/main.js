@@ -46,7 +46,12 @@
     canvas.height = Math.floor(ch * dpr);
     canvas.style.width = cw + "px";
     canvas.style.height = ch + "px";
-    let vh = cw > ch && ch < 550 ? 720 : 940;
+    // gameplay zoom: characters and animations read bigger. Saved per device
+    // (Settings → Character size); default 1.2 desktop, 1.35 on phones.
+    let zoom = Number(NR.store && NR.store.getItem("nr_zoom"));
+    if (!(zoom >= 1 && zoom <= 1.6)) zoom = Math.min(cw, ch) < 600 ? 1.35 : 1.2;
+    NR.view.zoom = zoom;
+    let vh = (cw > ch && ch < 550 ? 720 : 940) / zoom;
     let vw = vh * (cw / ch);
     const arenaW = NR.world ? NR.world.W : 2560;
     if (vw > arenaW) { vw = arenaW; vh = vw * (ch / cw); }
@@ -178,6 +183,8 @@
       for (const e of G.enemies) safeDraw(() => e.draw(ctx), "enemy", e);
       for (const w of G.shockwaves) safeDraw(() => w.draw(ctx), "shockwave", w);
       if (!G.player.dead || G.deathT > 1.1) safeDraw(() => G.player.draw(ctx), "hero");
+      // extra layers (online partners, summoned allies, ability effects)
+      if (NR.drawHooks) for (const fn of NR.drawHooks) safeDraw(() => fn(ctx, cam, view), "layer");
       for (const b of G.bolts) safeDraw(() => b.draw(ctx), "bolt", b);
       for (const b of G.shots) safeDraw(() => b.draw(ctx), "shot", b);
       safeDraw(() => NR.fx.draw(ctx), "effects");

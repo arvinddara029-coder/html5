@@ -148,6 +148,10 @@
       if (!(NR.heroes && NR.heroes.drawStage(g, w / 2, feetY + bob, hero.t, hero.saluteT))) a.draw(g, w / 2, feetY + bob, { scale });
     }
   }
+  L.refreshHeroLook = function () {
+    hero.actor = NR.char.actor(P.appearance, { rate: 1 });
+    hero.actor.play("idle");
+  };
   L.initHero = function () {
     const cv = $("hero-canvas");
     if (!cv) return;
@@ -402,6 +406,7 @@
         lock.className = "lock"; lock.textContent = "🔒";
         card.append(lock);
       }
+      if (L.decorateOption) L.decorateOption(card, creator.cat, o);
       card.addEventListener("click", () => {
         if (!NR.economy.owned(creator.cat, o.id)) {
           if (NR.economy.buy(creator.cat, o.id)) {
@@ -421,7 +426,9 @@
       frag.push(card);
     }
     box.replaceChildren(...frag);
+    if (L.afterOptions) L.afterOptions(creator.look, creator.cat);
   }
+  L.creatorLook = () => creator.look;
   function applyLook() {
     creator.actor = NR.char.actor(creator.look, { rate: 1 });
     creator.actor.play(creator.anim);

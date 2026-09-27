@@ -19,6 +19,34 @@
   G.comboWindow = () => 4.2 + (G.player.furyBonus || 0);
   G.mult = () => Math.min(1 + G.combo * 0.12, 6);
 
+  /* ================= several fighters (online co-op / PvP) =================
+     G.me is the local fighter; G.others holds online partners (real Player
+     objects driven by their owner's input). Enemy AI, projectiles and pickups
+     briefly see the nearest living fighter as G.player. */
+  G.others = [];
+  G.pvp = false;
+  G.multi = () => G.others.length > 0 || G.pvp;
+  G.allPlayers = () => (G.me ? [G.me, ...G.others] : G.player ? [G.player, ...G.others] : G.others.slice());
+  G.teamAlive = () => G.allPlayers().some((q) => !q.dead);
+  G.nearestPlayer = function (x, y) {
+    let best = null, bd = Infinity;
+    for (const q of G.allPlayers()) {
+      if (q.dead) continue;
+      const d = Math.abs(q.x - x) + Math.abs(q.y - y) * 0.5;
+      if (d < bd) { bd = d; best = q; }
+    }
+    return best || G.me || G.player;
+  };
+  G.revive = function (q, frac = 0.5) {
+    if (!q || !q.dead) return;
+    q.dead = false; q.downed = false;
+    q.hp = Math.max(1, Math.round(q.maxHp * frac)); q.ghostHp = q.hp;
+    q.iframes = 2.5; q.vx = q.vy = 0; q.hitstun = 0;
+    q.y = Math.min(q.y, W.groundY);
+    F.ring(q.x, q.y - 45, { col: "cyan", r1: 160, life: 0.6, lw: 6 });
+    F.text(q.x, q.y - 130, "REVIVED", { col: "#9dffb4", size: 24 });
+  };
+
   /* ================= lifecycle ================= */
   G.toMenu = function () {
     G.state = "menu";
@@ -59,7 +87,9 @@
       NR.assets.preload(texAll);
     }
     NR.audio.init();
+    G.others = []; G.pvp = false; G.netGuest = false;
     if (!G.player) G.player = new NR.Player();
+    G.me = G.player;
     G.player.reset();
     NR.applyCharacter(G.player,G.character);
     NR.evolution?.apply(G.player);
@@ -229,6 +259,7 @@
       G.banner("WAVE " + G.wave + " CLEARED", "choose your evolution", "#00fff4");
     }
     G.player.heal(10 + G.wave * 0.5);
+    if (G.others.length) for (const q of G.allPlayers()) { if (q.dead) G.revive(q); else if (q !== G.player) q.heal(10 + G.wave * 0.5); }
     NR.audio.play("upgrade");
     G.upgradeT = 0.95; // game-timer driven (pause safe)
   }
@@ -292,6 +323,8 @@
     if (p.dead || p.iframes > 0 || p.dashT > 0 || p.stormT > 0 || p.shieldT > 0) return;
     if (NR.combat.tryParry(G,dir,src)) return;
     dmg *= (G.difficulty === "casual" ? .6 : G.difficulty === "hard" ? 1.4 : 1) * (p.damageTakenMul || 1);
+    if (src === "pvp") dmg *= 0.55;
+    const mine = !G.me || p === G.me;
     p.hp -= dmg;
     p.comboResetT = 99; // combo resets
     G.combo = 0; G.comboT = 0;
@@ -299,12 +332,21 @@
     p.iframes = 0.85 * (p.guardMul || 1);
     p.hitstun = 0.26;
     p.vx = (dir || 1) * 430; p.vy = -290;
-    hud.hurtVign = 1;
-    G.shake(0.4);
-    G.hitStop(0.06);
+    if (mine) { hud.hurtVign = 1; G.shake(0.4); G.hitStop(0.06); }
     F.text(p.x, p.y - 110, "-" + Math.round(dmg), { col: "#ff5f7a", size: 24, crit: true });
     F.burst(p.x, p.y - 46, { n: 14, col: "red", spd: 340, life: 0.5 });
     NR.audio.play("hurt");
+    if (p.hp <= 0 && G.multi()) {
+      // online: a fallen fighter is DOWN (revived when the wave is cleared);
+      // the run only ends when every fighter is down
+      p.hp = 0; p.dead = true; p.downed = true;
+      F.burst(p.x, p.y - 46, { n: 50, col: "cyan", spd: 560, life: 1 });
+      F.ring(p.x, p.y - 46, { col: "magenta", r1: 300, life: 0.7, lw: 10 });
+      NR.audio.play("pdie");
+      if (!G.pvp && !G.teamAlive()) { G.deathT = 1.5; G.slowmo(0.25, 1.4); }
+      G.onPlayerDown?.(p);
+      return;
+    }
     if (p.hp <= 0) {
       p.hp = 0; p.dead = true;
       G.deathT = 1.5;
@@ -398,8 +440,10 @@
     G.time += rd;
     G.chronoT = Math.max(0,G.chronoT-dt);
 
+    const multi = G.others.length > 0;
+    const down = multi ? !G.teamAlive() : p.dead;
     // Death takes priority over a pending wave-clear reward.
-    if (p.dead) G.upgradeT = 0;
+    if (down) G.upgradeT = 0;
 
     // delayed upgrade screen (game-time driven)
     if (G.upgradeT > 0) {
@@ -411,8 +455,8 @@
       }
     }
 
-    // player death sequence
-    if (p.dead) {
+    // player death sequence (online: only once the whole team is down; PvP ends by the net module)
+    if (down && !G.pvp) {
       G.deathT -= rd;
       if (G.deathT <= 0 && !G.overShown) {
         G.overShown = true;
@@ -422,7 +466,7 @@
     }
 
     // wave start countdown
-    if (G.mode === "survival" && !p.dead && G.startT > 0 && G.startT < 900) {
+    if (G.mode === "survival" && !down && G.startT > 0 && G.startT < 900) {
       G.startT -= rd;
       if (G.startT <= 0) {
         if (G.enemies.length === 0 && G.spawnQueue.length === 0 && !G.bossActive) startWave(G.wave + 1);
@@ -444,17 +488,27 @@
 
     // entities
     p.update(dt, G);
+    if (multi && G.updateOthers) { try { G.updateOthers(dt); } catch (err) { NR.reportError?.("Partner update", err); } G.player = p; }
+    const fighters = multi ? G.allPlayers() : [p];
     for (let i = G.enemies.length - 1; i >= 0; i--) {
       const e = G.enemies[i];
+      if (multi) G.player = G.nearestPlayer(e.x, e.y);
       try { e.update(dt * (G.chronoT>0 ? 0.35 : 1), G); }
       catch (err) { G.quarantine(e, err, "enemy update"); }
+      G.player = p;
       // player contact damage
-      if (!e.dead && e.spawnT <= 0 && !p.dead && e.touchCd <= 0) {
-        const overlapX = Math.abs(e.x - p.x) < (e.w + p.w) / 2 - 6;
-        const overlapY = Math.abs(e.y - e.h / 2 - (p.y - p.h / 2)) < (e.h + p.h) / 2 - 4;
-        if (overlapX && overlapY) {
-          G.hurtPlayer(e.dmg * (e.boss ? 1 : G.enemyDmgMul), Math.sign(p.x - e.x) || e.facing, "touch");
-          e.touchCd = 0.6;
+      if (!e.dead && e.spawnT <= 0 && e.touchCd <= 0) {
+        for (const q of fighters) {
+          if (q.dead) continue;
+          const overlapX = Math.abs(e.x - q.x) < (e.w + q.w) / 2 - 6;
+          const overlapY = Math.abs(e.y - e.h / 2 - (q.y - q.h / 2)) < (e.h + q.h) / 2 - 4;
+          if (overlapX && overlapY) {
+            G.player = q;
+            try { G.hurtPlayer(e.dmg * (e.boss ? 1 : G.enemyDmgMul), Math.sign(q.x - e.x) || e.facing, "touch"); }
+            finally { G.player = p; }
+            e.touchCd = 0.6;
+            break;
+          }
         }
       }
       if (e.dead) G.enemies.splice(i, 1);
@@ -463,7 +517,9 @@
     const tick = (list, k) => {
       for (let i = list.length - 1; i >= 0; i--) {
         const o = list[i];
+        if (multi) G.player = G.nearestPlayer(o.x || 0, o.y || 0);
         try { o.update(dt * k, G); } catch (err) { o.dead = true; NR.reportError?.("Projectile skipped", err); }
+        G.player = p;
         if (o.dead) list.splice(i, 1);
       }
     };
@@ -475,18 +531,20 @@
     if (G.comboT > 0) { G.comboT -= dt; if (G.comboT <= 0) G.combo = 0; }
 
     // wave cleared?
-    if (G.mode === "survival" && G.wave > 0 && G.startT <= 0 && !G.bossActive && G.enemies.length === 0 && G.spawnQueue.length === 0 && !p.dead) {
+    if (G.mode === "survival" && G.wave > 0 && G.startT <= 0 && !G.bossActive && G.enemies.length === 0 && G.spawnQueue.length === 0 && !down && !G.pvp) {
       G.clearT += dt;
       if (G.clearT > 0.7) { G.clearT = 0; G.startT = 999; onWaveCleared(); }
     } else G.clearT = 0;
 
     // camera
     const cam = G.cam, view = NR.view;
-    const lookX = p.x + p.facing * 90;
+    // while you are down online, the camera follows a partner who is still fighting
+    const cp = p.dead && multi ? G.others.find((q) => !q.dead) || p : p;
+    const lookX = cp.x + cp.facing * 90;
     const tx = U.clamp(lookX - view.w / 2, 0, Math.max(0, W.W - view.w));
     const arenaBottom = W.H + (window.innerWidth < 600 ? view.h * .19 : view.h * .08);
     const tyMin = Math.min(0, arenaBottom - view.h);
-    const ty = U.clamp(p.y - view.h * 0.58, tyMin, arenaBottom - view.h);
+    const ty = U.clamp(cp.y - view.h * 0.58, tyMin, arenaBottom - view.h);
     cam.x = U.damp(cam.x, W.W > view.w ? tx : (W.W - view.w) / 2, 5, rd);
     cam.y = U.damp(cam.y, arenaBottom > view.h ? ty : (arenaBottom - view.h) / 2, 4, rd);
     cam.trauma = Math.max(0, cam.trauma - rd * 1.7);

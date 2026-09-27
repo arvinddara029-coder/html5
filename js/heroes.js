@@ -196,7 +196,7 @@
   if (NR.superRuntime) {
     const legacy = NR.superRuntime.hero;
     NR.superRuntime.hero = function (ctx, pose, options) {
-      const h = H.current();
+      const h = (pose && pose.heroId && H.byId(pose.heroId)) || H.current();
       if (h.body.kind !== "forge") {
         if (H.draw(ctx, h, pose, options || {})) return true;
         return true; // art still streaming: skip one frame instead of flashing the forge body

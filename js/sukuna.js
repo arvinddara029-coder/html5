@@ -1,5 +1,5 @@
 /* ============ SUKUNA SLICE — signature ultimate ============
-   Press V / G (or the 斬 SUKUNA button):
+   ONCE PER RUN. Press V / G (or the 斬 SUKUNA button):
      · the hero rises into the air and hovers for 5 seconds (invulnerable)
      · the background drops into a crimson "domain", katana "shiiing" sounds
      · five cleave waves sweep the screen; every enemy on screen is cut into
@@ -14,27 +14,29 @@
 
   SK.reset = function () {
     SK.halves.length = 0; SK.slashes.length = 0; SK.cuts.length = 0;
-    SK.domain = 0; SK.cooldown = 0; SK.wave = 0;
+    SK.domain = 0; SK.cooldown = 0; SK.wave = 0; SK.caster = null;
     SK.maxCooldown = BASE_COOLDOWN * ((NR.heroes && NR.heroes.current().sukuna) || 1);
   };
-  SK.active = () => !!(G.player && G.player.sukunaT > 0);
-  SK.ready = () => G.state === "playing" && G.player && !G.player.dead && !SK.active() && SK.cooldown <= 0;
+  // the domain belongs to whoever opened it (co-op partners can open their own once)
+  SK.active = () => !!(SK.caster && SK.caster.sukunaT > 0 && !SK.caster.dead);
+  SK.used = () => !!(G.player && G.player.sukunaUsed);
+  SK.ready = () => G.state === "playing" && !!G.player && !G.player.dead && !G.player.sukunaUsed && !SK.active();
 
   SK.cast = function () {
     if (!SK.ready()) return false;
     const p = G.player;
+    p.sukunaUsed = true; SK.caster = p;
     p.sukunaT = DURATION; p.sukunaBaseY = p.y;
     p.sukunaTargetY = Math.max(180, NR.world.groundY - 250);
     p.iframes = Math.max(p.iframes, DURATION + 0.4);
     p.vx = 0; p.vy = 0; p.attackT = 0; p.attackIdx = -1; p.dashT = 0;
     SK.wave = 0;
-    SK.maxCooldown = BASE_COOLDOWN * ((NR.heroes && NR.heroes.current().sukuna) || 1);
-    SK.cooldown = SK.maxCooldown;
+    SK.cooldown = 0; // single use: no recharge, the button shows USED
     // enemy projectiles on screen dissolve as the domain opens
     for (const b of G.bolts) { F.sparks(b.x, b.y, 4, "red"); b.dead = true; }
     NR.audio.play("domain");
     NR.audio.duck(0.15, 2.5);
-    G.banner("SUKUNA SLICE", "DOMAIN EXPANSION · MALEVOLENT SHRINE", "#ff3048");
+    G.banner("SUKUNA SLICE", "DOMAIN EXPANSION · 5 SECONDS · ONCE PER RUN", "#ff3048");
     G.shake(0.5);
     G.flash && G.flash("rgba(255,40,60,0.35)");
     F.ring(p.x, p.y - 50, { col: "red", r1: 420, life: 0.6, lw: 5 });
@@ -87,7 +89,7 @@
   }
   function cleave() {
     SK.wave++;
-    const p = G.player;
+    const p = SK.caster || G.player;
     NR.audio.play(SK.wave === 1 ? "bladeFlurry" : "blade");
     G.shake(0.35);
     // screen-wide slash streaks for this wave
@@ -115,11 +117,10 @@
 
   /* ---------------- per-frame ---------------- */
   SK.update = function (dt) {
-    const p = G.player;
-    if (!p) return;
-    if (SK.cooldown > 0 && !SK.active()) SK.cooldown = Math.max(0, SK.cooldown - dt);
-    if (I.justPressed("sukuna")) {
-      if (!SK.cast() && !SK.active() && SK.cooldown > 0) NR.hub?.notify?.(`SUKUNA SLICE recharging · ${Math.ceil(SK.cooldown)}s`);
+    if (!G.player) return;
+    const p = SK.caster || G.player;
+    if (I.justPressed("sukuna") && !G.netGuest) {
+      if (!SK.cast() && G.player.sukunaUsed) NR.hub?.notify?.("SUKUNA SLICE already used this run · next run it is ready again");
     }
     if (SK.active()) {
       const elapsed = DURATION - p.sukunaT;
@@ -141,10 +142,11 @@
     for (const list of [SK.slashes, SK.cuts]) for (let i = list.length - 1; i >= 0; i--) { list[i].t += dt; if (list[i].t >= list[i].life) list.splice(i, 1); }
     const cd = document.getElementById("sukuna-cd");
     if (cd) {
-      const txt = SK.active() ? "LIVE" : SK.cooldown > 0 ? Math.ceil(SK.cooldown) + "s" : "";
+      const mine = SK.active() && SK.caster === G.player;
+      const txt = mine ? "LIVE" : G.player.sukunaUsed ? "USED" : "";
       if (cd.textContent !== txt) cd.textContent = txt;
       const btn = cd.parentElement;
-      if (btn && btn.classList) { btn.classList.toggle("ready", SK.cooldown <= 0 && !SK.active()); btn.classList.toggle("live", SK.active()); }
+      if (btn && btn.classList) { btn.classList.toggle("ready", !G.player.sukunaUsed && !SK.active()); btn.classList.toggle("live", mine); btn.classList.toggle("used", !!G.player.sukunaUsed && !mine); }
     }
   };
 
@@ -256,7 +258,7 @@
   G.start = function (...args) {
     SK.reset();
     const r = start.apply(G, args);
-    if (G.player) G.player.sukunaT = 0;
+    if (G.player) { G.player.sukunaT = 0; G.player.sukunaUsed = false; }
     return r;
   };
   const update = G.update;

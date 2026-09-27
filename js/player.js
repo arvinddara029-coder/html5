@@ -140,7 +140,7 @@
        It now has its own gait clock (idle row = sit/blink, run row = 6-frame
        trot) and springs toward a follow slot behind the hero. */
     updatePet(dt) {
-      const petId = NR.profile.pet;
+      const petId = this.pet !== undefined ? this.pet : NR.profile.pet;
       if (!petId || this.dead) return;
       const wisp = petId.indexOf("Wisp") >= 0;
       const running = !wisp && this.onGround && Math.abs(this.vx) > 60;
@@ -295,7 +295,7 @@
       const P = this.pose;
       const speedK = U.clamp(Math.abs(this.vx) / 430, 0, 1.4);
       P.x = this.x; P.y = this.y; P.facing = this.facing; P.attackIdx = this.attackIdx; P.dead = this.dead; P.trim=this.trim; P.cloak=this.cloak; P.character=this.character;
-      P.t = this.t; P.appearance = this.look || NR.profile.appearance;
+      P.t = this.t; P.appearance = this.look || NR.profile.appearance; P.heroId = this.heroId;
       P.runAmt = this.onGround ? speedK : 0;
       P.air = !this.onGround;
       P.vy = this.vy;
@@ -385,8 +385,9 @@
       const P = this.pose;
       const blink = this.iframes > 0 && this.dashT <= 0 ? (Math.sin(this.t * 34) > 0 ? 0.45 : 1) : 1;
       // pet companion trots along behind the hero (pet art faces right natively)
-      if (NR.profile.pet && !this.dead) {
-        const petId = NR.profile.pet;
+      const myPet = this.pet !== undefined ? this.pet : NR.profile.pet;
+      if (myPet && !this.dead) {
+        const petId = myPet;
         const wisp = petId.indexOf("Wisp") >= 0;
         const pscale = wisp ? 2.2 : 2.1;
         const row = this.petRow | 0;

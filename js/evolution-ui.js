@@ -37,7 +37,7 @@
   NR.ui.show=function(...args){show(...args);bar.hidden=true;};
   NR.ui.hideAll=function(...args){hide(...args);bar.hidden=false;};
   window.addEventListener('keydown',e=>{if(dialog.open || e.repeat || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;const m=/^Digit([0-9])$/.exec(e.code);if(m){const i=m[1]==='0'?9:Number(m[1])-1;if(E.slots[i]){e.preventDefault();E.cast(E.slots[i]);}}});
-  $('open-vault').onclick=E.vault;$('play-vault').onclick=E.vault;
+  if($('open-vault'))$('open-vault').onclick=E.vault;if($('play-vault'))$('play-vault').onclick=E.vault;
   $('btn-continue-encounter').onclick=()=>G.continueEncounter();
   $('next-world-level').onclick=()=>{NR.profile.mode='adventure';NR.profile.chapter=G.chapter;NR.saveProfile();G.start({chapter:G.chapter});};
   $('power-hint').onclick=()=>{
@@ -52,17 +52,31 @@
   };
   // Bounded percentage coordinates survive phone rotation and desktop resizing.
   const controls=()=>[...document.querySelectorAll('#touch [data-act],#ability-bar button')];
+  E.applyLayout=()=>applyLayout();
   function key(b){return b.dataset.hud || b.dataset.act;}
-  function place(b,pos){if(!Array.isArray(pos)||pos.length!==2||!pos.every(Number.isFinite))return;b.style.position='fixed';b.style.left=`calc(${Math.max(0,Math.min(1,pos[0]))*100}% - ${Math.max(0,Math.min(1,pos[0]))*b.offsetWidth}px)`;b.style.top=`calc(${Math.max(0,Math.min(1,pos[1]))*100}% - ${Math.max(0,Math.min(1,pos[1]))*b.offsetHeight}px)`;b.style.margin='0';}
+  function place(b,pos){if(!Array.isArray(pos)||(pos.length!==2&&pos.length!==3)||!pos.every(Number.isFinite))return;const sc=pos.length===3?Math.max(.5,Math.min(2,pos[2])):1;b.style.transform=sc!==1?`scale(${sc})`:'';b.style.transformOrigin=`${Math.max(0,Math.min(1,pos[0]))*100}% ${Math.max(0,Math.min(1,pos[1]))*100}%`;b.style.position='fixed';b.style.left=`calc(${Math.max(0,Math.min(1,pos[0]))*100}% - ${Math.max(0,Math.min(1,pos[0]))*b.offsetWidth}px)`;b.style.top=`calc(${Math.max(0,Math.min(1,pos[1]))*100}% - ${Math.max(0,Math.min(1,pos[1]))*b.offsetHeight}px)`;b.style.margin='0';}
   function applyLayout(){for(const b of controls())place(b,E.layout[key(b)]);}
   let editing=false,drag=null;
   const editor=document.createElement('div');editor.id='hud-editor';editor.hidden=true;
-  editor.append(document.createTextNode('CUSTOM HUD · Drag any control. '),button('SAVE',()=>finish(true)),button('CANCEL',()=>finish(false)),button('RESET',()=>{E.layout={};for(const b of controls())b.removeAttribute('style');}));document.body.append(editor);
+  editor.append(document.createTextNode('CUSTOM HUD · Drag any control, tap it, then use SIZE to resize. '),button('SAVE',()=>finish(true)),button('CANCEL',()=>finish(false)),button('RESET',()=>{E.layout={};for(const b of controls())b.removeAttribute('style');}));document.body.append(editor);
+  // resize: the selected control (or all of them) gets a 50–200% scale stored as layout[key][2]
+  let selected=null;
+  const sizeRow=document.createElement('div');sizeRow.className='hud-size-row';
+  const sizeLabel=document.createElement('label');sizeLabel.htmlFor='hud-size';sizeLabel.textContent='SIZE · tap a control';
+  const size=document.createElement('input');size.type='range';size.id='hud-size';size.min='50';size.max='200';size.step='5';size.value='100';
+  const sizeVal=document.createElement('b');sizeVal.id='hud-size-val';sizeVal.textContent='100%';
+  const posOf=b=>{const cur=E.layout[key(b)];if(Array.isArray(cur)&&cur.length>=2)return cur;const r=b.getBoundingClientRect();return [Math.max(0,Math.min(1,r.left/Math.max(1,innerWidth-b.offsetWidth))),Math.max(0,Math.min(1,r.top/Math.max(1,innerHeight-b.offsetHeight)))];};
+  const setScale=(b,v)=>{const p=posOf(b);E.layout[key(b)]=[p[0],p[1],v];place(b,E.layout[key(b)]);};
+  E.hudSetScale=(k,v)=>{const b=controls().find(c=>key(c)===k);if(b)setScale(b,Math.max(.5,Math.min(2,v)));};
+  size.addEventListener('input',()=>{const v=Number(size.value)/100;sizeVal.textContent=size.value+'%';if(selected)setScale(selected,v);});
+  const allBtn=button('SIZE ALL',()=>{const v=Number(size.value)/100;for(const b of controls())setScale(b,v);});
+  sizeRow.append(sizeLabel,size,sizeVal,allBtn);editor.append(sizeRow);
+  const select=b=>{if(selected)selected.classList.remove('hud-selected');selected=b;b.classList.add('hud-selected');const cur=E.layout[key(b)];const v=Math.round(((Array.isArray(cur)&&cur.length===3)?cur[2]:1)*100);size.value=String(v);sizeVal.textContent=v+'%';sizeLabel.textContent='SIZE · '+(b.getAttribute('aria-label')||key(b)).toUpperCase().slice(0,28);};
   let previous;
   function finish(save){if(!save)E.layout=previous;else E.save();for(const b of controls())b.removeAttribute('style');applyLayout();editing=false;document.body.classList.remove('editing-hud');editor.hidden=true;NR.ui.show('set');}
   $('edit-hud').onclick=()=>{previous=JSON.parse(JSON.stringify(E.layout));editing=true;for(const b of bar.children)b.disabled=false;NR.input.reset();NR.ui.hideAll();document.body.classList.add('editing-hud');editor.hidden=false;applyLayout();};
-  document.addEventListener('pointerdown',e=>{if(!editing)return;const b=e.target.closest('#touch [data-act],#ability-bar button');if(!b)return;e.preventDefault();e.stopImmediatePropagation();const r=b.getBoundingClientRect();drag={b,id:e.pointerId,dx:e.clientX-r.left,dy:e.clientY-r.top};b.setPointerCapture(e.pointerId);},true);
-  document.addEventListener('pointermove',e=>{if(!drag)return;e.preventDefault();const {b,dx,dy}=drag;const pos=[Math.max(0,Math.min(1,(e.clientX-dx)/Math.max(1,innerWidth-b.offsetWidth))),Math.max(0,Math.min(1,(e.clientY-dy)/Math.max(1,innerHeight-b.offsetHeight)))];E.layout[key(b)]=pos;place(b,pos);},true);
+  document.addEventListener('pointerdown',e=>{if(!editing)return;const b=e.target.closest('#touch [data-act],#ability-bar button');if(!b)return;e.preventDefault();e.stopImmediatePropagation();select(b);const r=b.getBoundingClientRect();const cur=E.layout[key(b)];const sc=(Array.isArray(cur)&&cur.length===3)?cur[2]:1;drag={b,id:e.pointerId,dx:e.clientX-r.left,dy:e.clientY-r.top,sc};b.setPointerCapture(e.pointerId);},true);
+  document.addEventListener('pointermove',e=>{if(!drag)return;e.preventDefault();const {b,dx,dy}=drag;const pos=[Math.max(0,Math.min(1,(e.clientX-dx)/Math.max(1,innerWidth-b.offsetWidth))),Math.max(0,Math.min(1,(e.clientY-dy)/Math.max(1,innerHeight-b.offsetHeight)))];if(drag.sc!==1)pos.push(drag.sc);E.layout[key(b)]=pos;place(b,pos);},true);
   for(const event of ['pointerup','pointercancel'])document.addEventListener(event,e=>{if(!editing)return;if(drag){e.preventDefault();e.stopImmediatePropagation();drag=null;}},true);
   document.addEventListener('click',e=>{if(editing && e.target.closest('#touch,#ability-bar')){e.preventDefault();e.stopImmediatePropagation();}},true);
   window.addEventListener('resize',applyLayout);
@@ -83,7 +97,7 @@
     search.oninput=()=>{query=search.value;page=0;draw();};dialog.append(search,pager,results);draw();
   }
   $('resume-wave').onclick=()=>{NR.waveResume.resume();};
-  $('super-roster').onclick=()=>{
+  E.superRoster=()=>{
     open('SUPER ROSTER · HEROES & COMPANIONS');
     para('Choose a hero or pet from the new packs. Selection applies to the next run. Every actor uses measured animation frames, not a full contact sheet.');
     dialog.append(button('DEFAULT HERO',()=>{E.hero='';E.save();}),button('NO SUPER PET',()=>{E.companion='';E.save();}));
@@ -103,6 +117,7 @@
       const select=button(NR.profile.level<relic.level?'UNLOCK LEVEL '+relic.level:'EQUIP RELIC',()=>{E.relic=relic.id;E.save();NR.hub.notify(relic.name+' selected for next run.');});select.disabled=NR.profile.level<relic.level;card.append(select);grid.append(card);
     }
   };
-  $('open-super').onclick=archive;
+  if($('super-roster'))$('super-roster').onclick=E.superRoster;
+  E.archive=archive;if($('open-super'))$('open-super').onclick=archive;
   E.renderBar();bar.hidden=true;
 })();

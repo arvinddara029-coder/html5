@@ -328,10 +328,6 @@
   width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(255, 190, 240, 0.8);
   background: #1b1030; margin-right: 10px; vertical-align: middle;
 }
-.load-guide {
-  width: 92px; image-rendering: pixelated; margin: 10px auto -6px; display: block;
-  filter: drop-shadow(0 0 12px rgba(255, 190, 240, 0.5));
-}
 .how-demo {
   display: flex; gap: 18px; justify-content: space-around; flex-wrap: wrap;
   border: 1px solid rgba(0, 255, 244, 0.22); border-radius: 12px;

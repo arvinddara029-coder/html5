@@ -16,6 +16,10 @@
     kunai: ["KeyR"],
     interact: ["KeyF"],
     sukuna: ["KeyV", "KeyG"],
+    ab1: ["KeyU"],
+    ab2: ["KeyI"],
+    ab3: ["KeyO"],
+    summon: ["KeyT"],
     pause: ["Escape", "KeyP"],
     mute: ["KeyM"],
   };

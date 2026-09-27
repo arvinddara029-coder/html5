@@ -1,8 +1,24 @@
-# NEON RONIN — Expedition Edition 3.1
+# NEON RONIN — Expedition Edition 3.3
 
-A **fully static, single-player HTML5 action game**: a three-chapter side-scrolling adventure and an endless wave-survival mode. Canvas 2D, vanilla JavaScript, local assets, synthesized music and imported CC0 sound effects.
+A **static HTML5 action game** (single-player + optional peer-to-peer online): a three-chapter side-scrolling adventure and an endless wave-survival mode. Canvas 2D, vanilla JavaScript, local assets, synthesized music and imported CC0 sound effects.
 
-**No backend. No database. No API. No account.** The previous Python/SQLite application server and community leaderboard have been removed. Preferences, checkpoints, achievements and run records stay in the browser.
+**No own server.** Progress lives in the browser and, on CrazyGames, is mirrored to the CrazyGames SDK (`SDK.data`). Online play is direct browser-to-browser (PeerJS/WebRTC).
+
+## New in 3.3 — vault, hero abilities, online co-op/PvP, CrazyGames
+
+- **Bigger characters:** the gameplay camera is zoomed in (1.2× desktop, 1.35× mobile). Settings → **Character size** slider (100–160%, `nr_zoom`).
+- **PLAY → two modes:** **WAVE FIGHT** (endless waves) and **SURVIVE** (level adventure). There is no world picker any more: worlds rotate randomly on every new level and after every 5th-wave boss, and the same world never comes twice in a row.
+- **3 hero abilities** based on each hero's personality (for example Kaito: Aegis Guard / Flame Wave / Forge Blades, Ryu the samurai: Shadow Dash / Iai Flurry / Wind Cutter). Keys **U / I / O**, plus 3 touch buttons. **T** calls your monster summon.
+- **VAULT (lobby):** Hero Forge items (skin, hair, mask, armor, weapon …), pets, companions, **monster summons**, spells and relics in one place.
+- **Items:** stats shown as bars with `+X%`. Every item has a price; stronger items cost more (the strongest cost gems), and weak items become **free as you level up**. After buying, an **EQUIP** button appears. Every item has a **!** button with how-to-use info.
+- **Sukuna Slice:** once per run and lasts 5 seconds.
+- **HUD editor:** drag **and resize** touch controls (layout saved as `[x, y, scale]`).
+- **Settings trimmed:** Super Heroes & Pets, Ability Vault and the Super Asset Library buttons were removed. Credits: *Made by Arvind Bishnoi*.
+- **Loading:** no animated art on the splash; progress %, tips, and a loading overlay/pill whenever assets are still streaming.
+- **CrazyGames SDK v3** (`js/crazy.js`): user name, cloud data mirror, `gameplayStart/Stop`, midgame ads after a boss kill or level clear (never online, at most one per 60 s), rewarded ad for +150 coins, invite links/rooms, and `muteAudio` / `disableChat` settings. Outside CrazyGames all of this switches off quietly.
+- **Online (`js/net.js`, `js/online-ui.js`):** CREATE ROOM (invite link / 5-letter code), JOIN, or QUICK MATCH with a random player. **Co-op waves** for 2 players, plus **PvP 1v1 / 2v2 / 4v4**. The lobby shows the friend's hero, and there is text chat, voice chat (mic), ready/teams, and a leaderboard by best wave/floor. The host runs the game (guest input 30 Hz, snapshots 15 Hz). Offline play = levels, online play = waves co-op.
+
+**Online limits (honest):** there is no own server, so the leaderboard is local plus scores shared by the players you meet (not a global server ranking). Connections use public STUN only, so some strict NAT / office networks cannot connect. Voice is a small mesh (best with 2–4 people). Quick match uses public PeerJS room slots, so it finds players only when someone else is searching at the same time. There are no real-money purchases; coins/gems are in-game only.
 
 ## New in 3.2 — heroes, world levels, asset bosses & Sukuna Slice
 
@@ -110,6 +126,8 @@ Cooldowns follow simulation time and freeze when paused. Chrono Field does not s
 | **`F`** | Open cache, activate relay or extract |
 | `P / ESC` | Pause / resume |
 | `M` | Toggle music and effects |
+| **`U / I / O`** | Hero abilities 1–3 |
+| **`T`** | Monster summon (VAULT → SUMMONS) |
 
 **Mobile:** visible movement, drop, jump, strike, dash, parry, kunai and power buttons; simultaneous touch movement + attack; contextual interaction button; safe-area-aware portrait and landscape layouts. The lobby keeps Deploy visible on narrow screens. Keyboard players can hide the main combat buttons; touch devices keep them available. Audio starts after an interaction, as required by browsers.
 
@@ -161,7 +179,11 @@ Browser integration checks:
 npm ci
 npx playwright install chromium
 npm run test:browser
+# 3.3 features (vault, shop equip, online lobby, modes, abilities, HUD size):
+BASE_URL=http://localhost:8080 node tests/evolution.browser.mjs
 ```
+
+If the Playwright download is blocked, `bash tests/setup-chromium.sh` builds `/tmp/chrome.sh`; pass it as `CHROMIUM_PATH=/tmp/chrome.sh`. Online co-op/PvP is tested in `tests/boot.test.cjs` with a fake PeerJS broker (two engines in one process).
 
 The browser suite defaults to opening `index.html` directly via **`file://`**, without a server. Set `BASE_URL` to test an optional static preview, or `CHROMIUM_PATH` to use an existing Chromium binary:
 
@@ -169,7 +191,7 @@ The browser suite defaults to opening `index.html` directly via **`file://`**, w
 BASE_URL=http://localhost:8080 npm run test:browser
 ```
 
-Current regression suite: **29 engine tests + 123 browser checks**. Coverage includes timed/directional parry, counters, projectile reflection and swept collision, crate persistence, backup download/import/cancel/reload and malformed-file rejection, checkpoint restoration after reload, all chapter encounter/relay/extraction transitions, the final boss and campaign ending, operator and power selection, local records, survival mode, direct-file loading, zero API/CDN requests, mobile multi-touch, touch cancellation and button overlap. Campaign progression tests manipulate entity state to exercise the complete flow efficiently; they are not a substitute for extended human balance/playtesting. Screenshots are written to ignored `test-results/`.
+Current regression suite: **101 node tests** (`node --test tests/*.test.cjs`) + browser suites (`tests/evolution.browser.mjs`: 47 checks on desktop + mobile). Coverage includes timed/directional parry, counters, projectile reflection and swept collision, crate persistence, backup download/import/cancel/reload and malformed-file rejection, checkpoint restoration after reload, all chapter encounter/relay/extraction transitions, the final boss and campaign ending, operator and power selection, local records, survival mode, direct-file loading, zero API/CDN requests, mobile multi-touch, touch cancellation and button overlap. Campaign progression tests manipulate entity state to exercise the complete flow efficiently; they are not a substitute for extended human balance/playtesting. Screenshots are written to ignored `test-results/`.
 
 ## Project map
 
@@ -192,6 +214,13 @@ js/bosses.js                Asset-art bosses, boss rotation, world-boss levels
 js/levels.js                Endless per-world level track + deploy level picker
 js/heroes.js                Hero roster (bodies, stats, traits) + HEROES screen
 js/sukuna.js                Sukuna Slice ultimate (flight, domain, halving)
+js/items.js                 Item stats/bars, prices, level-free items, equip, ! info
+js/hero-abilities.js        3 personality abilities per hero + monster summon
+js/vault.js                 Lobby VAULT (items, pets, companions, summons, spells)
+js/crazy.js                 CrazyGames SDK v3 bridge (user, data, ads, invites)
+js/net.js                   PeerJS rooms, co-op/PvP sync, chat, voice, leaderboard
+js/online-ui.js             ONLINE lobby modal + in-game online HUD
+js/polish.js                Zoom, loading screens, world rotation, mode wiring
 js/world.js                 Parallax, day/night, platform collision
 js/audio.js                 Synth soundtrack / combat + CC0 sample playback
 js/hub.js, js/ui.js          Loadouts, screens, settings and HUD
@@ -204,4 +233,4 @@ tests/                      Engine and browser regression suites
 
 ### Scope
 
-This is an expanded **2D single-player browser game**, not an open-world or AAA production. There is no multiplayer, cloud sync, online ranking, account system or anti-cheat. The three chapters share the relay/encounter objective structure but have different platform patterns, lift motion, hazards, shards, scenery and encounter compositions. Clearing browser/site storage removes local progress unless you have exported a backup. No game implementation can honestly be guaranteed “perfect”; browser coverage and gameplay tests are included, while long-run balance and device-specific performance still benefit from human playtesting.
+This is an expanded **2D browser game**, not an open-world or AAA production. Online play is peer-to-peer without an authoritative server, so there is no anti-cheat, and the leaderboard is not a global server ranking. The three chapters share the relay/encounter objective structure but have different platform patterns, lift motion, hazards, shards, scenery and encounter compositions. Clearing browser/site storage removes local progress unless you have exported a backup. No game implementation can honestly be guaranteed “perfect”; browser coverage and gameplay tests are included, while long-run balance and device-specific performance still benefit from human playtesting.
