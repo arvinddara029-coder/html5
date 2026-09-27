@@ -4,6 +4,14 @@ A **fully static, single-player HTML5 action game**: a three-chapter side-scroll
 
 **No backend. No database. No API. No account.** The previous Python/SQLite application server and community leaderboard have been removed. Preferences, checkpoints, achievements and run records stay in the browser.
 
+## New in 4.0 — WAVE CLIMB, SURVIVAL RUN, Quick Play & fixed sound
+
+- **WAVE CLIMB** (waves + climb merged, endless): clear the floor's wave → pick an upgrade → the laser gate opens → run forward and climb (stairs / zigzag / lift / bridge) to the portal checkpoint. Reaching the portal locks that floor in as the new ground — you can never fall back below it. Early waves are **one enemy family each** (crawlers → slimes → soldiers → drones → boss → gunners → wraiths …), later waves mix 2–3 families that get **stronger, not more numerous** (max 8 alive). Boss every 5th floor. Floors vary in width and route.
+- **SURVIVAL RUN** (endless side-scroller): pits, lifts, platforms and enemy squads ahead; campfire checkpoints every 4 chunks (respawn + upgrade); guardian boss every 5th camp. Falling in a pit costs 25% HP and respawns you at the last campfire.
+- **Online:** custom rooms with a code (Free Fire style) **and ⚡ Quick Play** automatic matchmaking in the chosen mode (Wave Climb co-op, Survival Run co-op, 1v1, 2v2, 4v4, random). Co-op is host-authoritative (waves, floors, checkpoints, enemy hp + 8 Hz enemy positions); enemies chase the nearest hero; downed players respawn while a partner survives. PvP: first to 5 eliminations, no friendly fire in teams. Errors are handled (offline, no WebRTC, broker unreachable, room full/started, host disconnect → run continues offline). PeerJS is bundled in `assets/vendor/` (CDN only as fallback).
+- **Sound fixed:** all effects are `assets/super` WAVs, fetched once, decoded in parallel whenever the audio context appears (the old race left many sounds undecoded and fell back to beeps), synth fallback only for genuinely missing samples (not on throttling), variants + pitch jitter, voice stealing, and a music scheduler that no longer stutters after frame stalls. The old HTMLAudio `.ogg` path was removed.
+- **Cleanup:** removed 451 junk/editor files from `assets/super` (`.DS_Store`, `.psd`, `.ase/.aseprite`, `.blend1`, `.zip`, `png~`, `.gfi`) and the unused Kenney `.ogg` files.
+
 ## New in 3.1 — precision combat & portable progress
 
 - **Parry / counter:** face an incoming melee attack or bolt and tap `Q`. A 0.22-second window, 1.2-second cooldown. Success restores 8 base energy, grants a short invulnerability window and powers your next successful melee strike within 2 seconds by **×1.75**. Missed swings do not consume it. Bolts reflect back as friendly projectiles; hazards and ground shockwaves cannot be parried.

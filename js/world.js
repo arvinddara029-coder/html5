@@ -168,7 +168,8 @@
       const f = 0.18;
       const drawH = view.h * (day || scenic ? 1.08 : 0.9);
       const drawW = drawH * (img.width / img.height);
-      let startX = cam.x - (((cam.x * f) % drawW) + drawW) % drawW - drawW;
+      const pcx = cam.x + (W.originX || 0);
+      let startX = cam.x - (((pcx * f) % drawW) + drawW) % drawW - drawW;
       const baseY = day || scenic ? cam.y - view.h * 0.04 : cam.y + view.h - drawH + view.h * 0.06;
       ctx.globalAlpha = 0.85;
       for (let x0 = startX; x0 < cam.x + view.w + drawW; x0 += drawW)
@@ -197,7 +198,8 @@
     if (midCity) {
       const f = 0.45, mh = 470, mw = 2048 * (mh / 520);
       const baseY = W.groundY - mh + 26;
-      let startX = cam.x - (((cam.x * f) % mw) + mw) % mw - mw;
+      const pcx = cam.x + (W.originX || 0);
+      let startX = cam.x - (((pcx * f) % mw) + mw) % mw - mw;
       ctx.globalAlpha = scenic ? (day ? .25 : .5) : day ? 0.55 : 0.95;
       for (let x0 = startX; x0 < cam.x + view.w + mw; x0 += mw)
         ctx.drawImage(midCity, x0, baseY, mw, mh);
@@ -438,13 +440,15 @@
         }
       }
     }
-    if (e.y >= W.groundY) { e.y = W.groundY; if (e.vy > 0) e.vy = 0; e.onGround = true; }
+    let overPit = false;
+    if (W.pits && W.pits.length) for (const pit of W.pits) if (e.x > pit.x + 6 && e.x < pit.x + pit.w - 6) { overPit = true; break; }
+    if (e.y >= W.groundY && !overPit) { e.y = W.groundY; if (e.vy > 0) e.vy = 0; e.onGround = true; }
     if (!wasGround && e.onGround && e.onLand) e.onLand();
     e.x = U.clamp(e.x, 26, W.W - 26);
   };
 
   W.pointSolid = function (x, y) {
-    if (y >= W.groundY + 2) return true;
+    if (y >= W.groundY + 2 && !(W.pits || []).some((p) => x > p.x && x < p.x + p.w)) return true;
     for (const p of W.platforms)
       if (x > p.x && x < p.x + p.w && y > p.y && y < p.y + p.h) return true;
     return false;

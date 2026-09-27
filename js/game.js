@@ -91,9 +91,10 @@
     G.cam.x = U.clamp(G.player.x - NR.view.w / 2,0,Math.max(0,W.W-NR.view.w)); G.cam.y = W.H - NR.view.h;
     G.startT = 1.0; // countdown to wave 1
     NR.adventure.start(G,cp);
+    NR.modes?.start(G);
     NR.superRuntime?.prepare();
     G.levelDef = NR.levelsys ? NR.levelsys.levelDef(G.chapter||0, NR.levelsys.currentLevel()) : null;
-    if (G.mode !== "adventure" && G.levelDef) NR.levelsys.banner(G.levelDef);
+    if (G.mode !== "adventure" && !NR.modes?.active && G.levelDef) NR.levelsys.banner(G.levelDef);
     if (G.online && NR.net.mode === "host") {
       // share the deterministic seed so guests simulate the same district
       NR.net.transport && NR.net.transport.broadcast({ k: "room-state", room: NR.net.room });
@@ -111,6 +112,7 @@
     const p = G.player;
     p.dead = false; p.hp = p.maxHp; p.ghostHp = p.hp; p.energy = 100;
     p.x = Math.max(100,Math.min(NR.world.W-250,p.x)); p.y = NR.world.groundY;
+    if (NR.modes?.active) NR.modes.respawnPoint(p);
     p.vx = p.vy = 0; p.iframes = 3; p.dashCharges = p.dashMax;
     p.computePose(); G.deathT=0; G.overShown=false; G.finished=false; G.rewarded=false;
     G.bolts.length=0; G.shockwaves.length=0; G.clearT=0; G.upgradeT=0;
@@ -222,10 +224,11 @@
     }
   }
 
-  function spawnEnemy(type) {
+  function spawnEnemy(type, qi) {
     const mul = G.enemyHpMul;
     const side = U.chance(0.5) ? 1 : -1;
     const px = G.player.x;
+    const hintX = qi && typeof qi.x === "number" ? qi.x : null;
     let e;
     if (type === "super") {
       // staged super actor (measured Legacy/Mario art), spawned through the queue
@@ -233,6 +236,7 @@
     } else if (type === "crawler") {
       let x = side > 0 ? W.W - 90 : 90;
       if (Math.abs(x - px) < Math.abs(W.W - x - px)) x = W.W - x; // spawn far from player
+      if (hintX !== null) x = U.clamp(hintX, 60, W.W - 60);
       e = new NR.Crawler(x, W.groundY, mul);
     } else if (type === "drone") {
       e = new NR.Drone(U.clamp(px + side * U.rand(380, 640), 120, W.W - 120), U.rand(220, 420), mul);
@@ -259,10 +263,13 @@
     } else {
       e = new NR.Wraith(U.clamp(px + side * U.rand(300, 500), 100, W.W - 100), W.groundY - 200, mul);
     }
+    if (hintX !== null && type !== "crawler") e.x = U.clamp(hintX + U.rand(-40, 40), 60, W.W - 60);
+    if (qi && qi.netId) e.netId = qi.netId;
     F.teleport(e.x, e.y - e.h / 2,
       type === "crawler" ? "red" : type === "drone" ? "cyan" : type === "slime" ? "blue" : type === "soldier" ? "orange" : type === "warlock" ? "purple" : type === "rival" ? "white" : type === "gunner" ? "yellow" : type === "striker" ? "orange" : type === "blade" ? "cyan" : type === "brute" ? "red" : type === "apparition" ? "purple" : "purple");
     // elite roll — staged by level, never in the first levels
-    if (G.levelDef && G.levelDef.eliteChance > 0 && !e.boss && U.chance(G.levelDef.eliteChance)) {
+    const eliteCh = NR.modes?.active ? (NR.modes.eliteChance || 0) : (G.levelDef ? G.levelDef.eliteChance : 0);
+    if (eliteCh > 0 && !e.boss && U.chance(eliteCh)) {
       e.maxHp = e.hp = Math.round(e.hp * 1.6);
       e.elite = true; e.score = Math.round((e.score || 50) * 2.2);
       if (e.speed) e.speed *= 1.15;
@@ -289,6 +296,8 @@
     }
     G.upgradeT = Math.max(G.upgradeT || 0, 0.95); // game-timer driven (pause safe)
   }
+
+  G.waveCleared = function () { onWaveCleared(); };
 
   G.closeUpgrade = function () {
     G.state = "playing";
@@ -367,6 +376,8 @@
 
   G.hurtPlayer = function (dmg, dir, src) {
     const p = G.player;
+    if (p && p.isProxy) { NR.modes.proxyHurt(p, dmg, dir); return; }
+    if (NR.modes && !NR.modes.allowHurt(G, src)) return;
     if (p.dead || p.iframes > 0 || p.dashT > 0 || p.stormT > 0 || p.shieldT > 0) return;
     if (NR.combat.tryParry(G,dir,src)) return;
     dmg *= (G.difficulty === "casual" ? .6 : G.difficulty === "hard" ? 1.4 : 1)
@@ -493,6 +504,7 @@
       G.deathT -= rd;
       if (G.deathT <= 0 && !G.overShown) {
         G.overShown = true;
+        if (NR.modes?.onDeath(G)) return;
         G.finishRun(false);
         return;
       }
@@ -566,11 +578,13 @@
     for (let i = G.spawnQueue.length - 1; i >= 0; i--) {
       const q = G.spawnQueue[i];
       q.t -= dt;
-      if (q.t <= 0) { spawnEnemy(q.type); G.spawnQueue.splice(i, 1); }
+      if (G.maxAlive && NR.modes?.active && G.enemies.length >= G.maxAlive) continue; // cap: never flood the arena
+      if (q.t <= 0) { try { spawnEnemy(q.type, q); } catch (err) { NR.diag?.warn?.("spawn failed: " + q.type + " " + err.message); } G.spawnQueue.splice(i, 1); }
     }
 
     // Authored expedition logic shares combat, not wave scheduling.
     NR.adventure.update(dt,G);
+    if (NR.modes?.active) { NR.modes.update(dt, G); NR.modes.tickRevive(rd, G); }
     NR.evolution?.tick(dt);
     if(G.state !== "playing") return;
 
@@ -578,7 +592,9 @@
     p.update(dt, G);
     for (let i = G.enemies.length - 1; i >= 0; i--) {
       const e = G.enemies[i];
-      e.update(dt * (G.chronoT>0 ? 0.35 : 1), G);
+      const tgt = NR.modes?.active ? NR.modes.targetFor(e, G) : null;
+      if (tgt) { G.player = tgt; try { e.update(dt * (G.chronoT>0 ? 0.35 : 1), G); } finally { G.player = p; } }
+      else e.update(dt * (G.chronoT>0 ? 0.35 : 1), G);
       // player contact damage
       if (!e.dead && e.spawnT <= 0 && !p.dead && e.touchCd <= 0) {
         const overlapX = Math.abs(e.x - p.x) < (e.w + p.w) / 2 - 6;
@@ -590,6 +606,7 @@
       }
       if (e.dead) G.enemies.splice(i, 1);
     }
+    NR.modes?.guestCorrect?.(dt, G);
     NR.spriteRender.updateCorpses(G, dt);
     for (let i = G.bolts.length - 1; i >= 0; i--) { G.bolts[i].update(dt * (G.chronoT>0 ? 0.35 : 1), G); if (G.bolts[i].dead) G.bolts.splice(i, 1); }
     for(let i=G.shots.length-1;i>=0;i--){G.shots[i].update(dt,G);if(G.shots[i].dead)G.shots.splice(i,1);}
@@ -633,11 +650,11 @@
     // Skyward progression: coins + XP for every run, gems for milestones
     if (!G.rewarded) {
       G.rewarded = true;
-      const totals = { score: G.score, kills: G.stats.kills, wave: G.mode === "survival" ? Math.max(0,G.wave-1) : victory ? G.chapter+1 : 0 };
+      const totals = { score: G.score, kills: G.stats.kills, wave: (G.mode === "survival" || G.mode === "climb" || G.mode === "run") ? Math.max(0,G.wave-1) : victory ? G.chapter+1 : 0 };
       const ledger = G.rewardLedger || {score:0,kills:0,wave:0,gems:0};
       const reward = NR.economy.awardRun({...Object.fromEntries(Object.entries(totals).map(([k,v])=>[k,Math.max(0,v-ledger[k])])),xpCredit:Math.max(0,(G.liveXp||0)-(ledger.liveXp||0))});
       let gems = 0;
-      if (G.mode === "survival" && G.wave >= 5) gems += Math.floor(Math.max(0,G.wave-1) / 5) * 5;
+      if ((G.mode === "survival" || G.mode === "climb" || G.mode === "run") && G.wave >= 5) gems += Math.floor(Math.max(0,G.wave-1) / 5) * 5;
       if (G.mode === "adventure" && victory) gems += 25;
       const totalGems = gems;
       gems = Math.max(0,gems-ledger.gems);
@@ -647,6 +664,8 @@
       G.lastReward = { ...reward, gems };
       NR.progress.check(G);
     }
+    if(G.mode==='climb')NR.profile.bestFloor=Math.max(NR.profile.bestFloor||0,(NR.modes.floor||0)+1);
+    if(G.mode==='run')NR.profile.bestRun=Math.max(NR.profile.bestRun||0,G.runDist||0);
     if(G.mode==='survival')NR.profile.bestWave=Math.max(NR.profile.bestWave||0,G.wave);
     if(G.mode==='survive')NR.profile.bestSurvive=Math.max(NR.profile.bestSurvive||0,Math.floor(G.surviveT));
     NR.profile.runs++;NR.saveProfile();NR.progress.record(G,victory);

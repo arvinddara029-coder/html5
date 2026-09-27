@@ -1086,3 +1086,68 @@ test("super boss hurt() never references undefined helpers (stray-global regress
     assert.ok(b.hp < b.maxHp, "damage applied");
   }
 });
+
+/* ================= v4 modes: WAVE CLIMB · SURVIVAL RUN ================= */
+test("wave roster: one family per early wave, mixed later, count capped", () => {
+  const { NR } = engine();
+  const M = NR.modes;
+  assert.equal(M.waveComp(1, 1, 7).types.join(), "crawler");
+  assert.equal(M.waveComp(2, 1, 7).types.join(), "slime");
+  assert.equal(M.waveComp(5, 1, 7).boss, true);
+  assert.ok(M.waveComp(18, 1, 7).types.length >= 2);
+  for (let n = 1; n < 80; n++) assert.ok(M.waveComp(n, 4, 3).count <= 8);
+  assert.ok(M.statMul(20, 1).hp > M.statMul(2, 1).hp);
+});
+
+test("WAVE CLIMB: clear → gate opens → portal lifts to the next floor (never below)", () => {
+  const E = engine();
+  const { NR } = E;
+  NR.sprites.init(); NR.world.init(); NR.ui.init();
+  NR.profile.mode = "climb";
+  NR.game.start();
+  const G = NR.game, M = NR.modes;
+  assert.equal(M.active, true);
+  const arenaW = NR.world.W;
+  play(E, 200, { drive: (i, G) => { G.player.iframes = 99; for (const e of G.enemies) e.spawnT = 0; } });
+  assert.equal(G.wave, 1);
+  // kill the wave
+  for (let k = 0; k < 20; k++) { G.spawnQueue.forEach((q) => (q.t = 0)); play(E, 5); for (const e of G.enemies) { e.hp = 0; e.dead = true; } }
+  play(E, 80, { drive: (i, G) => { if (G.state === "upgrade") { G.state = "playing"; NR.ui.hideAll(); } } });
+  if (G.state === "upgrade") { G.state = "playing"; NR.ui.hideAll(); }
+  assert.equal(M.gateOpen, true, "gate opened after the wave");
+  assert.ok(NR.world.W > arenaW, "the route beyond the gate is reachable");
+  // stand on the portal
+  G.player.x = M.fl.flagX; G.player.y = M.fl.landing.y; G.player.prevBottom = G.player.y;
+  play(E, 3);
+  assert.equal(M.floor, 1, "advanced to floor 2");
+  assert.equal(G.player.y <= NR.world.groundY, true);
+  assert.ok(NR.world.originY < 0, "world re-based upward");
+  play(E, 200, { drive: (i, G) => { G.player.iframes = 99; if (G.state === "upgrade") { G.state = "playing"; NR.ui.hideAll(); } } });
+  assert.equal(G.wave, 2, "wave 2 starts on floor 2");
+});
+
+test("SURVIVAL RUN streams chunks, pits respawn at checkpoint, campfire re-bases", () => {
+  const E = engine();
+  const { NR } = E;
+  NR.sprites.init(); NR.world.init(); NR.ui.init();
+  NR.profile.mode = "run";
+  NR.game.start();
+  const G = NR.game, M = NR.modes;
+  play(E, 1200, {
+    drive: (i, G) => {
+      G.player.iframes = 99; G.player.hp = G.player.maxHp;
+      G.player.x += 9; NR.input.keys.ArrowRight = true;
+      if (i % 20 === 0) NR.input.pressed.attack = true;
+      for (const e of G.enemies) e.spawnT = 0;
+      if (G.bossActive && G.bossRef) { G.bossRef.hp = 0; G.bossRef.dead = true; G.bossActive = false; }
+      if (G.state === "upgrade") { G.state = "playing"; NR.ui.hideAll(); }
+    },
+  });
+  assert.ok(M.cpIndex >= 1, "reached a campfire checkpoint");
+  assert.ok(Math.abs(G.player.x) < 8000, "coordinates stay bounded");
+  // fall into a pit
+  const hp = G.player.hp;
+  G.player.y = NR.world.groundY + 400; G.player.iframes = 0;
+  play(E, 2);
+  assert.ok(G.player.y <= NR.world.groundY && G.player.hp < hp, "pit costs hp and respawns");
+});

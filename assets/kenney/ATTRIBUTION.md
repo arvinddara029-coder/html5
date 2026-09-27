@@ -15,8 +15,8 @@
 - Original pack: https://kenney.nl/assets/digital-audio
 - License: CC0 1.0; full license from mirror in `LICENSE.md`.
 - Mirror: https://github.com/iwenzhou/kenney/tree/master/Audio%20(295%20files)/Digital%20sounds%20(60%20sounds)
-- Imported: highUp.ogg, laser3.ogg, lowDown.ogg, phaseJump1.ogg,
-  powerUp1.ogg, powerUp4.ogg, zap1.ogg, zap2.ogg.
+- Previously imported .ogg files were retired: every sound effect now comes
+  from the assets/super WAV bank (see js/audiomap.js).
 - Played for checkpoint, cache, shard, gate, sentry, transition and victory feedback.
 - The original synthesized soundtrack and combat sounds are retained.
 

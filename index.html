@@ -198,20 +198,20 @@
         <button class="lm-close" data-close="modal-play" aria-label="Close">✕</button>
         <h2 class="gm-title">SELECT<br/>BATTLE MODE</h2>
         <div class="play-modes" id="play-modes">
-          <button class="pm-card" data-pmode="wavefight" style="--art:url('assets/bg_reactor.jpg')">
+          <button class="pm-card" data-pmode="climb" style="--art:url('assets/bg_reactor.jpg')">
             <span class="pm-frame"></span>
-            <span class="pm-tag">STRUCTURED WAVES</span>
-            <h3>WAVE<br/>FIGHT</h3>
-            <p>Escalating waves. A boss every 5th wave. Pick an upgrade after each wave and push your record deeper.</p>
-            <small>▶ BOSSES · UPGRADES · PROGRESSION</small>
+            <span class="pm-tag">WAVES + CLIMB · ENDLESS</span>
+            <h3>WAVE<br/>CLIMB</h3>
+            <p>Clear the wave, the gate opens — run forward and climb to the next floor's portal. Checkpoints lock every floor. Each wave brings a new enemy family; a boss every 5th floor.</p>
+            <small>▶ CO-OP ONLINE · BOSSES · UPGRADES</small>
             <span class="pm-best" id="pm-best-wave"></span>
           </button>
-          <button class="pm-card" data-pmode="survive" style="--art:url('assets/bg_garden.jpg')">
+          <button class="pm-card" data-pmode="run" style="--art:url('assets/bg_garden.jpg')">
             <span class="pm-frame"></span>
-            <span class="pm-tag">ENDLESS PRESSURE</span>
-            <h3>SURVIVE</h3>
-            <p>No wave breaks — pressure climbs every second. Milestone bosses every 3 minutes. Pure high-score survival.</p>
-            <small>▶ ESCALATION · TIME ATTACK · HIGH SCORE</small>
+            <span class="pm-tag">SIDE-SCROLL · ENDLESS</span>
+            <h3>SURVIVAL<br/>RUN</h3>
+            <p>Keep pushing forward like a classic platformer: pits, lifts and enemy squads. Campfire checkpoints save you; a guardian boss every 5th camp.</p>
+            <small>▶ CO-OP ONLINE · DISTANCE · HIGH SCORE</small>
             <span class="pm-best" id="pm-best-survive"></span>
           </button>
         </div>
@@ -265,14 +265,24 @@
           <div class="lm-head"><h2>ONLINE — PLAY WITH FRIENDS</h2><button class="lm-close" data-close="modal-online" aria-label="Close">✕</button></div>
           <div class="lm-label">01 · MODE</div>
           <div class="online-modes" id="online-modes">
-            <button class="om-card" data-omode="duo"><span>DUO</span><small>2-player wave co-op</small></button>
+            <button class="om-card" data-omode="climb"><span>WAVE CLIMB</span><small>co-op · up to 4</small></button>
+            <button class="om-card" data-omode="run"><span>SURVIVAL RUN</span><small>co-op · up to 4</small></button>
             <button class="om-card" data-omode="duel"><span>1v1</span><small>head-to-head duel</small></button>
             <button class="om-card" data-omode="team2"><span>2v2</span><small>team clash</small></button>
             <button class="om-card" data-omode="team4"><span>4v4</span><small>team war</small></button>
-            <button class="om-card random" data-omode="random"><span>RANDOM</span><small>quick match — any mode</small></button>
+            <button class="om-card random" data-omode="random"><span>RANDOM</span><small>any mode</small></button>
+          </div>
+          <div class="online-quick">
+            <div class="lm-label">⚡ QUICK PLAY — automatic matchmaking in the selected mode</div>
+            <div class="oj-row">
+              <button class="gold-btn" id="ol-quick">⚡ QUICK PLAY</button>
+              <button class="ghost-btn" id="ol-quick-cancel" hidden>CANCEL</button>
+              <button class="ghost-btn" id="qp-solo" hidden>START NOW</button>
+            </div>
+            <p class="deploy-note" id="qp-status">Pick a mode above and press Quick Play — you'll be matched with other players automatically.</p>
           </div>
           <div class="online-join">
-            <div class="lm-label" id="ol-join-label">02 · CREATE OR JOIN</div>
+            <div class="lm-label" id="ol-join-label">02 · CUSTOM ROOM — CREATE OR JOIN WITH A CODE</div>
             <div class="oj-row">
               <button class="gold-btn" id="ol-create">CREATE ROOM</button>
               <input id="ol-code" maxlength="6" placeholder="ROOM CODE" aria-label="Room code"/>
@@ -524,6 +534,7 @@
 <script src="js/upgrades.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/game.js"></script>
+<script src="js/modes.js"></script>
 <script src="js/save-transfer.js"></script>
 <script src="js/expedition-ui.js"></script>
 <script src="js/hub.js"></script>
