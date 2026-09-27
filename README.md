@@ -4,6 +4,15 @@ A **fully static, single-player HTML5 action game**: a three-chapter side-scroll
 
 **No backend. No database. No API. No account.** The previous Python/SQLite application server and community leaderboard have been removed. Preferences, checkpoints, achievements and run records stay in the browser.
 
+## New in 3.2 — heroes, world levels, asset bosses & Sukuna Slice
+
+- **Sukuna Slice (`V` / `G`, or the red 斬 button):** the hero rises into the air and hovers for 5 seconds (invulnerable) while the screen drops into a crimson domain. Five katana waves ("shiiing") cut **every enemy on screen into two halves** that slide apart along the cut line and fall. Bosses lose 9% of their max health per wave instead of dying outright. 24-second recharge (Ryu: 20% faster).
+- **Real hero roster:** the HEROES button opens a roster of 11 different characters — Kaito (Hero Forge body with all skins), Ryu, Sgt. Brann, Holly, Gordon, Diego, Elara, Sir Mordred, Ash, Vega and Nix — each with its own body, animations, stats and trait. The chosen hero is used in-game and on the lobby stage (`nr_hero_v1`).
+- **Endless world levels:** every world has Level 1, 2, 3 … with no end. Each level is a newly generated route, enemies get +8% health per level, and every level has a boss. Pick any cleared level (or the next one) from the level track under the selected world card. Every 8th level is a **WORLD BOSS** (1.5× health + honour guard); beating Level 8 opens the next world (`nr_levels_v1`).
+- **Asset bosses instead of the robot:** AZRAKEL the Demon Lord, IGNIS the Hell Beast, GROMM the Ogre Warlord, VERMILION the Grotto Dragon and NOCTIS the Nightmare Steed (Gothicvania art) join Vexis, Goro and Kurogane. They rotate across levels and survival boss waves; SHOGUN-9 is no longer used.
+- **Calmer effects:** giant fire-ball / explosion clips no longer spawn at the hero on every passive proc; big clips are capped, throttled and limited to 12 at once.
+- **Frame-error hardening:** a single broken enemy, projectile or draw call is isolated (and removed after repeated failures) instead of stopping the frame. The on-screen error box only appears with `?debug` in the URL (or `localStorage.nr_debug = 1`).
+
 ## New in 3.1 — precision combat & portable progress
 
 - **Parry / counter:** face an incoming melee attack or bolt and tap `Q`. A 0.22-second window, 1.2-second cooldown. Success restores 8 base energy, grants a short invulnerability window and powers your next successful melee strike within 2 seconds by **×1.75**. Missed swings do not consume it. Bolts reflect back as friendly projectiles; hazards and ground shockwaves cannot be parried.
@@ -36,7 +45,7 @@ Three sequential, replayable chapters, each spanning **6,800 world units**:
 
 1. **The Neon Outskirts** — recover the abandoned transit network.
 2. **The Overgrown Line** — cross the reclaimed gardens and restore the freight line.
-3. **The Zero Reactor** — override the final locks and confront SHOGUN-9.
+3. **The Zero Reactor** — override the final locks and confront AZRAKEL, the Demon Lord.
 
 Each chapter has:
 
@@ -55,7 +64,7 @@ Each chapter has:
 
 ### Wave Survival — hold the line
 
-The original arena mode is retained: escalating enemy waves, a choice of three roguelite upgrades after each wave, a SHOGUN-9 fight every fifth wave, combo scoring, pickups and personal bests. Sentries join from wave 3 and armored Sentinels from wave 4.
+The original arena mode is retained: escalating enemy waves, a choice of three roguelite upgrades after each wave, a boss fight every fifth wave (rotating through the asset bosses), combo scoring, pickups and personal bests. Sentries join from wave 3 and armored Sentinels from wave 4.
 
 ## Operators
 
@@ -97,6 +106,7 @@ Cooldowns follow simulation time and freeze when paused. Chrono Field does not s
 | `K / SHIFT` | Invulnerable dash |
 | `L / C` or right mouse | Blade Storm at full energy |
 | `E` | Equipped tactical power |
+| **`V / G`** | **Sukuna Slice** — fly for 5 s, cut every enemy on screen in two |
 | **`F`** | Open cache, activate relay or extract |
 | `P / ESC` | Pause / resume |
 | `M` | Toggle music and effects |
@@ -177,7 +187,11 @@ js/expedition-enemies.js     Sentry and Sentinel AI / animation
 js/atlas.js                 Local Kenney atlas coordinates / drawing
 js/game.js                  Shared combat, waves, difficulty and run lifecycle
 js/player.js                Movement, character animation and powers
-js/enemies.js               Crawlers, Drones, Wraiths and SHOGUN-9
+js/enemies.js               Crawlers, Drones, Wraiths and the shared boss fight script
+js/bosses.js                Asset-art bosses, boss rotation, world-boss levels
+js/levels.js                Endless per-world level track + deploy level picker
+js/heroes.js                Hero roster (bodies, stats, traits) + HEROES screen
+js/sukuna.js                Sukuna Slice ultimate (flight, domain, halving)
 js/world.js                 Parallax, day/night, platform collision
 js/audio.js                 Synth soundtrack / combat + CC0 sample playback
 js/hub.js, js/ui.js          Loadouts, screens, settings and HUD

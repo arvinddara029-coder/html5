@@ -121,6 +121,21 @@
     storm(t) { noise({ t, dur: 0.5, vol: 0.3, ft: "highpass", ff: 400, ff1: 5000, a: 0.3 }); tone({ t: t + 0.42, type: "sawtooth", f0: 60, f1: 240, dur: 0.5, vol: 0.3 }); noise({ t: t + 0.42, dur: 0.7, vol: 0.4, ff: 3000, ff1: 80 }); },
     ring(t) { tone({ t, type: "sine", f0: 1200, f1: 300, dur: 0.18, vol: 0.1, echo: 0.4 }); },
     warn(t) { tone({ t, type: "square", f0: 520, dur: 0.09, vol: 0.1 }); tone({ t: t + 0.14, type: "square", f0: 520, dur: 0.09, vol: 0.1 }); },
+    /* SUKUNA SLICE — katana "shiiing": a fast air-cut whoosh, a bright metallic
+       ring (detuned partials) and a hard high click where the edge connects */
+    blade(t) {
+      noise({ t, dur: 0.22, vol: 0.34, ft: "bandpass", ff: 900, ff1: 7800, q: 2.4, a: 0.012 });
+      noise({ t: t + 0.05, dur: 0.05, vol: 0.4, ft: "highpass", ff: 5200 });
+      [2793, 3710, 5588].forEach((f, i) => tone({ t: t + 0.04, type: i ? "sine" : "triangle", f0: f, f1: f * 0.985, dur: 0.55 - i * 0.12, vol: 0.07 - i * 0.015, echo: 0.25 }));
+    },
+    bladeFlurry(t) { for (let i = 0; i < 4; i++) SFX.blade(t + i * 0.07 + Math.random() * 0.02); },
+    /* domain opens: sub drop + a rising, sword-drawn shimmer */
+    domain(t) {
+      tone({ t, type: "sine", f0: 120, f1: 28, dur: 1.2, vol: 0.55 });
+      [55, 58, 62].forEach((f) => tone({ t, type: "sawtooth", f0: f, f1: f * 0.8, dur: 1.4, vol: 0.13, ff: 420 }));
+      noise({ t, dur: 0.9, vol: 0.26, ft: "highpass", ff: 300, ff1: 6500, a: 0.5 });
+      tone({ t: t + 0.55, type: "triangle", f0: 1800, f1: 3600, dur: 0.5, vol: 0.06, echo: 0.5 });
+    },
   };
   A.play = function (name, opt) {
     if (!A.ready || !A.sfxOn || A.muted) return;

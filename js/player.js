@@ -294,7 +294,7 @@
     computePose() {
       const P = this.pose;
       const speedK = U.clamp(Math.abs(this.vx) / 430, 0, 1.4);
-      P.x = this.x; P.y = this.y; P.facing = this.facing; P.trim=this.trim; P.cloak=this.cloak; P.character=this.character;
+      P.x = this.x; P.y = this.y; P.facing = this.facing; P.attackIdx = this.attackIdx; P.dead = this.dead; P.trim=this.trim; P.cloak=this.cloak; P.character=this.character;
       P.t = this.t; P.appearance = this.look || NR.profile.appearance;
       P.runAmt = this.onGround ? speedK : 0;
       P.air = !this.onGround;

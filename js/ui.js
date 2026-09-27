@@ -274,7 +274,7 @@
       ctx.fillStyle = bg2;
       ctx.fillRect(bx, by, bw * bk, 12);
       ctx.font = "900 11px Orbitron"; ctx.textAlign = "center"; ctx.fillStyle = "#ffd9c9";
-      ctx.fillText(`SHOGUN-9 ${b.phase === 2 ? "— OVERDRIVE" : ""}`, W / 2, by + 26);
+      ctx.fillText(`${b.bossName || "BOSS"} ${b.phase === 2 ? "— ENRAGED" : ""}`, W / 2, by + 26);
     }
 
     /* ---- banners ---- */

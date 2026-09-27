@@ -38,14 +38,34 @@
     const actor=S.actor(E.companion);if(!actor||p.dead)return;
     S.drawActor(ctx,actor,Math.abs(p.vx)>20?'walk':'idle',p.t,p.petX||p.x-65,p.petY||p.y,42,p.facing,1);
   };
-  S.effect=(x,y,key,size=130)=>{
+  /* Effects are chosen from curated families instead of "any of 34 clips".
+     The old picker hashed an arbitrary key over every sequence — including the
+     big explosion / fire-ball / ice-bolt sheets — and item procs fired them at
+     the hero's position every few seconds at up to ~290px. That was the giant
+     fire/ice ball that kept appearing. Now: small hit sparks for procs and
+     strikes, compact bursts for deaths, and magic rings for spells — with a
+     size cap, a per-spot throttle and a hard limit on live effects. */
+  const FAMILY={
+    hit:/^(Hit Sprites|Hits-[0-9]|hits-[0-9]|sprites slash-|crossed|spark|sprites energy-smack)/,
+    death:/^(EnemyDeath|sprites enemy-death|explosion-1-f|explosion-1-g|explosion-1-b)/,
+    magic:/^(sprites electro-shock|sprites energy-field|charged|Pulse|waveform|sprites slash-circular)/,
+  };
+  const CAP={hit:84,death:104,magic:150};
+  S.pool=kind=>{const list=C.effects.filter(c=>FAMILY[kind].test(c.name));return list.length?list:C.effects;};
+  S.effect=(x,y,key,size=90,kind)=>{
     if(!C.effects.length)return;
-    const clip=C.effects[E.hash(String(key))%C.effects.length];S.preloadClip(clip);
-    S.effects.push({clip,x,y,size,t:0});if(S.effects.length>28)S.effects.shift();
+    const k=String(key);
+    kind=kind||(/death/i.test(k)?'death':size>=150?'magic':'hit');
+    const pool=S.pool(kind),clip=pool[E.hash(k)%pool.length];
+    size=Math.min(size,CAP[kind]||90);
+    // throttle: one effect per spot per 0.15s, never more than 12 alive
+    if(S.effects.some(f=>f.t<.15 && Math.abs(f.x-x)<40 && Math.abs(f.y-y)<40))return;
+    S.preloadClip(clip);
+    S.effects.push({clip,x,y,size,t:0});if(S.effects.length>12)S.effects.shift();
   };
   const fxUpdate=NR.fx.update,fxDraw=NR.fx.draw,fxReset=NR.fx.reset;
   NR.fx.update=dt=>{fxUpdate(dt);for(const f of S.effects)f.t+=dt;S.effects=S.effects.filter(f=>f.t<(f.clip.frames.length/f.clip.fps)+.15);};
-  NR.fx.draw=ctx=>{fxDraw(ctx);for(const f of S.effects)S.drawClip(ctx,f.clip,f.t,f.x,f.y,f.size,1,1,false);};
+  NR.fx.draw=ctx=>{fxDraw(ctx);for(const f of S.effects)S.drawClip(ctx,f.clip,f.t,f.x,f.y+f.size/2,f.size,1,1,false);};
   NR.fx.reset=()=>{fxReset();S.effects=[];};
   S.prepare=()=>{
     const chapter=G.chapter||0,level=E.levels[chapter]||1,index=chapter*11+level-1;
@@ -61,7 +81,7 @@
     NR.assets.preload([C.relics.find(r=>r.id===E.relic)?.path,back?.path,tile?.path,...props.map(p=>p?.path),...C.hud].filter(Boolean));
     for(const actor of [...roster,S.actor(E.hero),S.actor(E.companion)])S.preloadActor(actor);
     // Also stream the upcoming spell visuals before the first cast.
-    for(const id of E.slots)S.preloadClip(C.effects[E.hash(id)%C.effects.length]);
+    for(const id of E.slots){const pool=S.pool('magic');S.preloadClip(pool[E.hash(id)%pool.length]);}
     if(back)E.background=back.path;
   };
   S.drawScenery=(ctx,cam,view)=>{
@@ -137,7 +157,7 @@
             G.bolts.push(new NR.Bolt(this.x,this.y-this.h/2,Math.cos(angle)*350,Math.sin(angle)*350,{dmg:this.dmg*G.enemyDmgMul,col:'purple'}));
           }else if(this.style===2){G.shockwaves.push(new NR.ShockRing(this.x,this.facing,{h:55,dmg:this.dmg*G.enemyDmgMul,speed:260}));}
           else {this.vx=this.facing*(this.style===3?620:390);this.vy=this.style===4?-500:-150;}
-          S.effect(this.x,this.y,this.actor.id,80);
+          S.effect(this.x+this.facing*20,this.y-this.h*.5,this.actor.id,60,'hit');
         }
       }else {
         this.action='walk';this.vx=U.damp(this.vx,this.facing*this.speed*G.enemySpdMul,4,dt);
@@ -146,7 +166,7 @@
       if(this.flying){this.x+=this.vx*dt;this.y=U.damp(this.y,p.y-95+Math.sin(this.t*2)*24,1.5,dt);this.x=U.clamp(this.x,40,NR.world.W-40);}
       else this.phys(dt);
     }
-    die(G){if(this.dead)return;S.effect(this.x,this.y,this.actor.id+'death',110);super.die(G);}
+    die(G){if(this.dead)return;S.effect(this.x,this.y-this.h*.3,this.actor.id+'death',100,'death');super.die(G);}
     draw(ctx){
       const drawn=S.drawActor(ctx,this.actor,this.action,this.t,this.x,this.y,this.h,this.facing,this.flash>0?.55:1);
       if(!drawn){ctx.fillStyle='#b1a3eb';ctx.fillRect(this.x-this.w/2,this.y-this.h,this.w,this.h);}

@@ -21,7 +21,12 @@
     if (key === lastErr) { errCount++; return; }
     lastErr = key; errCount = 1;
     try { console.error("[SKYWARD] " + label, detail); } catch (_) {}
-    if (!errBox) return;
+    // The on-screen box is a developer aid (?debug or localStorage nr_debug=1).
+    // Players no longer get a "Frame error" banner: the faulty entity/frame is
+    // isolated and skipped, the full stack still goes to the console.
+    let debug = false;
+    try { debug = /[?&#]debug\b/.test(location.search + location.hash) || localStorage.getItem("nr_debug") === "1"; } catch (_) {}
+    if (!errBox || !debug) return;
     const file = where ? "\n" + where : (detail.stack ? "\n" + String(detail.stack).split("\n")[1].trim() : "");
     errBox.textContent = "⚠ " + label + ": " + msg + file + "\nThe game keeps running — this note clears itself.";
     errBox.style.display = "block";
@@ -139,12 +144,25 @@
     }
   }
 
+  /* isolate each draw: restore the canvas state and keep drawing the rest */
+  function safeDraw(fn, label, owner) {
+    ctx.save();
+    try { fn(); }
+    catch (err) {
+      reportError("Draw skipped: " + label, err);
+      if (owner) { owner._drawErrs = (owner._drawErrs || 0) + 1; if (owner._drawErrs >= 3 && !owner.boss) owner.dead = true; }
+    }
+    ctx.restore();
+  }
   function render() {
     if (G.state === "menu" && document.getElementById("scr-menu").classList.contains("active")) return;
     const view = NR.view, cam = G.cam;
     const s = dpr * view.scale;
     const cw = canvas.width / dpr, ch = canvas.height / dpr;
 
+    // a draw call that threw mid-way can leave save() calls unbalanced; start
+    // every frame from a clean context state
+    if (ctx.reset) ctx.reset();
     ctx.setTransform(s, 0, 0, s, 0, 0);
     // letterbox-ish bleed: fill voids around arena edges
     ctx.fillStyle = "#05060e";
@@ -154,15 +172,15 @@
     NR.world.drawBack(ctx, cam, view);
 
     if (G.state !== "menu" && G.player) {
-      NR.adventure.draw(ctx, cam, view);
-      for (const p of G.pickups) p.draw(ctx);
-      NR.spriteRender.drawCorpses(ctx, G);
-      for (const e of G.enemies) e.draw(ctx);
-      for (const w of G.shockwaves) w.draw(ctx);
-      if (!G.player.dead || G.deathT > 1.1) G.player.draw(ctx);
-      for (const b of G.bolts) b.draw(ctx);
-      for (const b of G.shots) b.draw(ctx);
-      NR.fx.draw(ctx);
+      safeDraw(() => NR.adventure.draw(ctx, cam, view), "world");
+      for (const p of G.pickups) safeDraw(() => p.draw(ctx), "pickup", p);
+      safeDraw(() => NR.spriteRender.drawCorpses(ctx, G), "corpses");
+      for (const e of G.enemies) safeDraw(() => e.draw(ctx), "enemy", e);
+      for (const w of G.shockwaves) safeDraw(() => w.draw(ctx), "shockwave", w);
+      if (!G.player.dead || G.deathT > 1.1) safeDraw(() => G.player.draw(ctx), "hero");
+      for (const b of G.bolts) safeDraw(() => b.draw(ctx), "bolt", b);
+      for (const b of G.shots) safeDraw(() => b.draw(ctx), "shot", b);
+      safeDraw(() => NR.fx.draw(ctx), "effects");
     } else {
       NR.fx.draw(ctx);
     }

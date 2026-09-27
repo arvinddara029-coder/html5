@@ -11,7 +11,7 @@
     if(!data.layout||typeof data.layout!=='object'||Array.isArray(data.layout)||Object.keys(data.layout).length>32)fail();
     const layout={};
     for(const [key,pos] of Object.entries(data.layout)){
-      if(!/^(left|right|down|jump|dash|attack|parry|kunai|tactical|special|spell-[0-9])$/.test(key)||!Array.isArray(pos)||pos.length!==2||pos.some(n=>!Number.isFinite(n)||n<0||n>1))fail();
+      if(!/^(left|right|down|jump|dash|attack|parry|kunai|tactical|special|sukuna|spell-[0-9])$/.test(key)||!Array.isArray(pos)||pos.length!==2||pos.some(n=>!Number.isFinite(n)||n<0||n>1))fail();
       layout[key]=[...pos];
     }
     const hero=data.hero||'',companion=data.companion||'',relic=data.relic||'';

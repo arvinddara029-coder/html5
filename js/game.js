@@ -165,12 +165,12 @@
     if (comp.boss) {
       G.bossActive = true;
       const bx = G.player.x > W.W / 2 ? W.W * 0.28 : W.W * 0.72;
-      const skin = n % 15 === 10 ? "warlock" : n % 15 === 0 ? "brute" : "mech";
+      const skin = NR.bosses ? NR.bosses.forWave(n) : (n % 15 === 10 ? "warlock" : "brute");
       const boss = new NR.Boss(bx, W.groundY, G.enemyHpMul, Math.ceil(n / 5), skin);
       boss.spawnT = 0;
       G.enemies.push(boss);
       G.bossRef = boss;
-      G.banner("⚠ " + (boss.bossName || "SHOGUN-9") + " ⚠", "WAVE " + n + " — eliminate the war machine", "#ff2d95");
+      G.banner("⚠ " + (boss.bossName || "BOSS") + " ⚠", "WAVE " + n + " — the boss has arrived", "#ff2d95");
       NR.audio.play("warn");
     } else {
       G.banner("WAVE " + n, n === 1 ? "survive the onslaught" : U.pick([
@@ -373,6 +373,18 @@
     return rd * G.timeScale;
   };
 
+  /* One misbehaving entity must never break the frame for everything else.
+     It gets three strikes; then it is removed (a boss counts as defeated so a
+     level can never soft-lock behind a broken boss). */
+  G.quarantine = function (e, err, where) {
+    NR.reportError?.("Entity " + (where || "error") + " (" + (e && (e.type || e.constructor?.name)) + ")", err);
+    if (!e) return;
+    e._errs = (e._errs || 0) + 1;
+    if (e._errs < 3) return;
+    if (e.boss && !e.dead) { e.dead = true; e.hp = 0; try { G.onBossKilled(e); } catch (_) { G.bossActive = false; G.bossRef = null; } }
+    else e.dead = true;
+  };
+
   /* ================= update ================= */
   G.update = function (dt, rd) {
     const p = G.player;
@@ -434,7 +446,8 @@
     p.update(dt, G);
     for (let i = G.enemies.length - 1; i >= 0; i--) {
       const e = G.enemies[i];
-      e.update(dt * (G.chronoT>0 ? 0.35 : 1), G);
+      try { e.update(dt * (G.chronoT>0 ? 0.35 : 1), G); }
+      catch (err) { G.quarantine(e, err, "enemy update"); }
       // player contact damage
       if (!e.dead && e.spawnT <= 0 && !p.dead && e.touchCd <= 0) {
         const overlapX = Math.abs(e.x - p.x) < (e.w + p.w) / 2 - 6;
@@ -447,10 +460,14 @@
       if (e.dead) G.enemies.splice(i, 1);
     }
     NR.spriteRender.updateCorpses(G, dt);
-    for (let i = G.bolts.length - 1; i >= 0; i--) { G.bolts[i].update(dt * (G.chronoT>0 ? 0.35 : 1), G); if (G.bolts[i].dead) G.bolts.splice(i, 1); }
-    for(let i=G.shots.length-1;i>=0;i--){G.shots[i].update(dt,G);if(G.shots[i].dead)G.shots.splice(i,1);}
-    for (let i = G.shockwaves.length - 1; i >= 0; i--) { G.shockwaves[i].update(dt, G); if (G.shockwaves[i].dead) G.shockwaves.splice(i, 1); }
-    for (let i = G.pickups.length - 1; i >= 0; i--) { G.pickups[i].update(dt, G); if (G.pickups[i].dead) G.pickups.splice(i, 1); }
+    const tick = (list, k) => {
+      for (let i = list.length - 1; i >= 0; i--) {
+        const o = list[i];
+        try { o.update(dt * k, G); } catch (err) { o.dead = true; NR.reportError?.("Projectile skipped", err); }
+        if (o.dead) list.splice(i, 1);
+      }
+    };
+    tick(G.bolts, G.chronoT > 0 ? 0.35 : 1); tick(G.shots, 1); tick(G.shockwaves, 1); tick(G.pickups, 1);
     F.update(dt);
     W.update(rd, NR.view);
 

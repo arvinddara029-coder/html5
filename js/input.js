@@ -15,6 +15,7 @@
     parry: ["KeyQ"],
     kunai: ["KeyR"],
     interact: ["KeyF"],
+    sukuna: ["KeyV", "KeyG"],
     pause: ["Escape", "KeyP"],
     mute: ["KeyM"],
   };

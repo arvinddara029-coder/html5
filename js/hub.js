@@ -130,6 +130,6 @@
     if (tacEl) tacEl.classList.toggle('not-ready', seconds > 0);
     if (specEl) specEl.classList.toggle('not-ready', p.energy < p.maxEnergy);
     text('game-wave', `${P.world === 'day' ? 'DAYBREAK' : 'NIGHTFALL'} / ${G.difficulty.toUpperCase()} / ${G.mode === 'adventure' ? 'CHAPTER '+(G.chapter+1) : 'WAVE '+String(G.wave || 1).padStart(2, '0')}`);
-    text('game-objective',  p.counterT>0?'COUNTER READY — STRIKE WITHIN 2s':p.shieldT > 0 ? 'AEGIS ACTIVE — DAMAGE BLOCKED' : p.overdriveT > 0 ? 'OVERDRIVE — DOUBLE KATANA DAMAGE' : G.chronoT > 0 ? 'CHRONO FIELD — TIME DILATED' : p.droneT > 0 ? 'ARC COMPANION — SUPPORT ACTIVE' : G.bossActive ? 'ELIMINATE SHOGUN-9' : `${G.enemies.length + G.spawnQueue.length} HOSTILES REMAINING`);
+    text('game-objective',  p.counterT>0?'COUNTER READY — STRIKE WITHIN 2s':p.shieldT > 0 ? 'AEGIS ACTIVE — DAMAGE BLOCKED' : p.overdriveT > 0 ? 'OVERDRIVE — DOUBLE KATANA DAMAGE' : G.chronoT > 0 ? 'CHRONO FIELD — TIME DILATED' : p.droneT > 0 ? 'ARC COMPANION — SUPPORT ACTIVE' : G.bossActive ? 'DEFEAT '+((G.bossRef&&G.bossRef.bossName)||'THE BOSS').split(',')[0] : `${G.enemies.length + G.spawnQueue.length} HOSTILES REMAINING`);
   };
 })();

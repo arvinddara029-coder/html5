@@ -398,7 +398,7 @@
       this.facing = G.player.x > this.x ? 1 : -1;
       if (this.phase === 1 && this.hp < this.maxHp * 0.5) {
         this.phase = 2;
-        G.banner("SHOGUN-9 — OVERDRIVE", "his core burns hot", "#ff2d95");
+        G.banner((this.bossName || "BOSS") + " — ENRAGED", "phase two: faster, deadlier", "#ff2d95");
         F.ring(this.x, this.y - 90, { col: "magenta", r1: 420, life: 0.7, lw: 10 });
         NR.audio.play("roar");
         G.shake(0.6);

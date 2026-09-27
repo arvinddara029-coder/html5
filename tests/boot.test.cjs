@@ -686,7 +686,8 @@ test("six authored chapters, each with its own boss body and route", () => {
     assert.ok(NR.bossSkins[c.boss], `${c.name} fields a real boss body`);
     assert.ok(c.bossName, `${c.name} names its boss`);
   }
-  assert.equal(new Set(chapters.map((c) => c.boss)).size, 4, "four different boss bodies across the campaign");
+  assert.equal(new Set(chapters.map((c) => c.boss)).size, 6, "six different boss bodies across the campaign");
+  assert.ok(chapters.every((c) => c.boss !== "mech"), "no world is led by the old procedural robot");
   assert.equal(new Set(chapters.map((c) => c.bossName)).size, 6, "every chapter names a different boss");
   assert.ok(chapters[chapters.length - 1].finale, "the last chapter is the finale");
 });
@@ -855,4 +856,77 @@ test('all original super files have explicit coverage status and all eleven FBX 
   for(const p of NR.superManifest)assert.ok(coverage[p],p);
   assert.equal(NR.superContent.actors.filter(a=>a.role==='guardian').length,11);
   for(const p of NR.superManifest.filter(p=>p.endsWith('.fbx')))assert.equal(coverage[p],'runtime-mapped');
+});
+
+/* ---------------- Sukuna Slice, world levels, asset bosses, hero roster ---------------- */
+test("SUKUNA SLICE: hero flies for 5s and every on-screen enemy is cut in two", () => {
+  const E = engine(), { NR } = E, G = NR.game;
+  NR.profile.mode = "survival"; G.start();
+  G.spawnQueue = []; G.enemies = [];
+  const gy = NR.world.groundY, p = G.player;
+  for (let i = 0; i < 5; i++) { const e = new NR.Soldier(p.x - 300 + i * 150, gy, 1); e.spawnT = 0; G.enemies.push(e); }
+  const boss = new NR.Boss(p.x + 420, gy, 1, 1, "demon"); boss.spawnT = 0; boss.state = "idle"; G.enemies.push(boss);
+  G.bossActive = true; G.bossRef = boss;
+  const kills = G.stats.kills, startY = p.y, bossHp = boss.hp;
+  assert.equal(NR.sukuna.ready(), true, "starts ready");
+  assert.equal(NR.sukuna.cast(), true);
+  let top = p.y, halves = 0;
+  play(E, 60 * 5.3, { drive: () => { top = Math.min(top, p.y); halves = Math.max(halves, NR.sukuna.halves.length); } });
+  assert.ok(startY - top > 150, "hero rose into the air");
+  assert.ok(Math.abs(p.y - startY) < 40 || p.onGround, "hero comes back down after the domain");
+  assert.ok(halves >= 10, "each slain enemy leaves two halves");
+  assert.ok(G.stats.kills >= kills + 5, "sliced enemies count as kills");
+  assert.ok(boss.hp < bossHp && !boss.dead, "bosses take heavy damage but are not one-shot");
+  assert.ok(NR.sukuna.cooldown > 0 && !NR.sukuna.ready(), "then it recharges");
+});
+
+test("world levels: endless per-world track, Level 8 world boss opens the next world", () => {
+  const E = engine(), { NR } = E, L = NR.levels, A = NR.adventure;
+  assert.equal(L.maxPlayable(0), (L.best[0] || 0) + 1);
+  NR.profile.unlocked = 0;
+  for (let lv = 1; lv <= 7; lv++) { L.onClear(0, lv); assert.equal(L.opensNextWorld(0), false, "level " + lv + " keeps world 2 closed"); }
+  L.onClear(0, 8);
+  assert.equal(L.opensNextWorld(0), true, "clearing Level 8 opens world 2");
+  assert.equal(L.select(0, 50), 9, "cannot skip ahead of the track");
+  assert.equal(L.select(0, 3), 3, "any cleared level can be replayed");
+  assert.equal(NR.evolution.levels[0], 3);
+  assert.ok(NR.bosses.isWorldBossLevel(8) && NR.bosses.isWorldBossLevel(16) && !NR.bosses.isWorldBossLevel(9));
+  const skins = new Set();
+  for (let lv = 1; lv <= 16; lv++) { const s = NR.bosses.forLevel(0, lv); assert.ok(NR.bossSkins[s] && s !== "mech", "level " + lv + " boss uses asset art"); skins.add(s); }
+  assert.ok(skins.size >= 6, "bosses rotate through the roster");
+  assert.ok(A.chapters.every((c) => !/SHOGUN-9/.test(c.bossName)));
+});
+
+test("asset bosses fight, draw and die with the shared boss script", () => {
+  const E = engine(), { NR } = E, G = NR.game; G.start();
+  const ctx = E.dom.el("canvas").getContext("2d");
+  for (const skin of ["demon", "hellbeast", "ogre", "dragon", "nightmare"]) {
+    assert.ok(NR.bossSkins[skin], skin + " registered");
+    const b = new NR.Boss(600, NR.world.groundY, 1, 1, skin); b.spawnT = 0;
+    assert.ok(b.bossName && !/SHOGUN/.test(b.bossName), skin + " has its own name");
+    G.enemies = [b];
+    for (let i = 0; i < 620 && !b.dead; i++) { b.update(1 / 60, G); b.draw(ctx); if (i % 40 === 0) b.hurt(140, 0, 0, false, G); }
+    assert.ok(b.dead, skin + " boss can be killed");
+    G.bossActive = false;
+  }
+});
+
+test("hero roster: distinct bodies with real stat differences", () => {
+  const E = engine(), { NR } = E, G = NR.game, H = NR.heroes;
+  assert.ok(H.ROSTER.length >= 8, "at least eight heroes");
+  const bodies = new Set(H.ROSTER.map((h) => h.body.kind === "sheet" ? h.body.sheet : h.body.kind === "actor" ? h.body.ref.id : "forge"));
+  assert.equal(bodies.size, H.ROSTER.length, "every hero is a different character body");
+  const ctx = E.dom.el("canvas").getContext("2d");
+  const stats = {};
+  for (const h of H.ROSTER) {
+    assert.equal(H.select(h.id), true);
+    G.start();
+    stats[h.id] = [G.player.maxHp, G.player.speedMul, G.player.dmgMul];
+    play(E, 30, { drive: (i) => { if (i === 5) G.player.attack?.(); } });
+    G.player.draw(ctx);
+    H.drawStage(ctx, 100, 200, 1, 0.2);
+  }
+  assert.ok(stats.mordred[0] > stats.elara[0], "the knight is tankier than the heroine");
+  assert.ok(stats.elara[1] > stats.mordred[1], "the heroine is faster than the knight");
+  assert.equal(JSON.parse(E.store.nr_hero_v1 || E.store.getItem?.("nr_hero_v1") || "{}").id !== undefined, true, "choice persists");
 });

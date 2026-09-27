@@ -144,7 +144,8 @@
           }
         }
       }
-      a.draw(g, w / 2, feetY + bob, { scale });
+      // roster heroes (Ryu, Holly, Elara…) replace the forge body on the stage
+      if (!(NR.heroes && NR.heroes.drawStage(g, w / 2, feetY + bob, hero.t, hero.saluteT))) a.draw(g, w / 2, feetY + bob, { scale });
     }
   }
   L.initHero = function () {
@@ -270,7 +271,7 @@
       `<span class="wc-body"><h4>${ch.short}</h4><p>${ch.district} · ${ch.description}</p></span>` +
       `<span class="wc-state">${
         locked
-          ? "🔒 CLEAR WORLD 0" + ch.id + " FIRST"
+          ? "🔒 CLEAR LEVEL 8 OF WORLD 0" + ch.id
           : cleared
             ? "✔ CLEARED — REPLAY"
             : selectable && P.chapter === ch.id
@@ -695,7 +696,7 @@
     // nav
     $("lb-play").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-deploy"); });
     $("lb-map").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-map"); });
-    $("lb-heroes").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-creator"); });
+    $("lb-heroes").addEventListener("click", () => { NR.audio.play("ui"); if (NR.heroes && $("modal-heroes")) NR.heroes.open(); else openModal("modal-creator"); });
     $("lb-shop").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-shop"); });
     $("lb-settings").addEventListener("click", () => { NR.audio.play("ui"); NR.ui.show("set"); });
     if ($("lb-settings-nav")) $("lb-settings-nav").addEventListener("click", () => { NR.audio.play("ui"); NR.ui.show("set"); });
@@ -723,7 +724,7 @@
     if (tags) {
       const c = NR.characters.find((c) => c.id === P.character) || NR.characters[0];
       tags.innerHTML =
-        `<span class="hero-tag">${c.name}</span><span class="hero-tag">${titleFor(P.level || 1)}</span>` +
+        `<span class="hero-tag">${NR.heroes ? NR.heroes.current().name : c.name}</span><span class="hero-tag">${titleFor(P.level || 1)}</span>` +
         `<span class="hero-tag">${P.mode === "adventure" ? "CHAPTER " + (P.chapter + 1) : "WAVE SURVIVAL"}</span>`;
     }
 

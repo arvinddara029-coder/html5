@@ -36,6 +36,8 @@
     return cv;
   }
 
+  S.frame = frame; // cropped frame canvas (carries _floor) — used by the hero roster
+
   /* pixels from the cropped window top to the feet, for legacy callers */
   S.feetOf = function (sheetKey, anim) {
     const cv = frame(sheetKey, anim || "idle", 0);

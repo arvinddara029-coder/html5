@@ -6,7 +6,7 @@
   E.signature=(cat,id)=>{
     const h=E.hash(cat+':'+id);
     return {id:h.toString(36),mode:h%10,name:archetypes[h%10],damage:12+(h%211)/10,range:150+(h>>>8)%301,
-      cooldown:4+(h>>>16)%61/10,duration:1.2+(h>>>20)%17/10,targets:1+(h>>>10)%4};
+      cooldown:7+(h>>>16)%61/10,duration:1.2+(h>>>20)%17/10,targets:1+(h>>>10)%4};
   };
   const stat=E.item;
   E.item=(cat,id)=>{
@@ -45,7 +45,10 @@
       if(s.mode===6){e.venom={time:s.duration,tick:0,damage:dmg*.2};}
       else e.hurt(dmg,(s.mode===5?-1:1)*(Math.sign(e.x-p.x)||1)*180,s.mode===4?-550:-80,false,G);
     }
-    NR.superRuntime?.effect(p.x,p.y,s.id+source,s.range*.65);
+    // Passive procs are small and land ON the targets they hit. They used to
+    // spawn a random 100-290px explosion/fire/ice clip on the hero every few
+    // seconds, which read as a giant fireball appearing out of nowhere.
+    for(const e of targets)NR.superRuntime?.effect(e.x,e.y-(e.h||60)/2,s.id+source,64,'hit');
   };
   E.weaponMagic=()=>{
     const id=E.relic || (NR.game.player.look||P.appearance).weapon;if(!id)return;

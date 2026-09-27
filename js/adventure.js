@@ -326,16 +326,19 @@
       // warlock / brute bodies and a tougher SHOGUN frame
       const bossNum = 1 + Math.floor(G.chapter / 2);
       // bosses scale with the campaign so chapter 1 is a duel, not a wall
-      const boss = new NR.Boss(x + 120, y, m, bossNum, A.bossSkin(), 0.6 + G.chapter * 0.12);
+      const level = NR.evolution?.levels[G.chapter] || 1;
+      const worldBoss = !!NR.bosses?.isWorldBossLevel(level);
+      const boss = new NR.Boss(x + 120, y, m, bossNum, A.bossSkin(), (0.6 + G.chapter * 0.12) * (worldBoss ? 1.5 : 1));
+      if (worldBoss) boss.bossName = "WORLD BOSS · " + boss.bossName;
       G.bossActive = true;
       G.bossRef = boss;
       add(boss);
-      if (G.chapter >= 3) add(new NR.Sentinel(x - 180, y, m)); // honour guard
+      if (G.chapter >= 3 || worldBoss) add(new NR.Sentinel(x - 180, y, m)); // honour guard
       G.banner(
-        A.chapter.bossName || "SHOGUN-9",
-        A.chapter.finale
-          ? "The last lock wears your face."
-          : "The final lock is holding something enormous.",
+        boss.bossName || A.chapter.bossName,
+        worldBoss
+          ? `Level ${level} · defeat the world boss to open the next world`
+          : `World ${G.chapter + 1} · Level ${level} boss`,
         "#ff826b",
       );
     } else {
@@ -540,12 +543,16 @@
     G.score += 1500 + G.chapter * 500; // deeper chapters pay more
     NR.progress.award("escape");
     if (G.chapter >= last) NR.progress.award("zero");
-    NR.profile.unlocked = Math.max(
-      NR.profile.unlocked,
-      Math.min(last, G.chapter + 1),
-    );
+    const played = NR.evolution ? NR.evolution.levels[G.chapter] : 1;
+    NR.levels?.onClear(G.chapter, played);
+    // the next world opens once this world's Level 8 world boss has fallen
+    if (!NR.levels || NR.levels.opensNextWorld(G.chapter))
+      NR.profile.unlocked = Math.max(
+        NR.profile.unlocked,
+        Math.min(last, G.chapter + 1),
+      );
     NR.saveProfile();
-    if (NR.evolution) { NR.evolution.levels[G.chapter]=Math.min(100000,NR.evolution.levels[G.chapter]+1); NR.evolution.save(); }
+    if (NR.evolution) { NR.evolution.levels[G.chapter]=Math.min(100000,played+1); NR.evolution.save(); }
     NR.checkpoint.clear();
     NR.audio.sample("victory");
     G.finishRun(true);

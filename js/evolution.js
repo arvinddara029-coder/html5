@@ -91,8 +91,8 @@
       e.hurt(dmg, (s.effect==='pull'?-1:1)*(Math.sign(e.x-p.x)||1)*350,s.effect==='launch'?-650:-150,true,G);
       if(s.effect==='drain') p.heal(dmg*.15);
     }
-    NR.superRuntime?.effect(p.x,p.y,id,160);
-    NR.fx.ring(p.x,p.y-40,{col:'cyan',r1:range,life:.5,lw:6});
+    NR.superRuntime?.effect(p.x,p.y-45,id,150,'magic');
+    NR.fx.ring(p.x,p.y-40,{col:'cyan',r1:Math.min(range,340),life:.4,lw:3});
     G.banner(s.name,`LEVEL ${P.level} · POWER ×${power.toFixed(2)}`,'#b4e784'); return true;
   };
   E.tick = dt => {
@@ -144,7 +144,7 @@
     if(mode===1) G.chronoT=1.5;
     else if(mode===2) p.heal(8+P.level);
     else for(const e of G.enemies.filter(e=>!e.dead && e.spawnT<=0 && Math.abs(e.x-p.x)<(mode===3?400:190)).slice(0,mode===3?3:20)) e.hurt(10+P.level*2,p.facing*200,-100,false,G);
-    NR.fx.ring(p.x,p.y-40,{col:mode===0?'orange':'cyan',r1:190,life:.35,lw:4});
+    NR.fx.ring(p.x,p.y-40,{col:mode===0?'orange':'cyan',r1:150,life:.3,lw:2});
   };
   const tick=E.tick;
   E.tick=dt=>{
