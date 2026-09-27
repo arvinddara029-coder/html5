@@ -44,6 +44,7 @@
     update(dt, G) {
       this.t += dt;
       NR.combat.tick(this,dt);
+      NR.abilities?.tick(this, dt, G);
       this.tacticalCd = Math.max(0, this.tacticalCd - dt);
       this.footT -= dt;
       if(this.onGround && Math.abs(this.vx)>100 && this.footT<=0 && !this.dead){this.footT=.3/this.speedMul;NR.audio.play('step');}
@@ -80,7 +81,7 @@
         const elapsed = A.dur - this.attackT;
         if (!this.struck && elapsed >= A.strikeAt) {
           this.struck = true;
-          NR.audio.play(A.sfx);
+          NR.audio.play((this.heroDef && this.heroDef.sound && this.heroDef.sound.attack) || A.sfx);
           F.slash(this.x + this.facing * 55, this.y - 52, this.facing, this.attackIdx, A.rng * 0.8);
           G.playerStrike(A);
         }
@@ -114,6 +115,12 @@
         this.ghostT -= dt;
         if (this.ghostT <= 0) { this.ghostT = 0.028; F.ghost(this.pose); }
         F.burst(this.x - this.dashDir * 20, this.y - 40, { n: 2, col: "cyan", spd: 60, life: 0.3, size: 10, grav: 0 });
+      } else if (this.sukunaT > 0) {
+        // SUKUNASLICE special state: airborne blade realm — hover, drift freely,
+        // no gravity, guaranteed safe return when the state ends
+        this.vy = 0;
+        this.y = U.damp(this.y, NR.world.groundY - 250, 6, dt);
+        this.vx = U.clamp(this.vx, -680, 680);
       } else {
         this.vy += GRAV * dt;
         if (this.vy > 1900) this.vy = 1900;
@@ -162,13 +169,15 @@
 
     control(dt, G) {
       const ax = I.axis();
-      const speed = 430 * this.speedMul;
+      const mv = this.movement || { accel: 18, air: 10 };
+      const abSpeed = NR.abilities ? NR.abilities.speedMul(this) : 1;
+      const speed = 430 * this.speedMul * abSpeed * (this.sukunaT > 0 ? 1.45 : 1);
       const attacking = this.attackT > 0;
       const storming = this.stormT > 0;
 
       if (this.dashT <= 0 && !storming) {
         const target = ax * speed * (attacking ? 0.35 : 1);
-        const k = this.onGround ? 18 : 10;
+        const k = this.onGround ? mv.accel : mv.air;
         this.vx = U.damp(this.vx, target, k, dt);
       }
       if (ax !== 0 && !attacking) this.facing = ax;
@@ -178,7 +187,7 @@
       else this.coyote -= dt;
       if (I.justPressed("jump")) this.jumpBuf = 0.13; else this.jumpBuf -= dt;
 
-      if (this.jumpBuf > 0) {
+      if (this.jumpBuf > 0 && this.sukunaT <= 0) {
         if (this.onGround || this.coyote > 0) {
           this.doJump(-1000, "jump");
         } else if (this.jumps < this.jumpMax) {
@@ -194,7 +203,7 @@
       }
 
       // dash
-      if (I.justPressed("dash") && this.dashCharges > 0 && this.dashT <= 0 && !storming) {
+      if (I.justPressed("dash") && this.dashCharges > 0 && this.dashT <= 0 && !storming && this.sukunaT <= 0) {
         this.dashT = 0.17;
         this.dashDir = ax !== 0 ? ax : this.facing;
         this.facing = this.dashDir;
@@ -208,15 +217,20 @@
       if (I.justPressed("kunai")) NR.combat.throwKunai(this,G);
 
       // attack
-      if ((I.justPressed("attack") || I.down("attack")) && !storming && this.dashT <= 0 && this.parryT <= 0) {
+      if ((I.justPressed("attack") || I.down("attack")) && !storming && this.dashT <= 0 && this.parryT <= 0 && this.sukunaT <= 0) {
         if (this.attackT <= 0) this.startAttack(0);
         else if (this.attackIdx < ATTACKS.length - 1) this.queued = true;
       }
 
-      if (I.justPressed("tactical") && this.tacticalCd <= 0) this.castTactical(G);
+      // hero signature kit: basic [E] · defensive [Z] · signature [X]
+      if (NR.abilities && this.ab) {
+        if (I.justPressed("tactical")) NR.abilities.cast(this, 0, G);
+        if (I.justPressed("ability2")) NR.abilities.cast(this, 1, G);
+        if (I.justPressed("ability3")) NR.abilities.cast(this, 2, G);
+      } else if (I.justPressed("tactical") && this.tacticalCd <= 0) this.castTactical(G);
 
       // blade storm
-      if (I.justPressed("special") && this.energy >= this.maxEnergy && this.stormT <= 0 && this.dashT <= 0) {
+      if (I.justPressed("special") && this.energy >= this.maxEnergy && this.stormT <= 0 && this.dashT <= 0 && this.sukunaT <= 0) {
         this.castStorm(G);
       }
     }
@@ -295,8 +309,13 @@
       const P = this.pose;
       const speedK = U.clamp(Math.abs(this.vx) / 430, 0, 1.4);
       P.x = this.x; P.y = this.y; P.facing = this.facing; P.trim=this.trim; P.cloak=this.cloak; P.character=this.character;
-      P.t = this.t; P.appearance = this.look || NR.profile.appearance;
+      P.t = this.t;
+      // the equipped look: hero signature pieces + the player's explicit Vault choices
+      P.appearance = this.look
+        || (NR.vault ? NR.vault.effectiveLook(this.character) : NR.profile.appearance);
+      P.heroDef = this.heroDef || null;
       P.runAmt = this.onGround ? speedK : 0;
+      P.vx = this.vx; // heroAnim reads speed off the pose (drift < 26 px/s reads as standing)
       P.air = !this.onGround;
       P.vy = this.vy;
       P.legPhase = this.legPhase;
@@ -408,6 +427,8 @@
       ctx.globalAlpha = blink;
       drawHero(ctx, P, {});
       ctx.globalAlpha = 1;
+      // hero ability overlays (bastion ring, blade realm, bone wall…)
+      NR.abilities?.drawOverlays(ctx, this, NR.game);
 
       // storm orbiting blades
       if (this.stormT > 0) {
@@ -431,15 +452,19 @@
   }
 
   /* ---------- layered hero renderer (Clockwork Raven sprite packs) ----------
-     The actual body art spans ~46px of the 64px cell height; scale 0.98 renders
-     the hero ~90px tall on screen — readable, weighty, matching the 78px hull. */
-  const HERO_SCALE = 0.98;
+     The actual body art spans ~46px of the 64px cell height; scale ~1.06 renders
+     the hero ~97px tall on screen — readable, weighty, matching the 78px hull.
+     IDLE FIX: the walk row used to trigger at 4% speed, so knockback drift and
+     landing wobble read as "walking while standing". A real idle now requires
+     actual travel; tiny drifts stay on the idle row. */
+  const HERO_SCALE = 1.16;
   function heroAnim(P) {
     if (P.hurt) return "hurt";
     if (P.attacking) return "attack";
     if (P.air) return (P.vy || 0) < -40 ? "jump" : "fall";
+    if (Math.abs(P.vx || 0) < 26) return "idle"; // drift is NOT walking
     if ((P.runAmt || 0) > 0.72) return "run";
-    if ((P.runAmt || 0) > 0.04) return "walk";
+    if ((P.runAmt || 0) > 0.14) return "walk";
     return "idle";
   }
   /* Frame index for the current row. Attacks follow the swing curve so the
@@ -458,7 +483,10 @@
     const built = NR.char.build(P.appearance || NR.profile.appearance);
     const anim = P.anim || heroAnim(P);
     const frame = heroFrame(P);
-    if (!ghost) {
+    // hero-specific readability scale (tank/brute read larger, ghosts slimmer)
+    const heroDef = P.heroDef || (NR.heroes && NR.heroes.byKey(P.character));
+    const scale = HERO_SCALE * (heroDef && heroDef.scale ? heroDef.scale : 1);
+    if (!ghost && !NR.noShadows) {
       ctx.save();
       ctx.globalAlpha = 0.34;
       ctx.fillStyle = "#000";
@@ -468,7 +496,7 @@
       ctx.restore();
     }
     NR.char.drawFrame(ctx, built, anim, frame, P.x, P.y, P.facing, {
-      scale: HERO_SCALE,
+      scale,
       alpha: ghost ? 0.5 : 1,
       tint: ghost ? O.tint : undefined,
     });

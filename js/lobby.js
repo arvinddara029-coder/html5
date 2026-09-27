@@ -540,48 +540,45 @@
       }
     }
     const grid = $("shop-grid");
-    grid.replaceChildren(...items.map(({ cat, o, price }) => {
-      const owned = NR.economy.owned(cat, o.id);
-      const afford = (P.coins || 0) >= (price.coins || 0) && (P.gems || 0) >= (price.gems || 0);
-      const card = document.createElement("div");
-      card.className = "shop-card";
-      const thumb = NR.char.thumb(cat, o.id, 76);
-      card.append(thumb);
-      const h = document.createElement("h5");
-      h.textContent = o.name;
-      const c = document.createElement("span");
-      c.className = "sc-cat"; c.textContent = cat.toUpperCase();
-      const buy = document.createElement("button");
-      buy.className = "buy" + (owned ? " owned" : afford ? "" : " cant");
-      if (owned) {
-        buy.textContent = "OWNED ✓";
-      } else {
-        const ic = document.createElement("canvas");
-        ic.width = ic.height = 15;
-        const ictx = ic.getContext("2d");
-        if (price.gems) ictx.drawImage(gemCanvas(15), 0, 0);
-        else ictx.drawImage(coinFrames ? coinFrames[0] : gemCanvas(15), 0, 0);
-        const txt = document.createElement("span");
-        txt.textContent = price.gems ? price.gems : price.coins.toLocaleString("en-US");
-        buy.append(ic, txt);
-        buy.addEventListener("click", () => {
-          if (NR.economy.buy(cat, o.id)) {
-            NR.hub.notify(`Purchased ${o.name}!`);
-            NR.audio.play("powerUp");
-            L.refreshCard();
-          } else {
-            NR.hub.notify("Not enough currency.");
-            NR.audio.play("deny");
-          }
-        });
-      }
-      const power = document.createElement("p");
-      power.className = "item-power";
-      power.textContent = NR.evolution?.describe(cat,o.id) || "";
-      card.append(h, c, power, buy);
-      return card;
-    }));
+    grid.replaceChildren(...items.map(({ cat, o }) =>
+      // shared item card: name · type · numeric VALUE · rarity · price ·
+      // equip state · `!` information panel — no ability words in value slots
+      NR.vault.itemCard({ cat, id: o.id, name: o.name })
+    ));
     L.refreshWallet();
+  };
+  /* AUTO-RESUME: if a saved wave-boundary checkpoint exists, offer it front
+     and center — the player never hunts through menus to get their run back. */
+  L.refreshResumeBanner = function () {
+    const banner = $("resume-banner");
+    if (!banner || !NR.waveResume) return;
+    const c = NR.waveResume.get();
+    if (!c || c.wave < 1) { banner.hidden = true; return; }
+    banner.hidden = false;
+    const note = $("resume-run-note");
+    if (note) note.textContent = `WAVE ${c.wave} · ${c.character.toUpperCase()} · SCORE ${Math.round(c.score).toLocaleString("en-US")}`;
+    const btn = $("resume-run-btn");
+    if (btn && !btn.dataset.wired) {
+      btn.dataset.wired = "1";
+      btn.addEventListener("click", () => {
+        NR.audio.play("uiConfirm");
+        NR.loader.wrap("RESUMING SAVED RUN", Promise.resolve(NR.waveResume.resume()));
+      });
+    }
+  };
+
+  /* refresh the lobby hero stage after Vault changes (used by vault.js) */
+  L.refreshHeroStage = function () {
+    hero.actor = NR.char.actor(NR.vault ? NR.vault.effectiveLook() : P.appearance, { rate: 1 });
+    hero.actor.play("idle");
+    L.refreshCard();
+    const tags = $("hero-tags");
+    if (tags) {
+      const c = NR.heroes.current();
+      tags.innerHTML =
+        `<span class="hero-tag">${c.name} · ${c.tag}</span><span class="hero-tag">${titleFor(P.level || 1)}</span>` +
+        `<span class="hero-tag">${P.mode === "adventure" ? "CAMPAIGN" : P.mode === "survive" ? "SURVIVE" : "WAVE FIGHT"}</span>`;
+    }
   };
 
   /* ================= level-up banner ================= */
@@ -692,18 +689,41 @@
       }
     }
 
-    // nav
-    $("lb-play").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-deploy"); });
-    $("lb-map").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-map"); });
-    $("lb-heroes").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-creator"); });
-    $("lb-shop").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-shop"); });
-    $("lb-settings").addEventListener("click", () => { NR.audio.play("ui"); NR.ui.show("set"); });
+    // nav — PLAY opens the two primary modes directly (no world-map detour)
+    if ($("lb-play")) $("lb-play").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-play"); });
+    if ($("lb-map")) $("lb-map").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-map"); });
+    if ($("lb-heroes")) $("lb-heroes").addEventListener("click", () => { NR.audio.play("ui"); NR.vault.openVault("hero"); });
+    if ($("lb-vault")) $("lb-vault").addEventListener("click", () => { NR.audio.play("ui"); NR.vault.openVault(); });
+    if ($("lb-shop")) $("lb-shop").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-shop"); });
+    if ($("lb-settings")) $("lb-settings").addEventListener("click", () => { NR.audio.play("ui"); NR.ui.show("set"); });
     if ($("lb-settings-nav")) $("lb-settings-nav").addEventListener("click", () => { NR.audio.play("ui"); NR.ui.show("set"); });
-    $("lb-profile").addEventListener("click", () => { NR.audio.play("ui"); NR.expeditionUI.showRecords(); });
+    if ($("lb-profile")) $("lb-profile").addEventListener("click", () => { NR.audio.play("ui"); NR.expeditionUI.showRecords(); });
     document.querySelectorAll("[data-close]").forEach((b) =>
       b.addEventListener("click", () => { NR.audio.play("ui"); closeModal(b.dataset.close); }));
     document.querySelectorAll(".lobby-modal").forEach((m) =>
       m.addEventListener("click", (e) => { if (e.target === m) closeModal(m.id); }));
+
+    /* PLAY modal: exactly two primary modes + secondary routes */
+    document.querySelectorAll("#play-modes .pm-card").forEach((b) =>
+      b.addEventListener("click", () => {
+        NR.audio.play("uiConfirm");
+        const mode = b.dataset.pmode;
+        closeModal("modal-play");
+        if (mode === "wavefight") { P.mode = "survival"; NR.saveProfile(); startRun(); }
+        else if (mode === "survive") { P.mode = "survive"; NR.saveProfile(); startRun(); }
+        else if (mode === "campaign") openModal("modal-deploy");
+        else if (mode === "online") NR.social.openOnline();
+      }));
+    const startRun = () => {
+      NR.loader.wrap("ENTERING " + (P.mode === "survive" ? "SURVIVE" : "WAVE FIGHT"),
+        Promise.resolve(NR.game.start()));
+    };
+
+    // social hub + vault + codex (hero select / enemy roster) live inside the lobby
+    NR.social?.init();
+    NR.vault?.init();
+    NR.codex?.init();
+    L.refreshResumeBanner();
 
     // deploy controls
     document.querySelectorAll("#deploy-modes .deploy-mode").forEach((b) =>
@@ -712,19 +732,19 @@
       b.addEventListener("click", () => { NR.hub.setDifficulty(b.dataset.difficulty); L.refreshDeploy(); NR.audio.play("ui"); }));
     document.querySelectorAll("#deploy-world button").forEach((b) =>
       b.addEventListener("click", () => { NR.hub.setWorld(b.dataset.world); NR.audio.play("ui"); }));
-    $("deploy-start").addEventListener("click", () => {
-      NR.audio.play("ui");
+    if ($("deploy-start")) $("deploy-start").addEventListener("click", () => {
+      NR.audio.play("uiConfirm");
       closeModal("modal-deploy");
-      NR.game.start();
+      NR.loader.wrap("ENTERING WORLD", Promise.resolve(NR.game.start()));
     });
 
     // hero tags
     const tags = $("hero-tags");
     if (tags) {
-      const c = NR.characters.find((c) => c.id === P.character) || NR.characters[0];
+      const c = NR.heroes.current();
       tags.innerHTML =
-        `<span class="hero-tag">${c.name}</span><span class="hero-tag">${titleFor(P.level || 1)}</span>` +
-        `<span class="hero-tag">${P.mode === "adventure" ? "CHAPTER " + (P.chapter + 1) : "WAVE SURVIVAL"}</span>`;
+        `<span class="hero-tag">${c.name} · ${c.tag}</span><span class="hero-tag">${titleFor(P.level || 1)}</span>` +
+        `<span class="hero-tag">${P.mode === "adventure" ? "CAMPAIGN · WORLD " + (P.chapter + 1) : P.mode === "survive" ? "SURVIVE" : "WAVE FIGHT"}</span>`;
     }
 
     L.refreshCard();

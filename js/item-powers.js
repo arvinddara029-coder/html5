@@ -45,7 +45,7 @@
       if(s.mode===6){e.venom={time:s.duration,tick:0,damage:dmg*.2};}
       else e.hurt(dmg,(s.mode===5?-1:1)*(Math.sign(e.x-p.x)||1)*180,s.mode===4?-550:-80,false,G);
     }
-    NR.superRuntime?.effect(p.x,p.y,s.id+source,s.range*.65);
+    NR.vfx?.effect(p.x,p.y,s.id+source,64,'proc');
   };
   E.weaponMagic=()=>{
     const id=E.relic || (NR.game.player.look||P.appearance).weapon;if(!id)return;

@@ -2,6 +2,9 @@
 (function () {
   const U = NR.util, W = NR.world, F = NR.fx;
   const GRAV = 2600;
+  /* READABILITY PASS: enemies read ~14% larger; hitboxes grow slightly less
+     (110%) so hit detection stays fair — the art always overhangs the box. */
+  const ART = 1.14, BOX = 1.10;
 
   /* ============ base ============ */
   class Enemy {
@@ -57,7 +60,7 @@
     constructor(x, y, mul) {
       super(x, y);
       this.type = "crawler";
-      this.w = 56; this.h = 74; this.barY = 88; // visible orc art ≈ 86px tall at scale 2.6
+      this.w = Math.round(56.0 * BOX); this.h = Math.round(74.0 * BOX); this.barY = Math.round(88 * ART); // visible orc art ≈ 86px tall at scale 2.6
       this.maxHp = this.hp = Math.round(30 * mul);
       this.dmg = 12; this.score = 100;
       this.speed = 150; this.cd = U.rand(0.5, 1.5); this.windup = 0; this.lungeT = 0;
@@ -116,7 +119,7 @@
       ctx.fill();
       ctx.restore();
       const flash = this.flash > 0 ? "rgba(255,255,255,0.85)" : null;
-      const scale = (this.dying > 0 ? Math.max(0.2, this.dying / 0.45) : 1) * 2.6;
+      const scale = (this.dying > 0 ? Math.max(0.2, this.dying / 0.45) : 1) * 2.6 * ART;
       this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale });
       if (this.windup > 0) {
         ctx.save();
@@ -134,7 +137,7 @@
     constructor(x, y, mul) {
       super(x, y);
       this.type = "drone"; this.flying = true;
-      this.w = 46; this.h = 30;
+      this.w = Math.round(46.0 * BOX); this.h = Math.round(30.0 * BOX);
       this.maxHp = this.hp = Math.round(22 * mul);
       this.dmg = 10; this.score = 150;
       this.shootCd = U.rand(1.2, 2.4); this.aimT = 0; this.aimAng = 0;
@@ -142,7 +145,7 @@
     }
     update(dt, G) {
       this.t += dt; this.flash -= dt; this.touchCd -= dt; this.rotor += dt * 40;
-      if (this.spawnT > 0) { this.spawnT -= dt; this.spr.set("blink"); this.spr.update(dt); return; }
+      if (this.spawnT > 0) { this.spawnT -= dt; return; } // teleport-in glow only (no sheet animator)
       const p = G.player;
       this.facing = p.x > this.x ? 1 : -1;
       if (this.stunned > 0) this.stunned -= dt;
@@ -226,7 +229,7 @@
     constructor(x, y, mul) {
       super(x, y);
       this.type = "wraith"; this.flying = true;
-      this.w = 40; this.h = 82;
+      this.w = Math.round(40.0 * BOX); this.h = Math.round(82.0 * BOX);
       this.maxHp = this.hp = Math.round(48 * mul);
       this.dmg = 16; this.score = 250;
       this.state = "drift"; this.st = 0; this.tpCd = 2.2;
@@ -234,7 +237,7 @@
     }
     update(dt, G) {
       this.t += dt; this.flash -= dt; this.touchCd -= dt; this.st += dt;
-      if (this.spawnT > 0) { this.spawnT -= dt; this.spr.set("blink"); this.spr.update(dt); return; }
+      if (this.spawnT > 0) { this.spawnT -= dt; return; } // teleport-in glow only (no sheet animator)
       const p = G.player;
       if (this.stunned > 0) { this.stunned -= dt; this.state = "drift"; this.st = 0; }
       this.facing = p.x > this.x ? 1 : -1;
@@ -288,7 +291,7 @@
       const t = this.t;
       ctx.save();
       ctx.translate(this.x, this.y);
-      ctx.scale(this.facing, 1);
+      ctx.scale(this.facing * ART, ART); // readability pass
       ctx.globalAlpha = this.alpha;
       const bodyC = this.flash > 0 ? "#fff" : "#150a30";
       // robe (wavy floating bottom, no legs)
@@ -345,7 +348,7 @@
        brute   — GORO, the Tiny-RPG orc with its cleave-effect layer */
   const BOSS_SKINS = {
     mech: { sheet: null, w: 130, h: 176, name: "SHOGUN-9", col: "#ff8f3d" },
-    warlock: { sheet: "wizard", scale: 2.7, w: 120, h: 200, name: "ARCH-WARLOCK VEXIS", col: "#c08bff" },
+    warlock: { sheet: "wizard", scale: 3.0, w: 132, h: 220, name: "ARCH-WARLOCK VEXIS", col: "#c08bff" },
     brute: { sheet: "orc", scale: 4.6, w: 150, h: 165, name: "GORO THE BREAKER", col: "#ff6a4d" },
     ronin: { sheet: "samurai", scale: 2.9, w: 130, h: 150, name: "KUROGANE THE RIVAL", col: "#8af5e1" },
   };
@@ -555,14 +558,14 @@
       ctx.restore();
       const dying = this.state === "dying" ? Math.max(0.25, 1 - this.st / 1.5) : 1;
       const flash = this.flash > 0 ? "rgba(255,255,255,0.85)" : null;
-      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: S.scale * dying, alpha: dying });
+      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: S.scale * ART * dying, alpha: dying });
       // the orc pack's cleave-effect layer lands with the slam / charge
       if (this.skin === "brute" && (this.state === "slamAir" || this.state === "charging")) {
         this.fx.update(1 / 60);
         ctx.save();
         ctx.globalCompositeOperation = "lighter";
         ctx.globalAlpha = 0.85;
-        this.fx.draw(ctx, this.x + this.facing * 40, this.y - 30, this.facing, { scale: S.scale * 0.9 });
+        this.fx.draw(ctx, this.x + this.facing * 40, this.y - 30, this.facing, { scale: S.scale * ART * 0.9 });
         ctx.restore();
       }
       // cast telegraph for the warlock
@@ -685,7 +688,7 @@
     constructor(x, y, mul) {
       super(x, y);
       this.type = "slime";
-      this.w = 54; this.h = 60; this.barY = 100; // blob window ≈ 91px tall at scale 1.9
+      this.w = Math.round(54.0 * BOX); this.h = Math.round(60.0 * BOX); this.barY = Math.round(100 * ART); // blob window ≈ 91px tall at scale 1.9
       this.maxHp = this.hp = Math.round(24 * mul);
       this.dmg = 10; this.score = 80;
       this.speed = 120; this.hopT = U.rand(0.4, 1.1); this.hopDir = U.chance(0.5) ? 1 : -1;
@@ -728,7 +731,7 @@
       ctx.beginPath(); ctx.ellipse(this.x, this.y + 3, 30, 7, 0, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
       const flash = this.flash > 0 ? "rgba(255,255,255,0.9)" : null;
-      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: NR.sheets[this.variant]?.renderScale || 1.9 });
+      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: (NR.sheets[this.variant]?.renderScale || 1.9) * ART });
       this.hpBar(ctx);
       this.drawSpawnFx(ctx);
     }
@@ -739,7 +742,7 @@
     constructor(x, y, mul) {
       super(x, y);
       this.type = "soldier";
-      this.w = 52; this.h = 74; this.barY = 84; // soldier art ≈ 81px tall at scale 2.6
+      this.w = Math.round(52.0 * BOX); this.h = Math.round(74.0 * BOX); this.barY = Math.round(84 * ART); // soldier art ≈ 81px tall at scale 2.6
       this.maxHp = this.hp = Math.round(46 * mul);
       this.dmg = 14; this.score = 160;
       this.speed = 105; this.aimT = 0; this.cd = U.rand(0.8, 1.8); this.strafe = U.chance(0.5) ? 1 : -1;
@@ -799,7 +802,7 @@
         ctx.restore();
       }
       const flash = this.flash > 0 ? "rgba(255,255,255,0.85)" : null;
-      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 2.6 });
+      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 2.6 * ART });
       this.hpBar(ctx);
       this.drawSpawnFx(ctx);
     }
@@ -812,7 +815,7 @@
     constructor(x, y, mul) {
       super(x, y);
       this.type = "warlock"; this.flying = true; // skips physics knock-up, hovers via its own integrator
-      this.w = 54; this.h = 140; this.barY = 165; // wizard window ≈ 160px tall at scale 1.1
+      this.w = Math.round(54.0 * BOX); this.h = Math.round(140.0 * BOX); this.barY = Math.round(165 * ART); // wizard window ≈ 160px tall at scale 1.1
       this.maxHp = this.hp = Math.round(60 * mul);
       this.dmg = 13; this.score = 300;
       this.speed = 96; this.castCd = U.rand(1.2, 2.2); this.castT = 0; this.burstLeft = 0;
@@ -886,7 +889,7 @@
         ctx.restore();
       }
       const flash = this.flash > 0 ? "rgba(255,255,255,0.85)" : null;
-      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 1.1 });
+      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 1.1 * ART });
       this.hpBar(ctx);
       this.drawSpawnFx(ctx);
     }
@@ -899,7 +902,7 @@
     constructor(x, y, mul) {
       super(x, y);
       this.type = "rival";
-      this.w = 48; this.h = 92; this.barY = 102; // samurai art ≈ 96px tall at scale 2.5
+      this.w = Math.round(48.0 * BOX); this.h = Math.round(92.0 * BOX); this.barY = Math.round(102 * ART); // samurai art ≈ 96px tall at scale 2.5
       this.maxHp = this.hp = Math.round(75 * mul);
       this.dmg = 18; this.score = 340;
       this.speed = 210; this.state = "circle"; this.st = 0; this.circleDir = U.chance(0.5) ? 1 : -1;
@@ -965,7 +968,7 @@
         ctx.restore();
       }
       const flash = this.flash > 0 ? "rgba(255,255,255,0.85)" : null;
-      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 2.5 });
+      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 2.5 * ART });
       this.hpBar(ctx);
       this.drawSpawnFx(ctx);
     }
@@ -978,7 +981,7 @@
     constructor(x, y, mul) {
       super(x, y);
       this.type = "gunner";
-      this.w = 46; this.h = 76; this.barY = 90; // trooper art ≈ 80px tall at scale 2.0
+      this.w = Math.round(46.0 * BOX); this.h = Math.round(76.0 * BOX); this.barY = Math.round(90 * ART); // trooper art ≈ 80px tall at scale 2.0
       this.maxHp = this.hp = Math.round(34 * mul);
       this.dmg = 5; this.score = 120;
       this.speed = 150; this.phase = "move"; this.phaseT = 0; this.burstLeft = 0; this.burstCd = 0;
@@ -1060,7 +1063,7 @@
         ctx.restore();
       }
       const flash = this.flash > 0 ? "rgba(255,255,255,0.85)" : null;
-      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 2.0 });
+      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 2.0 * ART });
       this.hpBar(ctx);
       this.drawSpawnFx(ctx);
     }
@@ -1072,7 +1075,7 @@
     constructor(x, y, mul) {
       super(x, y);
       this.type = "striker";
-      this.w = 44; this.h = 62; this.barY = 74; // brawler art ≈ 66px tall at scale 2.2
+      this.w = Math.round(44.0 * BOX); this.h = Math.round(62.0 * BOX); this.barY = Math.round(74 * ART); // brawler art ≈ 66px tall at scale 2.2
       this.maxHp = this.hp = Math.round(60 * mul);
       this.dmg = 16; this.score = 260;
       this.speed = 175; this.state = "chase"; this.st = 0;
@@ -1129,7 +1132,7 @@
       ctx.beginPath(); ctx.ellipse(this.x, gy + 3, 24, 6, 0, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
       const flash = this.flash > 0 ? "rgba(255,255,255,0.85)" : null;
-      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 2.2 });
+      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 2.2 * ART });
       this.hpBar(ctx);
       this.drawSpawnFx(ctx);
     }
@@ -1141,7 +1144,7 @@
     constructor(x, y, mul) {
       super(x, y);
       this.type = "blade";
-      this.w = 52; this.h = 88; this.barY = 98; // swordsman art ≈ 81px tall at scale 1.8
+      this.w = Math.round(52.0 * BOX); this.h = Math.round(88.0 * BOX); this.barY = Math.round(98 * ART); // swordsman art ≈ 81px tall at scale 1.8
       this.maxHp = this.hp = Math.round(90 * mul);
       this.dmg = 15; this.score = 380;
       this.speed = 230; this.state = "chase"; this.st = 0;
@@ -1249,7 +1252,7 @@
         ctx.restore();
       }
       const flash = this.flash > 0 ? "rgba(255,255,255,0.85)" : null;
-      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 1.8 });
+      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 1.8 * ART });
       this.hpBar(ctx);
       this.drawSpawnFx(ctx);
     }
@@ -1263,7 +1266,7 @@
     constructor(x, y, mul) {
       super(x, y);
       this.type = "apparition"; this.flying = true;
-      this.w = 52; this.h = 130; this.barY = 160;
+      this.w = Math.round(52.0 * BOX); this.h = Math.round(130.0 * BOX); this.barY = Math.round(160 * ART);
       this.maxHp = this.hp = Math.round(72 * mul);
       this.dmg = 18; this.score = 340;
       this.speed = 190; this.state = "hover"; this.st = 0; this.hoverCd = U.rand(0.8, 1.8);
@@ -1344,7 +1347,7 @@
         ctx.restore();
       }
       const flash = this.flash > 0 ? "rgba(255,255,255,0.85)" : null;
-      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 1.1, alpha: this.alpha });
+      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 1.1 * ART, alpha: this.alpha });
       this.hpBar(ctx);
       this.drawSpawnFx(ctx);
     }
@@ -1356,7 +1359,7 @@
     constructor(x, y, mul) {
       super(x, y);
       this.type = "brute";
-      this.w = 96; this.h = 150; this.barY = 175;
+      this.w = Math.round(96.0 * BOX); this.h = Math.round(150.0 * BOX); this.barY = Math.round(175 * ART);
       this.maxHp = this.hp = Math.round(150 * mul);
       this.dmg = 22; this.score = 420;
       this.speed = 92; this.state = "walk"; this.st = 0; this.swingCd = U.rand(1.2, 2.2);
@@ -1427,7 +1430,7 @@
         ctx.restore();
       }
       const flash = this.flash > 0 ? "rgba(255,255,255,0.85)" : null;
-      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 4.2 });
+      this.spr.draw(ctx, this.x, this.y, this.facing, { flash, scale: 4.2 * ART });
       if (this.state === "swing") {
         ctx.save();
         ctx.globalCompositeOperation = "lighter";

@@ -9,6 +9,7 @@
     NR.input.reset();
     document.body.classList.toggle("playing", name === null && NR.game?.state === "playing");
     for (const s of SCREENS) $("scr-" + s).classList.toggle("active", s === name);
+    if (name === "menu") NR.lobby?.refreshResumeBanner?.(); // auto-resume stays current
   };
   ui.hideAll = () => ui.show(null);
 
@@ -132,6 +133,13 @@
     $("st-time").textContent = U.fmtTime(G.time);
     $("st-high").textContent = U.fmt(G.high);
     $("new-high").style.display = newHigh ? "block" : "none";
+    // rewarded-ad bonus button: explicit opt-in, reset per death screen
+    const adBtn = $("btn-reward-ad");
+    if (adBtn) {
+      adBtn.disabled = false;
+      adBtn.textContent = "▶ WATCH AD · BONUS COINS (OPTIONAL)";
+      adBtn.style.display = NR.crazy && NR.crazy.available ? "" : "none";
+    }
     const rw = $("run-rewards");
     if (rw) {
       const r = G.lastReward;

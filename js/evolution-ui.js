@@ -37,7 +37,10 @@
   NR.ui.show=function(...args){show(...args);bar.hidden=true;};
   NR.ui.hideAll=function(...args){hide(...args);bar.hidden=false;};
   window.addEventListener('keydown',e=>{if(dialog.open || e.repeat || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;const m=/^Digit([0-9])$/.exec(e.code);if(m){const i=m[1]==='0'?9:Number(m[1])-1;if(E.slots[i]){e.preventDefault();E.cast(E.slots[i]);}}});
-  $('open-vault').onclick=E.vault;$('play-vault').onclick=E.vault;
+  // In-game ✦ keeps the spell loadout dialog; the Settings vault buttons are
+  // GONE — the lobby Vault owns abilities/heroes/pets now.
+  if ($('open-vault')) $('open-vault').onclick=E.vault;
+  if ($('play-vault')) $('play-vault').onclick=()=>{ if (NR.game.state==='playing') E.vault(); else (NR.codex ? NR.codex.openHeroes() : NR.vault.openVault()); };
   $('btn-continue-encounter').onclick=()=>G.continueEncounter();
   $('next-world-level').onclick=()=>{NR.profile.mode='adventure';NR.profile.chapter=G.chapter;NR.saveProfile();G.start({chapter:G.chapter});};
   $('power-hint').onclick=()=>{
@@ -83,7 +86,8 @@
     search.oninput=()=>{query=search.value;page=0;draw();};dialog.append(search,pager,results);draw();
   }
   $('resume-wave').onclick=()=>{NR.waveResume.resume();};
-  $('super-roster').onclick=()=>{
+  // super roster + asset archive are reachable from the Vault / debug tools
+  NR.vault.openSuperRoster=()=>{
     open('SUPER ROSTER · HEROES & COMPANIONS');
     para('Choose a hero or pet from the new packs. Selection applies to the next run. Every actor uses measured animation frames, not a full contact sheet.');
     dialog.append(button('DEFAULT HERO',()=>{E.hero='';E.save();}),button('NO SUPER PET',()=>{E.companion='';E.save();}));
@@ -103,6 +107,8 @@
       const select=button(NR.profile.level<relic.level?'UNLOCK LEVEL '+relic.level:'EQUIP RELIC',()=>{E.relic=relic.id;E.save();NR.hub.notify(relic.name+' selected for next run.');});select.disabled=NR.profile.level<relic.level;card.append(select);grid.append(card);
     }
   };
-  $('open-super').onclick=archive;
+  if ($('super-roster')) $('super-roster').onclick=()=>NR.vault.openSuperRoster();
+  if ($('open-super')) $('open-super').onclick=archive;
+  NR.vault.openArchive=archive;
   E.renderBar();bar.hidden=true;
 })();

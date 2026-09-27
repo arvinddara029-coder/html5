@@ -25,8 +25,26 @@
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     A.ready = true;
+    // expose the graph for the sampled audio map (assets/super bank)
+    A._ctx = ctx; A._sfxGain = sfxG; A._musGain = musG; A._masterGain = master;
+    if (NR.audioMap) NR.audioMap.decode(ctx).catch(() => {});
     A.setVolumes();
     startMusic();
+  };
+
+  /* Platform requirement: silence the game completely while a video ad plays,
+     then restore the previous mix. */
+  A.muteAll = function (mute, restoreAudible) {
+    if (!ctx || !master) return;
+    try {
+      if (mute) {
+        A._preMute = master.gain.value;
+        master.gain.setTargetAtTime(0, ctx.currentTime, 0.02);
+      } else {
+        master.gain.setTargetAtTime(A._preMute !== undefined ? A._preMute : 0.9, ctx.currentTime, 0.05);
+        A._preMute = undefined;
+      }
+    } catch (_) {}
   };
 
   A.toggleMusic = function (v) { A.musicOn = v; if (musG) musG.gain.setTargetAtTime(v ? 0.84 * NR.profile.musicVolume : 0, ctx.currentTime, 0.05); };

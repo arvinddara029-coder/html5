@@ -61,10 +61,10 @@ function skyward(seed = {}) {
   };
   vm.createContext(context);
   const mods = [
-    "utils", "assetlib", "characters", "profile", "economy", "progression", "save-transfer",
-    "character", "input", "audio", "sprites", "spriterender",
-    "particles", "world", "projectiles", "combat", "player", "enemies",
-    "expedition-enemies", "adventure", "upgrades",
+    "utils", "assetlib", "characters", "heroes", "profile", "economy", "progression", "save-transfer",
+    "character", "input", "audio", "audiomap", "sprites", "spriterender",
+    "particles", "pool", "vfx", "world", "projectiles", "combat", "player", "abilities", "enemies",
+    "expedition-enemies", "adventure", "levelsys", "bossdefs", "net", "crazy", "upgrades",
   ];
   for (const name of mods)
     vm.runInContext(

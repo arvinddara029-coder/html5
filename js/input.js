@@ -8,10 +8,12 @@
     right: ["ArrowRight", "KeyD"],
     jump: ["ArrowUp", "KeyW", "Space"],
     down: ["ArrowDown", "KeyS"],
-    attack: ["KeyJ", "KeyX"],
+    attack: ["KeyJ"],
     dash: ["KeyK", "ShiftLeft", "ShiftRight"],
     special: ["KeyL", "KeyC"],
-    tactical: ["KeyE"],
+    tactical: ["KeyE"],       // hero ability 1 (basic)
+    ability2: ["KeyZ"],       // hero ability 2 (defensive)
+    ability3: ["KeyX"],       // hero ability 3 (signature)
     parry: ["KeyQ"],
     kunai: ["KeyR"],
     interact: ["KeyF"],

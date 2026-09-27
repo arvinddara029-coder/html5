@@ -91,7 +91,7 @@
       e.hurt(dmg, (s.effect==='pull'?-1:1)*(Math.sign(e.x-p.x)||1)*350,s.effect==='launch'?-650:-150,true,G);
       if(s.effect==='drain') p.heal(dmg*.15);
     }
-    NR.superRuntime?.effect(p.x,p.y,id,160);
+    NR.vfx?.effect(p.x,p.y,id,96,'cast');
     NR.fx.ring(p.x,p.y-40,{col:'cyan',r1:range,life:.5,lw:6});
     G.banner(s.name,`LEVEL ${P.level} · POWER ×${power.toFixed(2)}`,'#b4e784'); return true;
   };

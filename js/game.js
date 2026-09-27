@@ -8,6 +8,8 @@
     wave: 0, combo: 0, comboT: 0, time: 0,
     enemies: [], bolts: [], shots: [], shockwaves: [], pickups: [], spawnQueue: [],
     bossActive: false, bossRef: null,
+    pvp: false, online: false, levelDef: null, sukunaUsed: false,
+    surviveT: 0, surviveBatchT: 0, surviveBossN: 0, netSeq: 0, netWave: 0,
     enemyHpMul: 1, enemySpdMul: 1, enemyDmgMul: 1,
     stats: { kills: 0, maxCombo: 0, storms: 0, parries: 0, kunaiHits: 0, salvaged: 0 },
     timeScale: 1, slowT: 0, hitStopT: 0,
@@ -22,6 +24,8 @@
   /* ================= lifecycle ================= */
   G.toMenu = function () {
     G.state = "menu";
+    G.online = false; G.pvp = false;
+    NR.crazy?.gameplayStop();
     I.reset();
     G.enemies.length = 0; G.bolts.length = 0; G.shots.length = 0; G.shockwaves.length = 0;
     G.pickups.length = 0; G.spawnQueue.length = 0; G.corpses.length = 0;
@@ -70,6 +74,8 @@
     G.tactical = cp ? cp.tactical : NR.profile.tactical;
     G.runName = NR.profile.name;
     G.chronoT = 0; G.finished = false;
+    G.sukunaUsed = false;             // SukunaSlice: once per run, reset here
+    G.netSeq = 0; G.netWave = 0;
     G.enemies.length = 0; G.bolts.length = 0; G.shots.length = 0; G.shockwaves.length = 0;
     G.pickups.length = 0; G.spawnQueue.length = 0; G.corpses.length = 0; F.reset();
     G.score = 0; G.combo = 0; G.comboT = 0; G.time = 0; G.wave = 0;
@@ -77,6 +83,7 @@
     G.bossActive = false; G.bossRef = null;
     G.timeScale = 1; G.slowT = 0; G.hitStopT = 0;
     G.overShown = false; G.deathT = 0; G.upgradeT = 0; G.clearT = 0; G.rewarded = false; G.lastReward = null;
+    G.surviveT = 0; G.surviveBatchT = 0; G.surviveBossN = 0;   // SURVIVE mode state
     G.cam.trauma = 0; G.cam.sx = 0; G.cam.sy = 0;
     G.state = "playing";
     NR.ui.hideAll();
@@ -84,6 +91,13 @@
     G.startT = 1.0; // countdown to wave 1
     NR.adventure.start(G,cp);
     NR.superRuntime?.prepare();
+    G.levelDef = NR.levelsys ? NR.levelsys.levelDef(G.chapter||0, NR.levelsys.currentLevel()) : null;
+    if (G.mode !== "adventure" && G.levelDef) NR.levelsys.banner(G.levelDef);
+    if (G.online && NR.net.mode === "host") {
+      // share the deterministic seed so guests simulate the same district
+      NR.net.transport && NR.net.transport.broadcast({ k: "room-state", room: NR.net.room });
+    }
+    NR.crazy?.gameplayStart();
     G.cam.x = U.clamp(G.player.x - NR.view.w / 2,0,Math.max(0,W.W-NR.view.w));
     NR.expeditionUI?.syncRun();
     NR.audio.play("wave");
@@ -106,19 +120,25 @@
   G.togglePause = function () {
     if (G.state === "playing") {
       G.state = "pause";
+      NR.crazy?.gameplayStop();
       NR.ui.show("pause");
     } else if (G.state === "pause") {
       G.state = "playing";
+      NR.crazy?.gameplayStart();
       NR.ui.hideAll();
     }
   };
   G.autoPause = function () { if (G.state === "playing") G.togglePause(); };
 
   /* ================= waves ================= */
+  /* WAVE FIGHT keeps the staged legacy curve (new families appear on set
+     waves) and layers the procedural level definition on top: staged pools,
+     elites and super actors arrive only when the LEVEL has advanced far
+     enough — early levels stay readable. */
   function waveComp(n) {
     if (n % 5 === 0)
       return { boss: true, crawlers: Math.min(2 + Math.floor(n / 5), 5), drones: 0, wraiths: 0, slimes: 0, soldiers: 0 };
-    return {
+    const comp = {
       boss: false,
       crawlers: Math.max(1, Math.min(2 + n, 7)),
       drones: n >= 2 ? Math.min(1 + Math.floor(n / 2.5), 5) : 0,
@@ -133,21 +153,31 @@
       brutes: n >= 10 ? Math.min(1 + Math.floor((n - 10) / 4), 2) : 0,
       apparitions: n >= 11 ? Math.min(1 + Math.floor((n - 11) / 3), 3) : 0,
     };
+    // procedural extra defenders, staged by world LEVEL (not just wave)
+    const def = G.levelDef;
+    if (def && NR.levelsys) {
+      const stage = NR.levelsys.stageFor(def.level);
+      if (stage.supers > 0 && n >= 5) comp.supers = Math.min(stage.supers, 1 + Math.floor(n / 8));
+    }
+    return comp;
   }
 
   function startWave(n) {
     G.wave = n;
+    G.netWave = n;
     NR.waveResume?.save();
+    NR.net.hostBroadcastWave(n);
     G.waveDamageTaken = false;
-    G.enemyHpMul = (1 + (n - 1) * 0.07) * (G.difficulty === "casual" ? .75 : G.difficulty === "hard" ? 1.35 : 1);
-    G.enemySpdMul = (1 + Math.min(0.55, (n - 1) * 0.03)) * (G.difficulty === "casual" ? .85 : G.difficulty === "hard" ? 1.15 : 1);
-    G.enemyDmgMul = 1 + Math.max(0, n - 6) * 0.05;
+    const dmul = NR.levelsys && G.levelDef ? NR.levelsys.enemyMuls(G.levelDef, n) : null;
+    G.enemyHpMul = (dmul ? dmul.hp : 1 + (n - 1) * 0.07) * (G.difficulty === "casual" ? .75 : G.difficulty === "hard" ? 1.35 : 1);
+    G.enemySpdMul = (dmul ? dmul.spd : 1 + Math.min(0.55, (n - 1) * 0.03)) * (G.difficulty === "casual" ? .85 : G.difficulty === "hard" ? 1.15 : 1);
+    G.enemyDmgMul = (dmul ? dmul.dmg : 1 + Math.max(0, n - 6) * 0.05);
     const comp = waveComp(n);
-    if(NR.superRuntime && !comp.boss) {
-      for(let i=0;i<Math.min(3,1+Math.floor(n/4));i++) G.enemies.push(NR.superRuntime.spawn(180+i*180,W.groundY,(n+i)%4));
-    }
     let delay = 0.4;
     const q = G.spawnQueue;
+    // super actors are QUEUED (never pushed instantly — that was a frame spike)
+    const superCount = Math.min(comp.supers || 0, 4);
+    for (let i = 0; i < superCount; i++) q.push({ type: "super", t: (delay += U.rand(0.8, 1.6)) });
     for (let i = 0; i < comp.crawlers; i++) q.push({ type: "crawler", t: (delay += U.rand(0.4, 0.8)) });
     for (let i = 0; i < comp.slimes; i++) q.push({ type: "slime", t: (delay += U.rand(0.4, 0.9)) });
     for (let i = 0; i < comp.drones; i++) q.push({ type: "drone", t: (delay += U.rand(0.3, 0.7)) });
@@ -162,18 +192,27 @@
     for (let i = 0; i < (comp.apparitions || 0); i++) q.push({ type: "apparition", t: (delay += U.rand(0.5, 1)) });
     if(n>=3 && !comp.boss) q.push({type:"sentry",t:(delay+=.8)});
     if(n>=4 && !comp.boss) q.push({type:"sentinel",t:(delay+=.8)});
+    // host shares the (deterministic) queue with guests
+    NR.net.hostBroadcastSpawns(q.map((s) => ({ type: s.type, t: s.t, netId: "e" + (++G.netSeq) })));
+    for (const s of q) s.netId = s.netId || "e" + (++G.netSeq);
     if (comp.boss) {
       G.bossActive = true;
       const bx = G.player.x > W.W / 2 ? W.W * 0.28 : W.W * 0.72;
-      const skin = n % 15 === 10 ? "warlock" : n % 15 === 0 ? "brute" : "mech";
-      const boss = new NR.Boss(bx, W.groundY, G.enemyHpMul, Math.ceil(n / 5), skin);
+      // BossDefinition rotation — real assets, deterministic pick
+      const def = NR.bossDefs
+        ? NR.bossDefs.forMilestone(G.chapter || 0, NR.levelsys ? NR.levelsys.currentLevel() : 1, Math.ceil(n / 5))
+        : { skin: "mech", name: "SHOGUN-9" };
+      const boss = NR.bossDefs ? NR.bossDefs.spawn(def, bx, G.enemyHpMul, Math.ceil(n / 5)) : new NR.Boss(bx, W.groundY, G.enemyHpMul, Math.ceil(n / 5), "mech");
       boss.spawnT = 0;
+      boss.netId = "boss" + n;
       G.enemies.push(boss);
       G.bossRef = boss;
       G.banner("⚠ " + (boss.bossName || "SHOGUN-9") + " ⚠", "WAVE " + n + " — eliminate the war machine", "#ff2d95");
+      NR.audio.play("bossIntro");
       NR.audio.play("warn");
+      G.shake(0.5);
     } else {
-      G.banner("WAVE " + n, n === 1 ? "survive the onslaught" : U.pick([
+      G.banner(G.mode === "survive" ? "SURVIVE — " + U.fmtTime(G.surviveT) : "WAVE " + n, n === 1 ? "survive the onslaught" : U.pick([
         "they keep coming", "hold the line", "no retreat", "the city watches",
       ]), "#00fff4");
       NR.audio.play("wave");
@@ -185,7 +224,10 @@
     const side = U.chance(0.5) ? 1 : -1;
     const px = G.player.x;
     let e;
-    if (type === "crawler") {
+    if (type === "super") {
+      // staged super actor (measured Legacy/Mario art), spawned through the queue
+      e = NR.superRuntime ? NR.superRuntime.spawn(U.clamp(px + side * U.rand(420, 640), 100, W.W - 100), W.groundY, U.randi(0, 3)) : new NR.Crawler(120, W.groundY, mul);
+    } else if (type === "crawler") {
       let x = side > 0 ? W.W - 90 : 90;
       if (Math.abs(x - px) < Math.abs(W.W - x - px)) x = W.W - x; // spawn far from player
       e = new NR.Crawler(x, W.groundY, mul);
@@ -216,6 +258,13 @@
     }
     F.teleport(e.x, e.y - e.h / 2,
       type === "crawler" ? "red" : type === "drone" ? "cyan" : type === "slime" ? "blue" : type === "soldier" ? "orange" : type === "warlock" ? "purple" : type === "rival" ? "white" : type === "gunner" ? "yellow" : type === "striker" ? "orange" : type === "blade" ? "cyan" : type === "brute" ? "red" : type === "apparition" ? "purple" : "purple");
+    // elite roll — staged by level, never in the first levels
+    if (G.levelDef && G.levelDef.eliteChance > 0 && !e.boss && U.chance(G.levelDef.eliteChance)) {
+      e.maxHp = e.hp = Math.round(e.hp * 1.6);
+      e.elite = true; e.score = Math.round((e.score || 50) * 2.2);
+      if (e.speed) e.speed *= 1.15;
+      NR.vfx?.ring(e.x, e.y - e.h / 2, { col: "yellow", r1: 90, life: 0.5, lw: 4 });
+    }
     G.enemies.push(e);
   }
 
@@ -230,11 +279,17 @@
     }
     G.player.heal(10 + G.wave * 0.5);
     NR.audio.play("upgrade");
-    G.upgradeT = 0.95; // game-timer driven (pause safe)
+    // midgame ad ONLY at a boss-wave break (never during combat), opt-out safe
+    if (G.wave % 5 === 0 && NR.crazy && NR.crazy.canMidgame()) {
+      G.upgradeT = 1.25;
+      NR.crazy.showMidgame("boss-wave-break");
+    }
+    G.upgradeT = Math.max(G.upgradeT || 0, 0.95); // game-timer driven (pause safe)
   }
 
   G.closeUpgrade = function () {
     G.state = "playing";
+    NR.crazy?.gameplayStart();
     G.startT = G.mode === "adventure" ? 0 : 1.6;
     NR.adventure.checkpointAfterUpgrade(G);
   };
@@ -244,6 +299,7 @@
     const p = G.player;
     let hitAny = false;
     const counter = p.counterT>0;
+    const abMul = NR.abilities ? NR.abilities.damageMul(p) : 1;
     for (const e of G.enemies) {
       if (e.dead || e.spawnT > 0) continue;
       const dx = e.x - p.x;
@@ -252,14 +308,32 @@
       const ey = e.y - e.h / 2, py = p.y - 45;
       if (Math.abs(ey - py) > 95 + e.h / 2) continue;
       const crit = U.chance(p.critCh);
-      const dmg = A.dmg * p.dmgMul * (p.overdriveT > 0 ? 2 : 1) * (crit ? 2 : 1) * (counter ? 1.75 : 1);
+      const dmg = A.dmg * p.dmgMul * abMul * (p.overdriveT > 0 ? 2 : 1) * (crit ? 2 : 1) * (counter ? 1.75 : 1);
+      // online guest: the host owns enemy hp — report the hit, don't apply it
+      if (NR.net.mode === "guest" && e.netId) {
+        NR.net.guestHitEnemy(e.netId, dmg, p.facing * A.kb, -A.kb * 0.35);
+        F.slash(p.x + p.facing * 55, p.y - 52, p.facing, 0, A.rng * 0.7);
+        hitAny = true;
+        continue;
+      }
       const beforeHp=e.hp;
       e.hurt(dmg, p.facing * A.kb, -A.kb * 0.35, crit, G);
       if(e.hp>=beforeHp)continue;
-      F.text(e.x, e.y - e.h - 12, Math.round(dmg), { col: crit ? "#ffe14d" : "#ffffff", size: crit ? 30 : 20, crit });
+      NR.vfx.text(e.x, e.y - e.h - 12, Math.round(dmg), { col: crit ? "#ffe14d" : "#ffffff", size: crit ? 30 : 20, crit });
       p.addEnergy(6.5);
       if (p.lifesteal > 0) p.heal(dmg * p.lifesteal);
       hitAny = true;
+    }
+    // PvP: strike any remote hero standing in the arc
+    if (G.pvp) {
+      for (const r of NR.net.remote.values()) {
+        const dx = r.x - p.x;
+        if (Math.sign(dx) !== p.facing || Math.abs(dx) > A.rng) continue;
+        if (Math.abs(r.y - p.y) > 110) continue;
+        NR.net.sendEvent({ a: "hit-player", dmg: A.dmg * p.dmgMul * abMul });
+        F.slash(r.x, r.y - 50, p.facing, 1, 130);
+        hitAny = true;
+      }
     }
     NR.adventure.strikeProps(p,A,G);
     if (hitAny) {
@@ -291,25 +365,30 @@
     const p = G.player;
     if (p.dead || p.iframes > 0 || p.dashT > 0 || p.stormT > 0 || p.shieldT > 0) return;
     if (NR.combat.tryParry(G,dir,src)) return;
-    dmg *= (G.difficulty === "casual" ? .6 : G.difficulty === "hard" ? 1.4 : 1) * (p.damageTakenMul || 1);
+    dmg *= (G.difficulty === "casual" ? .6 : G.difficulty === "hard" ? 1.4 : 1)
+      * (p.damageTakenMul || 1)
+      * (NR.abilities ? NR.abilities.damageTakenMul(p) : 1);
     p.hp -= dmg;
+    NR.abilities?.postDamage(p, dmg, G);
+    if (p.dead) return;
     p.comboResetT = 99; // combo resets
     G.combo = 0; G.comboT = 0;
     G.waveDamageTaken = true;
     p.iframes = 0.85 * (p.guardMul || 1);
     p.hitstun = 0.26;
     p.vx = (dir || 1) * 430; p.vy = -290;
-    hud.hurtVign = 1;
+    const dmgFx = !(NR.profile.settings && NR.profile.settings.damageEffects === false);
+    if (dmgFx) hud.hurtVign = 1;
     G.shake(0.4);
     G.hitStop(0.06);
-    F.text(p.x, p.y - 110, "-" + Math.round(dmg), { col: "#ff5f7a", size: 24, crit: true });
+    NR.vfx.text(p.x, p.y - 110, "-" + Math.round(dmg), { col: "#ff5f7a", size: 24, crit: true });
     F.burst(p.x, p.y - 46, { n: 14, col: "red", spd: 340, life: 0.5 });
     NR.audio.play("hurt");
     if (p.hp <= 0) {
       p.hp = 0; p.dead = true;
       G.deathT = 1.5;
       G.slowmo(0.25, 1.4);
-      hud.flash("rgba(255,45,90,0.4)");
+      if (dmgFx) hud.flash("rgba(255,45,90,0.4)");
       F.burst(p.x, p.y - 46, { n: 60, col: "cyan", spd: 620, life: 1.1 });
       F.ring(p.x, p.y - 46, { col: "magenta", r1: 380, life: 0.8, lw: 12 });
       NR.audio.play("pdie");
@@ -320,37 +399,43 @@
   G.onEnemyKilled = function (e) {
     G.stats.kills++;
     NR.evolution?.rewardKill();
+    NR.abilities?.onKill(G.player, G);
     NR.profile.totalKills++; NR.saveProfile();
     G.combo++;
     G.comboT = G.comboWindow();
     if (G.combo > G.stats.maxCombo) G.stats.maxCombo = G.combo;
     G.addScore(e.score, e.x, e.y - e.h - 6, false);
     NR.progress.check(G);
-    // giblets
-    F.burst(e.x, e.y - e.h / 2, { n: 26, col: e.type === "crawler" ? "red" : e.type === "drone" ? "cyan" : "purple", spd: 430, life: 0.65 });
+    // giblets (budgeted)
+    NR.vfx.burst(e.x, e.y - e.h / 2, { n: 26, col: e.type === "crawler" ? "red" : e.type === "drone" ? "cyan" : "purple", spd: 430, life: 0.65 });
     F.shards(e.x, e.y - e.h / 2, 10, e.type === "crawler" ? "magenta" : "cyan");
     F.ring(e.x, e.y - e.h / 2, { col: "white", r1: 90, life: 0.35, lw: 5 });
-    NR.audio.play("kill");
+    NR.audio.play("enemyDie");
     if (e.type !== "boss") G.slowmo(0.55, 0.08);
     // drops
     if (U.chance(0.09)) G.pickups.push(new NR.Pickup(e.x, e.y - 20, "heart"));
     else if (U.chance(0.15)) G.pickups.push(new NR.Pickup(e.x, e.y - 20, "energy"));
+    if (NR.net.mode === "host" && e.netId)
+      NR.net.transport && NR.net.transport.broadcast({ k: "enemy-hp", id: e.netId, hp: 0, dead: true });
   };
 
   G.onBossKilled = function (b) {
     G.stats.kills++; NR.evolution?.rewardKill(); NR.profile.totalKills++; NR.saveProfile(); NR.progress.check(G);
     G.bossActive = false; G.bossRef = null;
     G.addScore(b.score, b.x, b.y - 200, true);
-    G.banner("TARGET ELIMINATED", "+" + U.fmt(b.score), "#ffe14d");
+    G.banner((b.bossName || "TARGET") + " ELIMINATED", "+" + U.fmt(b.score), "#ffe14d");
     F.burst(b.x, b.y - 90, { n: 80, col: "orange", spd: 700, life: 1.2 });
     F.burst(b.x, b.y - 90, { n: 40, col: "magenta", spd: 500, life: 1 });
     F.ring(b.x, b.y - 90, { col: "yellow", r1: 600, life: 0.9, lw: 14 });
     G.shake(1);
     hud.flash("rgba(255,225,120,0.35)");
-    NR.audio.play("explode");
+    NR.audio.play("bossDefeat");
+    NR.crazy?.happytime(); // a genuine positive moment — platform signal
     for (let i = 0; i < 3; i++) G.pickups.push(new NR.Pickup(b.x + U.rand(-80, 80), b.y - 60, i === 0 ? "heart" : "energy"));
     // clear remaining adds spectacularly
     for (const e of G.enemies) if (!e.dead) { F.burst(e.x, e.y - e.h / 2, { n: 18, col: "orange", spd: 400, life: 0.6 }); e.dead = true; }
+    if (NR.net.mode === "host" && b.netId)
+      NR.net.transport && NR.net.transport.broadcast({ k: "enemy-hp", id: b.netId, hp: 0, dead: true });
   };
 
   G.addScore = function (n, x, y, big) {
@@ -409,12 +494,67 @@
       }
     }
 
-    // wave start countdown
+    // wave start countdown (WAVE FIGHT)
     if (G.mode === "survival" && !p.dead && G.startT > 0 && G.startT < 900) {
       G.startT -= rd;
       if (G.startT <= 0) {
         if (G.enemies.length === 0 && G.spawnQueue.length === 0 && !G.bossActive) startWave(G.wave + 1);
         else G.startT = 0.5;
+      }
+    }
+
+    // SURVIVE: continuous escalating pressure — no wave breaks, high-score run
+    if (G.mode === "survive" && !p.dead) {
+      G.surviveT += dt;
+      G.surviveBatchT -= dt;
+      // score trickles with survival time
+      if (Math.floor(G.surviveT) !== G._surviveScoreMark) {
+        G._surviveScoreMark = Math.floor(G.surviveT);
+        G.score += 10 + Math.floor(G.surviveT / 30) * 5;
+      }
+      if (G.surviveBatchT <= 0 && !G.bossActive) {
+        G.surviveBatchT = 10;
+        const def = G.levelDef;
+        if (def && NR.levelsys) {
+          const effLevel = def.level + Math.floor(G.surviveT / 60); // pressure grows over minutes
+          const batchDef = NR.levelsys.levelDef(G.chapter || 0, effLevel);
+          const batch = NR.levelsys.surviveBatch(G.surviveT, batchDef);
+          let d = 0.3;
+          const q = G.spawnQueue;
+          for (const type of batch) q.push({ type, t: (d += U.rand(0.3, 1.0)) });
+          const stage = NR.levelsys.stageFor(batchDef.level);
+          if (stage.supers > 0 && U.chance(0.25)) q.push({ type: "super", t: (d += 1) });
+          G.enemyHpMul = NR.levelsys.enemyMuls(batchDef, 1 + Math.floor(G.surviveT / 45)).hp
+            * (G.difficulty === "casual" ? .75 : G.difficulty === "hard" ? 1.35 : 1);
+          G.enemySpdMul = 1 + Math.min(0.6, G.surviveT / 300);
+          G.enemyDmgMul = 1 + Math.max(0, Math.floor(G.surviveT / 60) - 1) * 0.08;
+          // milestone boss every 3 minutes
+          if (NR.levelsys.surviveBossAt(G.surviveT) && !G.bossActive) {
+            G.surviveBossN++;
+            const bdef = NR.bossDefs
+              ? NR.bossDefs.forMilestone(G.chapter || 0, batchDef.level, G.surviveBossN)
+              : { skin: "mech", name: "SHOGUN-9" };
+            const bx = p.x > W.W / 2 ? W.W * 0.28 : W.W * 0.72;
+            const boss = NR.bossDefs ? NR.bossDefs.spawn(bdef, bx, G.enemyHpMul, G.surviveBossN) : new NR.Boss(bx, W.groundY, G.enemyHpMul, G.surviveBossN, "mech");
+            boss.spawnT = 0; boss.netId = "boss" + G.surviveBossN;
+            G.enemies.push(boss); G.bossRef = boss; G.bossActive = true;
+            G.banner("⚠ " + (boss.bossName || "BOSS") + " ⚠", U.fmtTime(G.surviveT) + " — survive the war machine", "#ff2d95");
+            NR.audio.play("bossIntro");
+            G.shake(0.5);
+          }
+        }
+      }
+      // pickup drip keeps long runs alive
+      if (G.pickups.length === 0 && U.chance(dt * 0.05))
+        G.pickups.push(new NR.Pickup(U.rand(200, W.W - 200), W.groundY - 200, U.chance(0.5) ? "heart" : "energy"));
+    }
+
+    // online host: keep the boss health bar honest for guests (2Hz)
+    if (NR.net.mode === "host" && G.bossActive && G.bossRef && G.bossRef.netId) {
+      G._bossSyncT = (G._bossSyncT || 0) - rd;
+      if (G._bossSyncT <= 0) {
+        G._bossSyncT = 0.5;
+        NR.net.transport && NR.net.transport.broadcast({ k: "enemy-hp", id: G.bossRef.netId, hp: Math.max(0, Math.round(G.bossRef.hp)), dead: false });
       }
     }
 
@@ -457,7 +597,7 @@
     // combo decay
     if (G.comboT > 0) { G.comboT -= dt; if (G.comboT <= 0) G.combo = 0; }
 
-    // wave cleared?
+    // wave cleared? (WAVE FIGHT only — SURVIVE never breaks)
     if (G.mode === "survival" && G.wave > 0 && G.startT <= 0 && !G.bossActive && G.enemies.length === 0 && G.spawnQueue.length === 0 && !p.dead) {
       G.clearT += dt;
       if (G.clearT > 0.7) { G.clearT = 0; G.startT = 999; onWaveCleared(); }
@@ -482,6 +622,7 @@
   G.finishRun = function (victory = false) {
     if(G.finished)return;
     G.finished=true;G.state=victory?'victory':'over';
+    NR.crazy?.gameplayStop();
     const newHigh = G.score > G.high;
     if (newHigh) { G.high = G.score; NR.store.setItem('nr_high', String(G.high)); }
     // Skyward progression: coins + XP for every run, gems for milestones
@@ -502,9 +643,21 @@
       NR.progress.check(G);
     }
     if(G.mode==='survival')NR.profile.bestWave=Math.max(NR.profile.bestWave||0,G.wave);
+    if(G.mode==='survive')NR.profile.bestSurvive=Math.max(NR.profile.bestSurvive||0,Math.floor(G.surviveT));
     NR.profile.runs++;NR.saveProfile();NR.progress.record(G,victory);
+    // validated online leaderboard submission (plausibility + rate limits)
+    if (G.online) {
+      NR.net.submitLeaderboard({
+        wave: G.mode === "survive" ? Math.floor(G.surviveT / 60) : G.wave,
+        score: G.score,
+        time: Math.round(G.time),
+        mode: G.mode,
+      });
+    }
     if(victory)NR.expeditionUI.showVictory(G);
     else NR.ui.showGameOver(G,newHigh);
+    // midgame ad only on the results screen — never during combat
+    if (!victory && G.wave >= 3) NR.crazy?.showMidgame("run-end");
     document.getElementById('run-save').textContent=NR.store.persistent?'Record saved on this device. No server or account needed.':'Storage is blocked. This record lasts only while this tab stays open.';
     NR.expeditionUI.refresh();
   };

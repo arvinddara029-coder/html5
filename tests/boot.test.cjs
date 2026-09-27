@@ -633,7 +633,8 @@ test("frame budget: 600 gameplay frames stay under 60ms of JS per frame on avera
 test("six operators exist, each with distinct stats and a valid signature look", () => {
   const E = engine();
   const { NR } = E;
-  assert.equal(NR.characters.length, 6, "roster grew from 3 to 6 operators");
+  assert.ok(NR.characters.length >= 6, "roster grew from 3 to at least 6 operators (7 heroes shipped)");
+  assert.equal(NR.characters.length, 12, "hero roster: 12 signature heroes (starter, samurai, caster, tank, guardian, fire, assassin, speed, brawler, ranged, battlemage, brute)");
   const ids = new Set();
   for (const c of NR.characters) {
     assert.ok(!ids.has(c.id), `unique id ${c.id}`);
@@ -855,4 +856,107 @@ test('all original super files have explicit coverage status and all eleven FBX 
   for(const p of NR.superManifest)assert.ok(coverage[p],p);
   assert.equal(NR.superContent.actors.filter(a=>a.role==='guardian').length,11);
   for(const p of NR.superManifest.filter(p=>p.endsWith('.fbx')))assert.equal(coverage[p],'runtime-mapped');
+});
+
+/* ================= production-pass regressions ================= */
+
+test("drones and wraiths survive their spawn window without throwing (jellyfish FPS bug)", () => {
+  // the floating tentacle/hooded enemies had this.spr.set("blink") in update()
+  // but no sheet animator — every spawn frame threw, dropping whole updates.
+  const E = engine();
+  const { NR } = E;
+  NR.sprites.init(); NR.world.init(); NR.ui.init();
+  NR.profile.mode = "survival";
+  NR.game.start();
+  const G = NR.game;
+  for (let i = 0; i < 8; i++) {
+    G.enemies.push(new NR.Drone(200 + i * 60, 400, 1));
+    G.enemies.push(new NR.Wraith(300 + i * 60, NR.world.groundY, 1));
+  }
+  // step through the 0.4s spawn window of every one of them
+  for (let f = 0; f < 40; f++) {
+    G.update(1 / 60, 1 / 60);
+    NR.input.postUpdate();
+  }
+  assert.ok(G.enemies.length === 16, "all 16 flying enemies alive");
+  for (const e of G.enemies) assert.ok(e.spawnT <= 0, `${e.type} cleared its spawn window`);
+});
+
+test("every hero kit casts without throwing (VFX binding regression)", () => {
+  // abilities.js referenced an unbound VFX symbol — casting threw.
+  const E = engine();
+  const { NR } = E;
+  NR.sprites.init(); NR.world.init(); NR.ui.init();
+  NR.profile.mode = "survival";
+  NR.game.start();
+  const G = NR.game, p = G.player;
+  p.energy = 100;
+  for (const def of NR.heroes.defs) {
+    p.reset();
+    NR.applyCharacter(p, def.key);
+    assert.equal(p.ab.slots.length, 3, `${def.key} kit has 3 abilities`);
+    const names = p.ab.slots.map((id) => NR.abilities.def(id) && NR.abilities.def(id).name);
+    assert.ok(names.every(Boolean), `${def.key} abilities all defined: ${names.join(",")}`);
+    G.sukunaUsed = false;
+    for (let i = 0; i < 3; i++) {
+      p.ab.cd[i] = 0;
+      p.energy = 100;
+      const ok = NR.abilities.cast(p, i, G);
+      assert.ok(ok, `${def.key} slot ${i} (${p.ab.slots[i]}) cast`);
+      G.update(1 / 60, 1 / 60); // tick states must not throw either
+      NR.input.postUpdate();
+    }
+  }
+});
+
+test("twelve heroes with mechanically distinct kits and valid looks", () => {
+  const E = engine();
+  const { NR } = E;
+  const kits = new Set();
+  for (const h of NR.characters) {
+    const kit = (h.kit || []).join("|");
+    assert.ok(kit.split("|").length === 3, `${h.key} has 3 abilities`);
+    assert.ok(!kits.has(kit), `kit of ${h.key} is unique`);
+    kits.add(kit);
+  }
+  assert.equal(kits.size, NR.characters.length, "no two heroes share a full kit");
+});
+
+test("enemy readability pass: bigger art with proportional hitboxes", () => {
+  const E = engine();
+  const { NR } = E;
+  NR.world.init();
+  const c = new NR.Crawler(200, NR.world.groundY, 1);
+  assert.ok(c.h >= 74, "crawler hitbox grew with the readability pass");
+  const s = new NR.Slime(200, NR.world.groundY, 1);
+  assert.ok(s.h >= 60, "slime hitbox grew with the readability pass");
+  assert.ok(c.h > s.h, "sizes stay readable relative to threat");
+});
+
+test("hero select + enemy codex render and survive churn", () => {
+  const E = engine();
+  const { NR } = E;
+  NR.sprites.init(); NR.world.init(); NR.ui.init();
+  NR.lobby.init();
+  // hero select: highlight every hero (renders preview + detail + cards)
+  for (const def of NR.heroes.defs) NR.codex.openHeroes(def.key);
+  // locked heroes stay visible but refuse selection
+  const before = NR.profile.character;
+  NR.profile.level = 1;
+  const locked = NR.heroes.defs.find((h) => (h.unlockLevel || 1) > 1);
+  if (locked) {
+    assert.ok(!NR.heroes.select(locked.key), "locked hero refuses selection");
+    assert.equal(NR.profile.character, before, "profile hero unchanged");
+  }
+  // unlocked hero selects and rebinds the kit automatically
+  NR.profile.level = 30;
+  assert.ok(NR.heroes.select("miyu"), "miyu selects at high level");
+  NR.applyCharacter(NR.game.player || new NR.Player(), "miyu");
+  // enemy codex opens, lists field units + bosses, and survives reopen churn
+  NR.codex.openEnemies();
+  NR.codex.openHeroes();
+  NR.codex.openEnemies();
+  const G = NR.game;
+  G.enemies.push(new NR.Wraith(400, NR.world.groundY, 1)); // codex previews instantiate enemies
+  G.update(1 / 60, 1 / 60);
 });

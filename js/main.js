@@ -1,4 +1,11 @@
-/* ============ NEON RONIN — boot, fixed loop, render orchestration ============ */
+/* ============ NEON RONIN — boot, fixed loop, render orchestration ============
+   Production pass:
+   - FPS target setting (Auto/30/45/60/90/120) actually caps the frame loop
+   - Quality setting caps devicePixelRatio + drives VFX budgets
+   - CrazyGamesService init + loading/gameplay events wired here
+   - Diagnostics: every error becomes a structured record (Error Center)
+   - Development-only debug panel (?debug=1)
+   - Loading overlay with real progress for district streaming */
 (function () {
   const U = NR.util;
   const canvas = document.getElementById("game");
@@ -7,11 +14,22 @@
   NR.view = { w: 1280, h: 940, scale: 1 };
   let dpr = 1;
 
+  /* ---------------- runtime targets (set from Settings) ---------------- */
+  NR.main = {
+    fpsTarget: 0,     // 0 = auto (uncapped)
+    quality: "medium",
+    setFpsTarget(v) { NR.main.fpsTarget = Math.max(0, Number(v) || 0); },
+    setQuality(q) {
+      NR.main.quality = ["low", "medium", "high"].includes(q) ? q : "medium";
+      resize();
+    },
+    dprCap() { return NR.main.quality === "low" ? 1 : NR.main.quality === "high" ? 2 : 1.5; },
+  };
+
   /* ---------------- error reporting ----------------
-     A thrown error used to leave a permanent red box on screen saying only
-     "Script error" — no detail, no way to dismiss it, and it stayed there after
-     the game recovered. Now: the same message is reported once, the full stack
-     goes to the console, the box clears itself, and the loop keeps running. */
+     A thrown error used to leave a permanent red box. Now: reported once,
+     full stack to console, structured record to the Diagnostics Error
+     Center, the box clears itself, and the loop keeps running. */
   const errBox = document.getElementById("errtoast");
   let errHide = 0, lastErr = "", errCount = 0;
   function reportError(label, err, where) {
@@ -21,6 +39,7 @@
     if (key === lastErr) { errCount++; return; }
     lastErr = key; errCount = 1;
     try { console.error("[SKYWARD] " + label, detail); } catch (_) {}
+    NR.diag && NR.diag.error(`${label}: ${msg}`, detail);
     if (!errBox) return;
     const file = where ? "\n" + where : (detail.stack ? "\n" + String(detail.stack).split("\n")[1].trim() : "");
     errBox.textContent = "⚠ " + label + ": " + msg + file + "\nThe game keeps running — this note clears itself.";
@@ -35,7 +54,7 @@
   window.addEventListener("unhandledrejection", (e) => reportError("Async error", e.reason));
 
   function resize() {
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    dpr = Math.min(window.devicePixelRatio || 1, NR.main.dprCap());
     const cw = window.innerWidth, ch = window.innerHeight;
     canvas.width = Math.floor(cw * dpr);
     canvas.height = Math.floor(ch * dpr);
@@ -53,11 +72,26 @@
 
   /* ---------------- boot ---------------- */
   function boot() {
+    NR.diag.initDebug();
+    NR.vfx.install();                // wrap the animated-effect library with the VFX budget
+    NR.crazy.init();                 // never blocks the game
+    NR.audioMap.load(null);          // prefetch the sample map (decode on first gesture)
     NR.sprites.init();
     NR.world.init();
     resize();
     NR.ui.init();
+    // platform focus handling: tab hidden / window blurred → auto-pause, report stop
+    if (typeof document.addEventListener === "function") {
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) { NR.game.autoPause(); NR.crazy.gameplayStop(); }
+      });
+      window.addEventListener?.("blur", () => NR.game.autoPause());
+    }
     NR.ui.setLoading(0.05);
+    NR.crazy.loadingStart();
+    // invite-link routing: an invited player skips straight into the room
+    const inviteRoom = NR.crazy.getInviteParam("room");
+    if (inviteRoom) NR.diag.info("started from invite link, room=" + inviteRoom);
     // staged loading: lobby art + the hero's equipped layers first, everything else streams in
     const lookPaths = NR.assets.layerPaths(NR.profile.appearance);
     const lobbyPaths = [
@@ -80,7 +114,6 @@
       "Elements/Elements_02-512x512.png", "Elements/Elements_13-512x512.png", "Elements/Elements_17-512x512.png",
     ].concat(lookPaths);
     // Use the main asset lib (NR.assets) which knows how to load string paths.
-    // Fallback to U.assets if for some reason NR.assets is unavailable.
     const loader = (NR.assets && NR.assets.load) ? NR.assets : U.assets;
     loader.load(lobbyPaths, (k) => NR.ui.setLoading(0.05 + k * 0.85)).then(() => {
       NR.ui.setLoading(0.92);
@@ -91,6 +124,16 @@
         NR.ui.setLoading(1);
         setTimeout(() => {
           G.toMenu();
+          NR.crazy.loadingStop();
+          NR.settings?.apply?.();
+          NR.cloudSync?.pull?.();
+          // invited players land directly in the room that invited them
+          if (inviteRoom) {
+            NR.hub.notify("Joining your friend's room…");
+            NR.net.joinRoom(inviteRoom).then((room) => { if (room) NR.social.openOnline(); });
+          } else if (NR.crazy.isInstantMultiplayer()) {
+            NR.social.openOnline();
+          }
           if (location.hash === "#auto") smokeTest();
         }, 250);
       });
@@ -113,23 +156,31 @@
     }, 420);
   }
 
-  /* ---------------- main loop ---------------- */
-  let last = performance.now();
+  /* ---------------- main loop (with a real FPS cap) ---------------- */
+  let last = performance.now(), acc = 0;
   function frame(now) {
     requestAnimationFrame(frame);
     let rd = (now - last) / 1000;
+    if (rd > 0.1) rd = 0.1; // big tab-switch hiccup clamp
     last = now;
-    if (rd > 0.1) rd = 0.1; // big tab-switch hiccup clap
-    if (NR.input.justPressed("mute")) {
-      NR.ui.toggleMute();
+    NR.diag.frame(rd * 1000);
+    NR.diag.updateDebug(now);
+    const cap = NR.main.fpsTarget;
+    if (cap > 0) {
+      acc += rd;
+      const minDt = 1 / cap;
+      if (acc < minDt - 0.0005) return;   // not due for the next simulated frame yet
+      rd = Math.min(acc, 0.1);
+      acc = 0;
     }
-    // one bad frame must never take the whole game down: report it, drop the
-    // frame, and keep playing (the loop is already re-armed above)
+    if (NR.input.justPressed("mute")) NR.ui.toggleMute();
+    // one bad frame must never take the whole game down
     try {
       const dt = G.state === "playing" ? G.effDt(rd) : rd;
       if (G.state !== "loading") G.update(dt, rd);
       if (G.state === "menu") NR.world.update(rd, NR.view); // ambient life behind menu
       NR.audio.muted = !NR.audio.sfxOn && !NR.audio.musicOn;
+      NR.net.tick(rd);
       NR.input.postUpdate();
       NR.hub.update(now);
       render();
@@ -159,6 +210,8 @@
       NR.spriteRender.drawCorpses(ctx, G);
       for (const e of G.enemies) e.draw(ctx);
       for (const w of G.shockwaves) w.draw(ctx);
+      // remote online heroes (interpolated)
+      for (const r of NR.net.remote.values()) r.draw(ctx);
       if (!G.player.dead || G.deathT > 1.1) G.player.draw(ctx);
       for (const b of G.bolts) b.draw(ctx);
       for (const b of G.shots) b.draw(ctx);
@@ -169,10 +222,14 @@
 
     NR.world.drawFront(ctx, cam, view);
 
-    // HUD in screen space
+    // HUD in screen space, scaled by the HUD-scale setting
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (G.state !== "menu" && G.state !== "loading" && G.player)
-      NR.hud.draw(ctx, G, cw, ch);
+    if (G.state !== "menu" && G.state !== "loading" && G.player) {
+      const hs = (NR.profile.settings && NR.profile.settings.hudScale) || 1;
+      if (hs !== 1) { ctx.scale(hs, hs); }
+      NR.hud.draw(ctx, G, cw / hs, ch / hs);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
   }
 
   if (document.readyState === "loading")

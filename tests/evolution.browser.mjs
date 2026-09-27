@@ -13,11 +13,10 @@ try{
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
   await page.goto(process.env.BASE_URL||pathToFileURL(resolve('index.html')).href);
   await page.waitForFunction(()=>window.NR?.game.state==='menu',{timeout:60000});
-  await page.evaluate(()=>NR.ui.show('set'));
-  await page.click('#open-vault');check(await page.locator('#evolution-dialog').isVisible(),'Vault opens '+mobile);
+  await page.evaluate(()=>NR.vault.openVault('abilities'));check(await page.locator('#evolution-dialog').isVisible(),'Vault opens '+mobile);
   await page.screenshot({path:`test-results/evolution-vault-${mobile?'mobile':'desktop'}.png`});
   await page.getByRole('button',{name:'CLOSE ×',exact:true}).click();
-  await page.click('#super-roster');check(await page.locator('#evolution-dialog canvas').count()>5,'New heroes and pets selectable');
+  await page.evaluate(()=>NR.vault.openSuperRoster());check(await page.locator('#evolution-dialog canvas').count()>5,'New heroes and pets selectable');
   await page.getByRole('button',{name:'SELECT HERO',exact:true}).first().click();
   await page.getByRole('button',{name:'SELECT PET',exact:true}).first().click();
   await page.getByRole('button',{name:'CLOSE ×',exact:true}).click();

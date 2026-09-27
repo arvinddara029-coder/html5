@@ -68,3 +68,56 @@ Portable backups now preserve currency, owned equipment, all six chapter unlocks
 ## Credits
 
 Original licenses/readmes are retained. In-game credits include Legacy Collection, GandalfHardcore, Anokolisa and the Mario's Madness model contributors **FunkyBunny, DarksArtworks, Sharkman**, with thanks to Marco Antonio and the mod team. Retain these attributions if distributing the derived guardian sprites.
+
+---
+
+## PRODUCTION PASS 2 — content expansion, jellyfish fix, codex UI (2026-09-27)
+
+**Fixed**
+- JELLYFALL FPS BUG (root cause): Drone and Wraith enemies called `this.spr.set("blink")`
+  during their 0.4s spawn window, but both draw procedurally and have no sheet
+  animator. Every spawn frame threw a TypeError; the frame loop's error handler
+  then skipped the rest of the update — with a batch of the floating
+  jellyfish/octopus-like wraiths spawning together this produced repeated
+  dropped frames, error toasts and stutter. The spawn blink is now a glow-only
+  window. Measured with 45 mixed enemies alive: avg 0.69 ms/frame JS,
+  p99 4.4 ms, worst 9.1 ms (60 fps budget = 16.6 ms).
+- ABILITY CAST CRASH: `VFX` was referenced 15× in abilities.js but never bound —
+  every hero ability that used it (flame ward ticks, damage numbers, rings)
+  threw. Bound to NR.vfx with a no-op stub fallback.
+- MOUSE-MOVE SOUND SPAM: a document-wide `mouseover` listener played a hover cue
+  on every button under a travelling cursor. Removed; hover cues are now opt-in
+  per element via `[data-sfx-hover]`, clicks stay audible.
+
+**Content**
+- Hero roster 7 → 12: MIRA (storm witch), MARSHAL (guardian), MIYU (assassin),
+  GRUSHA (brawler), RUNE (battlemage) — each with a mechanically distinct
+  3-ability kit (15 new ability implementations, 5 new ability families:
+  chainBolt/thunderStep/tempest, shieldBash/rallyBanner/pikeVolley,
+  iaiSlash/petalVeil/bladeWaltz, boarCharge/warStomp/frenzy,
+  arcaneBolt/runeWard/meteorForge). No two heroes share a full kit (test-pinned).
+- HERO SELECT screen: live animated model preview (bigger than the cards),
+  stat bars, kit with [E]/[Z]/[X] keycaps, perk text, locked heroes stay fully
+  visible with their model + unlock level, smooth swap animation, relic-spell
+  loadout + management link.
+- ENEMY CODEX screen: every registered enemy with a live animated preview,
+  first-seen stage, threat rating and behaviour notes; later-stage enemies are
+  marked "ARRIVES LVL n" instead of hidden; the boss rotation and late-world
+  super threats are listed.
+- VAULT rework: the generic ABILITIES tab is gone (kits bind automatically with
+  the hero); tabs are SKINS · HAIR · MASK · ARMOR · COSMETICS · PETS with the
+  priced item cards, plus cross-links to Hero Select and the super roster.
+- AUTO-RESUME: a saved wave-boundary checkpoint now surfaces as a prominent
+  RESUME SAVED RUN banner in the lobby (wave, hero, score) — no menu digging.
+
+**Readability / platform**
+- Enemy art +14% with hitboxes +10% (art overhangs the box, so hits stay fair);
+  hero render scale 1.06 → 1.16; boss bodies ~10% larger.
+- Tab hidden / window blur auto-pauses gameplay and reports gameplayStop to the
+  platform SDK.
+- Lobby gets dedicated HEROES and ENEMIES nav entries; compact layout rules for
+  short viewports (≤760px/≤640px heights) remove vertical scrolling.
+
+**Tests**: 89 → 94 (all green). New regressions: drone/wraith spawn-window
+survival, every-hero kit cast (VFX regression), unique-kit roster, enemy
+readability scaling, hero-select + enemy-codex churn.
