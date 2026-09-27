@@ -1017,26 +1017,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/EnemyDeath/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/EnemyDeath/Preview.gif",
     "status": "reference-preview",
     "roles": []
@@ -1098,26 +1078,11 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/EnemyDeath/enemy-death.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/EnemyDeath/spritesheet.png",
     "status": "runtime-mapped",
     "roles": [
       "pixel-verified-frame-alias"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/explosion-1-a/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/explosion-1-a/Sprites/explosion-1.png",
@@ -1188,18 +1153,8 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/explosion-1-b/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/explosion-1-b/Preview.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/explosion-1-b/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -1266,18 +1221,8 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/explosion-1-c/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/explosion-1-c/Preview.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/explosion-1-c/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -1358,18 +1303,8 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/explosion-1-d/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/explosion-1-d/Preview.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/explosion-1-d/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -1464,18 +1399,8 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/explosion-1-e/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/explosion-1-e/Preview.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/explosion-1-e/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -1640,18 +1565,8 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/explosion-1-f/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/explosion-1-f/Preview.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/explosion-1-f/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -1718,18 +1633,8 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/explosion-1-g/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/explosion-1-g/Preview.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Explosions pack/explosion-1-g/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -1789,11 +1694,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Grotto-escape-2-FX/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Grotto-escape-2-FX/Previews/electro-shock.gif",
     "status": "reference-preview",
     "roles": []
@@ -1831,11 +1731,6 @@
   {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Grotto-escape-2-FX/Previews/slash-upward.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Grotto-escape-2-FX/sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -2259,18 +2154,8 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Ground Explosion/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Ground Explosion/GIF/explosion-animation.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Ground Explosion/explosion-animation.ase",
-    "status": "source-or-alternate-export",
     "roles": []
   },
   {
@@ -2377,11 +2262,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Hit/hit.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Hit/hit.png",
     "status": "runtime-mapped",
     "roles": [
@@ -2391,21 +2271,6 @@
   {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Hit/preview.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/Bolt/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/Bolt/bolt.aseprite",
-    "status": "source-or-alternate-export",
     "roles": []
   },
   {
@@ -2447,18 +2312,8 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/Pulse/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/Pulse/preview.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/Pulse/pulse.aseprite",
-    "status": "source-or-alternate-export",
     "roles": []
   },
   {
@@ -2492,16 +2347,6 @@
   {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/Pulse/spritesheet.png",
     "status": "alternate-sheet-layout",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/charged/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/charged/charged.aseprite",
-    "status": "source-or-alternate-export",
     "roles": []
   },
   {
@@ -2557,16 +2402,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/crossed/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/crossed/crossed.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/crossed/preview.gif",
     "status": "reference-preview",
     "roles": []
@@ -2616,21 +2451,6 @@
   {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/crossed/spritesheet.png",
     "status": "alternate-sheet-layout",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/hits/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/hits/Hits-2/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/hits/Hits-2/hits-2.aseprite",
-    "status": "source-or-alternate-export",
     "roles": []
   },
   {
@@ -2695,16 +2515,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/hits/Hits-3/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/hits/Hits-3/hits-3.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/hits/Hits-3/preview.gif",
     "status": "reference-preview",
     "roles": []
@@ -2750,16 +2560,6 @@
     "roles": [
       "pixel-verified-frame-alias"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/hits/Hits-5/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/hits/Hits-5/hits-5.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/hits/Hits-5/preview.gif",
@@ -2823,16 +2623,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/hits/Hits-6/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/hits/Hits-6/hits-6.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/hits/Hits-6/preview.gif",
     "status": "reference-preview",
     "roles": []
@@ -2894,16 +2684,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/hits/hits-1/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/hits/hits-1/hits-1.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/hits/hits-1/preview.gif",
     "status": "reference-preview",
     "roles": []
@@ -2949,16 +2729,6 @@
     "roles": [
       "pixel-verified-frame-alias"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/hits/hits-4/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/hits/hits-4/hits-4.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/hits/hits-4/preview.gif",
@@ -3022,18 +2792,8 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/spark/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/spark/preview.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/spark/spark.aseprite",
-    "status": "source-or-alternate-export",
     "roles": []
   },
   {
@@ -3079,11 +2839,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/waveform/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/waveform/preview.gif",
     "status": "reference-preview",
     "roles": []
@@ -3122,11 +2877,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Warped shooting fx/waveform/waveform.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Water splash/Sprites/frame1.png",
     "status": "runtime-mapped",
     "roles": [
@@ -3153,41 +2903,11 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Explosions and Magic/Water splash/splash.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Explosions and Magic/Water splash/spritesheet.png",
     "status": "runtime-mapped",
     "roles": [
       "pixel-verified-frame-alias"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Bridge Heroine/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Bridge Heroine/Heroine base/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Bridge Heroine/Heroine base/Previews/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Bridge Heroine/Heroine base/Previews/attack.gif",
@@ -3207,11 +2927,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Bridge Heroine/Heroine base/Previews/run.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Bridge Heroine/Heroine base/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -3355,11 +3070,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Bridge Heroine/Heroine base/Spritesheets/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Bridge Heroine/Heroine base/Spritesheets/attack.png",
     "status": "runtime-mapped",
     "roles": [
@@ -3393,11 +3103,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Dancing Girl Files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Dancing Girl Files/Preview/all.gif",
     "status": "reference-preview",
     "roles": []
@@ -3425,41 +3130,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Dancing Girl Files/Preview/snap.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Dancing Girl Files/aseprite/all.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Dancing Girl Files/aseprite/balancing.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Dancing Girl Files/aseprite/hips.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Dancing Girl Files/aseprite/skip.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Dancing Girl Files/aseprite/slide.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Dancing Girl Files/aseprite/snap.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Dancing Girl Files/sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -3778,21 +3448,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Fire-Skull-Files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Fire-Skull-Files/PSD/fire-skull-no-fire.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Fire-Skull-Files/PSD/fire-skull.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Fire-Skull-Files/Previews/fire-skull-no-fire.gif",
     "status": "reference-preview",
     "roles": []
@@ -3800,11 +3455,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Fire-Skull-Files/Previews/fire-skull.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Fire-Skull-Files/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -3902,16 +3552,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Ghost-Files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Ghost-Files/Previews/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Ghost-Files/Previews/appear.gif",
     "status": "reference-preview",
     "roles": []
@@ -3934,11 +3574,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Ghost-Files/Previews/vanish.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Ghost-Files/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -4138,11 +3773,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Ghost-Files/Spritesheets/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Ghost-Files/Spritesheets/ghost-Appear.png",
     "status": "alternate-sheet-layout",
     "roles": []
@@ -4168,16 +3798,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Ghost-Files/ghost.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Grotto-escape-2-boss-dragon/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Grotto-escape-2-boss-dragon/Previews/breath.gif",
     "status": "reference-preview",
     "roles": []
@@ -4190,11 +3810,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Grotto-escape-2-boss-dragon/Previews/tail.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Grotto-escape-2-boss-dragon/sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -4366,16 +3981,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Hell-Beast-Files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Hell-Beast-Files/Breath/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Hell-Beast-Files/Breath/Preview.gif",
     "status": "reference-preview",
     "roles": []
@@ -4411,11 +4016,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Hell-Beast-Files/Breath/Spritesheet.png",
     "status": "alternate-sheet-layout",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Hell-Beast-Files/Burn/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -4471,18 +4071,8 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Hell-Beast-Files/Fireball/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Hell-Beast-Files/Fireball/Preview.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Hell-Beast-Files/Fireball/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -4509,11 +4099,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Hell-Beast-Files/Fireball/Spritesheet.png",
     "status": "alternate-sheet-layout",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Hell-Beast-Files/Idle/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -4571,16 +4156,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Hell-Hound-Files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Hell-Hound-Files/Previews/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Hell-Hound-Files/Previews/hell-hound-idle.gif",
     "status": "reference-preview",
     "roles": []
@@ -4598,11 +4173,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Hell-Hound-Files/Previews/hell-hound-walk.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Hell-Hound-Files/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -4844,11 +4414,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Hell-Hound-Files/Spritesheets/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Hell-Hound-Files/Spritesheets/hell-hound-idle.png",
     "status": "alternate-sheet-layout",
     "roles": []
@@ -4875,16 +4440,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Nightmare-Files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Nightmare-Files/Previews/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Nightmare-Files/Previews/idle.gif",
     "status": "reference-preview",
     "roles": []
@@ -4892,11 +4447,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Nightmare-Files/Previews/run.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Nightmare-Files/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -4949,11 +4499,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Nightmare-Files/Spritesheets/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Nightmare-Files/Spritesheets/idle.png",
     "status": "runtime-mapped",
     "roles": [
@@ -4966,16 +4511,6 @@
     "roles": [
       "pixel-verified-frame-alias"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Nightmare-Files/nightmare.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Ogre/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Ogre/Previews/ogre-attack.gif",
@@ -5000,11 +4535,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Ogre/Previews/ogre-walk.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Ogre/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -5237,21 +4767,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Ogre/ogre.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Terrible Knight/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Terrible Knight/Previews/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Terrible Knight/Previews/AirSwordSlash.gif",
     "status": "reference-preview",
     "roles": []
@@ -5317,16 +4832,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Terrible Knight/Projectiles/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Terrible Knight/Projectiles/Hit/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Terrible Knight/Projectiles/Hit/Sprites/hit1.png",
     "status": "runtime-mapped",
     "roles": [
@@ -5365,11 +4870,6 @@
     "roles": [
       "equippable-relic"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Terrible Knight/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Terrible Knight/Sprites/AirSwordSlash/AirSwordSlash-export1.png",
@@ -5771,11 +5271,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Terrible Knight/Spritesheets/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Terrible Knight/Spritesheets/player-AirSwordSlash.png",
     "status": "runtime-mapped",
     "roles": [
@@ -5872,21 +5367,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/Terrible Knight/player.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/WereWolf/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/WereWolf/Previews/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/WereWolf/Previews/werewolf-fall.gif",
     "status": "reference-preview",
     "roles": []
@@ -5904,11 +5384,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/WereWolf/Previews/werewolf-run.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/WereWolf/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -6045,21 +5520,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/WereWolf/werewolf.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/WereWolf.zip",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/crow/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/crow/Previews/crow-fly.gif",
     "status": "reference-preview",
     "roles": []
@@ -6072,11 +5532,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/crow/Previews/crow-idle.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/crow/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -6164,16 +5619,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/crow/crow.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/death/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/death/Previews/death-lamp-rise.gif",
     "status": "reference-preview",
     "roles": []
@@ -6186,11 +5631,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/death/Previews/death-walk.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/death/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -6234,11 +5674,6 @@
     "roles": [
       "actor:43b115bfc084"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/death/Sprites/rise/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/death/Sprites/rise/death-lamp1.png",
@@ -6388,31 +5823,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/death/death-lamp.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/demon-Files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/demon-Files/PSD/breath.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/demon-Files/PSD/demon-attack.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/demon-Files/PSD/demon-idle.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/demon-Files/Previews/demon-attack-no-breath.gif",
     "status": "reference-preview",
     "roles": []
@@ -6425,11 +5835,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/demon-Files/Previews/demon-idle.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/demon-Files/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -6752,21 +6157,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/enemy-ghost/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/enemy-ghost/PSD/enemy-ghost.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/enemy-ghost/Previews/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/enemy-ghost/Previews/no-particles.gif",
     "status": "reference-preview",
     "roles": []
@@ -6774,11 +6164,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/enemy-ghost/Previews/particles.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/enemy-ghost/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -6880,26 +6265,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/flying-bird/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/flying-bird/PSD/flying-creature-cycle-skin.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/flying-bird/PSD/flying-creature-cycle.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/flying-bird/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/flying-bird/Sprites/Colored/frame1.png",
     "status": "runtime-mapped",
     "roles": [
@@ -6998,17 +6363,7 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/flying-bird/previews/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/flying-bird/previews/flying-creature-previewx1.gif",
-    "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/flying-bird/previews/flying-creature-previewx4.gfi",
     "status": "reference-preview",
     "roles": []
   },
@@ -7025,11 +6380,6 @@
     "roles": [
       "pixel-verified-frame-alias"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/flying-eye-demon/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/flying-eye-demon/Preview.gif",
@@ -7100,16 +6450,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/flying-eye-demon/flying-demon.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/meerman/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/meerman/Preview.gif",
     "status": "reference-preview",
     "roles": []
@@ -7136,16 +6476,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/meerman/meerman.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/mutant-toad/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/mutant-toad/Previews/mutant-toad-attack.gif",
     "status": "reference-preview",
     "roles": []
@@ -7158,11 +6488,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/mutant-toad/Previews/mutant-toad-jump.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/mutant-toad/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -7264,16 +6589,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/mutant-toad/mutant-toad.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/wolf-runing-cycle/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/wolf-runing-cycle/Sprites/wolf-runing-cycle-skin1.png",
     "status": "runtime-mapped",
     "roles": [
@@ -7322,11 +6637,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Characters/wolf-runing-cycle/spritesheets/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/wolf-runing-cycle/spritesheets/wolf-runing-cycle-skin.png",
     "status": "runtime-mapped",
     "roles": [
@@ -7336,16 +6646,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Characters/wolf-runing-cycle/spritesheets/wolf-runing-cycle.png",
     "status": "alternate-sheet-layout",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Day-Platformer/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -7377,18 +6677,8 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Day-Platformer/PSD/day-platformer.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Day-Platformer/preview-day-platformer.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Gothic-Castle-Files/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -7409,16 +6699,6 @@
     "roles": [
       "terrain-tiles"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Gothic-Castle-Files/PSD/gothic-castle.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Gothic-Horror-Files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Gothic-Horror-Files/PNG/PREVIEW-gothic-horror.png",
@@ -7445,21 +6725,6 @@
     "roles": [
       "parallax-background"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Gothic-Horror-Files/PSD/gothic-horror.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/HauntedForest/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/HauntedForest/Layers/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/HauntedForest/Layers/Props/pillars.png",
@@ -7546,28 +6811,8 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/HauntedForest/Layers/water.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/HauntedForest/Layers/water.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/HauntedForest/environment.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Junk Wastelands Files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Junk Wastelands Files/aseprite/env.ase",
-    "status": "source-or-alternate-export",
     "roles": []
   },
   {
@@ -7604,16 +6849,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Living-Tissue-Platform-Files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Living-Tissue-Platform-Files/PNG/layers/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Living-Tissue-Platform-Files/PNG/layers/bakground.png",
     "status": "runtime-mapped",
     "roles": [
@@ -7638,11 +6873,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Living-Tissue-Platform-Files/PSD/living-tissue-platform.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Modular-tileset/layers/modular-tileset-sky.png",
     "status": "runtime-mapped",
     "roles": [
@@ -7659,26 +6889,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Modular-tileset/modular-tileset-PREVIEW-HD.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Modular-tileset/modular-tileset.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Mountain Dusk/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Mountain Dusk/Old Version/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Mountain Dusk/Old Version/layers/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -7715,21 +6925,6 @@
     "roles": [
       "parallax-background"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Mountain Dusk/Old Version/parallax-mountain.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Mountain Dusk/Version C/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Mountain Dusk/Version C/layers/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Mountain Dusk/Version C/layers/canyon.png",
@@ -7774,21 +6969,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Mountain Dusk/Version C/preview.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Mountain Dusk/version A/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Mountain Dusk/version A/Aseprite/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Mountain Dusk/version A/Aseprite/Mountain-Dusk.ase",
-    "status": "source-or-alternate-export",
     "roles": []
   },
   {
@@ -7839,26 +7019,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Mountain Dusk/version B/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Mountain Dusk/version B/Aseprite/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Mountain Dusk/version B/Aseprite/Mountain-Dusk-vb.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Mountain Dusk/version B/Layers/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Mountain Dusk/version B/Layers/far-mountains.png",
     "status": "runtime-mapped",
     "roles": [
@@ -7906,11 +7066,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Old-dark-Castle-tileset-Files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Old-dark-Castle-tileset-Files/PNG/old-dark-castle-interior-background.png",
     "status": "runtime-mapped",
     "roles": [
@@ -7930,18 +7085,8 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Old-dark-Castle-tileset-Files/PSD/old-dark-castle-interior-tileset.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Rocky Beach environment/Rocky-Tileset-HD-preview.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Rocky Beach environment/Rocky-Tileset.psd",
-    "status": "source-or-alternate-export",
     "roles": []
   },
   {
@@ -7971,16 +7116,6 @@
     "roles": [
       "terrain-tiles"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Rocky Pass Files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Rocky Pass Files/Aseprite/env.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Rocky Pass Files/PNG/Props/crystal-1.png",
@@ -8049,11 +7184,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Rocky-Tileset/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Rocky-Tileset/PNG/layers/rocky-tileset-2.png",
     "status": "runtime-mapped",
     "roles": [
@@ -8077,21 +7207,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Rocky-Tileset/PNG/preview-rocky-tileset.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Rocky-Tileset/PSD/rocky-tileset.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Underwater Fantasy/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Underwater Fantasy/PNG/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -8135,21 +7250,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Underwater Fantasy/PSD/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/Underwater Fantasy/PSD/underwater-fantasy.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/caverns-files-web/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/caverns-files-web/Caverns-preview.jpg",
     "status": "reference-preview",
     "roles": []
@@ -8157,11 +7257,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/caverns-files-web/Caverns-x1-preview.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/caverns-files-web/Caverns.psd",
-    "status": "source-or-alternate-export",
     "roles": []
   },
   {
@@ -8186,18 +7281,8 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/country-platform-files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/country-platform-files/country-platform-preview.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/country-platform-files/country-platform.psd",
-    "status": "source-or-alternate-export",
     "roles": []
   },
   {
@@ -8229,11 +7314,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/forest-road-background/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/forest-road-background/PNG/back.png",
     "status": "runtime-mapped",
     "roles": [
@@ -8260,31 +7340,11 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/forest-road-background/PSD/forest-road.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/grunge-tileset-files-web/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/grunge-tileset-files-web/grunge-tileset.png",
     "status": "runtime-mapped",
     "roles": [
       "terrain-tiles"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/grunge-tileset-files-web/grunge-tileset.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/lava-background/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/lava-background/PNG/background.png",
@@ -8311,11 +7371,6 @@
     "roles": [
       "parallax-background"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/lava-background/PSD/lava-background.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/lava-background/Preview.png",
@@ -8356,11 +7411,6 @@
     "roles": [
       "parallax-background"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/mist-forest-background/mist-forest-background-Working-File.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/mist-forest-background/mist-forest-background-preview.png",
@@ -8434,21 +7484,6 @@
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/night-town-background-files/night-town-background-previewx2.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/night-town-background-files/night-town-background.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/ships-graveyard/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/ships-graveyard/PNG/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -8526,16 +7561,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/ships-graveyard/PSD/ships-graveyard.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/treasure-hoard-platform/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Environments/treasure-hoard-platform/PNG/back-gold.png",
     "status": "runtime-mapped",
     "roles": [
@@ -8569,31 +7594,11 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Environments/treasure-hoard-platform/PSD/treasure-hoard-background.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Misc/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Misc/Dagger/dagger.png",
     "status": "runtime-mapped",
     "roles": [
       "equippable-relic"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Misc/EnemyProjectile/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Misc/EnemyProjectile/EnemyProjectile.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Misc/EnemyProjectile/Sprites/frame1.png",
@@ -8620,11 +7625,6 @@
     "roles": [
       "pixel-verified-frame-alias"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Misc/Rocks-Textures/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Gothicvania/Misc/Rocks-Textures/PNG/previews/all-rocks-preview.png",
@@ -8735,51 +7735,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Misc/Rocks-Textures/PSD/rocks-1.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Misc/Rocks-Textures/PSD/rocks-2.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Misc/Rocks-Textures/PSD/rocks-3.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Misc/Rocks-Textures/PSD/rocks-4.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Misc/Rocks-Textures/PSD/rocks-5.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Misc/Rocks-Textures/PSD/rocks-6.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Misc/Rocks-Textures/PSD/rocks-7.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Misc/Rocks-Textures/PSD/rocks-8.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Misc/fantasy weapons set/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Misc/fantasy weapons set/PNG/1.png",
     "status": "runtime-mapped",
     "roles": [
@@ -8850,32 +7805,12 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Gothicvania/Misc/fantasy weapons set/PSD/fantasy-weapons-set.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Gothicvania/Misc/fantasy weapons set/Preview.png",
     "status": "reference-preview",
     "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Legacy Collection Assets Guide.pdf",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Misc/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Misc/Characters/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Misc/Characters/sunny-bunny/.DS_Store",
     "status": "documentation-or-metadata",
     "roles": []
   },
@@ -8892,11 +7827,6 @@
   {
     "path": "super/Legacy Collection/Assets/Misc/Characters/sunny-bunny/Previews/sunny-bunny-run.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Misc/Characters/sunny-bunny/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -9026,11 +7956,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Misc/Characters/sunny-dragon/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Misc/Characters/sunny-dragon/Previews/sunny-dragon-fly.gif",
     "status": "reference-preview",
     "roles": []
@@ -9106,11 +8031,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Misc/Characters/sunny-froggy/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Misc/Characters/sunny-froggy/Previews/sunny-froggy-jump.gif",
     "status": "reference-preview",
     "roles": []
@@ -9123,11 +8043,6 @@
   {
     "path": "super/Legacy Collection/Assets/Misc/Characters/sunny-froggy/Previews/sunny-froggy-walk.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Misc/Characters/sunny-froggy/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -9299,11 +8214,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Misc/Characters/sunny-mushroom/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Misc/Characters/sunny-mushroom/Previews/gas.gif",
     "status": "reference-preview",
     "roles": []
@@ -9326,11 +8236,6 @@
   {
     "path": "super/Legacy Collection/Assets/Misc/Characters/sunny-mushroom/Previews/sunny-mushroom-walk.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Misc/Characters/sunny-mushroom/sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -9640,11 +8545,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Misc/colorful-tileset/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Misc/colorful-tileset/PNG/layers/back-vegetation.png",
     "status": "runtime-mapped",
     "roles": [
@@ -9678,21 +8578,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Misc/colorful-tileset/PSD/colorful-tileset.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Misc/gems/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Misc/gems/PSD/stage.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Misc/gems/previews/gem-animation.gif",
     "status": "reference-preview",
     "roles": []
@@ -9718,31 +8603,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/TinyRPG/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Living Pack 1/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Living Pack 1/Frog/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Living Pack 1/Frog/Frog-Preview.gif",
     "status": "reference-preview",
     "roles": []
@@ -9753,11 +8613,6 @@
     "roles": [
       "pixel-verified-frame-alias"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Living Pack 1/Frog/Frog.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Living Pack 1/Frog/Sprites/Frog1.png",
@@ -9814,11 +8669,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Living Pack 1/Mummy/Mummy.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Living Pack 1/Mummy/Sprites/Mummy1.png",
     "status": "runtime-mapped",
     "roles": [
@@ -9871,11 +8721,6 @@
     "roles": [
       "pixel-verified-frame-alias"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Living Pack 1/Ogre/Ogre.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Living Pack 1/Ogre/Sprites/Ogre1.png",
@@ -9953,11 +8798,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Living Pack 1/Slime/slime.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Living Pack 1/Wizard/Sprites/wizard1.png",
     "status": "runtime-mapped",
     "roles": [
@@ -10012,11 +8852,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Living Pack 1/Wizard/wizard.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Mechanic/Drone.png",
     "status": "runtime-mapped",
     "roles": [
@@ -10052,56 +8887,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Monster Pack Files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Monster Pack Files/Ase/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Monster Pack Files/Ase/Fire-haunt.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Monster Pack Files/Ase/Jumping-Demon.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Monster Pack Files/Ase/Treant.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Monster Pack Files/Ase/centaur.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Monster Pack Files/Ase/demon.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Monster Pack Files/Ase/vampire.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Monster Pack Files/Ase/witch.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Monster Pack Files/Previews/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Monster Pack Files/Previews/Fire-haunt.gif",
     "status": "reference-preview",
     "roles": []
@@ -10134,11 +8919,6 @@
   {
     "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Monster Pack Files/Previews/witch.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Monster Pack Files/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -10422,11 +9202,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Monster Pack Files/static/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Battle Sprites/Monster Pack Files/static/Fire-haunt.png",
     "status": "alternate-sheet-layout",
     "roles": []
@@ -10457,26 +9232,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Top-Down-16-bit-fantasy/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Top-Down-16-bit-fantasy/Characters pack 1/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Top-Down-16-bit-fantasy/Characters pack 1/Blond_kid/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Top-Down-16-bit-fantasy/Characters pack 1/Blond_kid/aseprite.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Top-Down-16-bit-fantasy/Characters pack 1/Blond_kid/aseprite.png",
     "status": "runtime-mapped",
     "roles": [
@@ -10489,11 +9244,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Top-Down-16-bit-fantasy/Characters pack 1/Guy/aseprite.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Top-Down-16-bit-fantasy/Characters pack 1/Guy/aseprite.png",
     "status": "runtime-mapped",
     "roles": [
@@ -10503,16 +9253,6 @@
   {
     "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Top-Down-16-bit-fantasy/Characters pack 1/Guy/preview.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Top-Down-16-bit-fantasy/Characters pack 1/PirateGirl/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/Top-Down-16-bit-fantasy/Characters pack 1/PirateGirl/aseprite.ase",
-    "status": "source-or-alternate-export",
     "roles": []
   },
   {
@@ -10535,11 +9275,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/top-down-dungeon-enemy-robot/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/TinyRPG/Characters/top-down-dungeon-enemy-robot/Previews/robot-walk-back.gif",
     "status": "reference-preview",
     "roles": []
@@ -10552,11 +9287,6 @@
   {
     "path": "super/Legacy Collection/Assets/TinyRPG/Characters/top-down-dungeon-enemy-robot/Previews/robot-walk-side.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Characters/top-down-dungeon-enemy-robot/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -10659,31 +9389,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Overworld/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Overworld/Overworld 16x16/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Overworld/Overworld 16x16/Tileset/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Overworld/Overworld 16x16/Tileset/overworld.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Overworld/Overworld 16x16/Tileset/overworld.png",
     "status": "runtime-mapped",
     "roles": [
@@ -10691,28 +9396,8 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Overworld/Overworld 16x16/previews/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Overworld/Overworld 16x16/previews/overworld-preview.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Overworld/Overworld 16x16/previews/overworld-preview.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Overworld/Overworld 32x32/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Overworld/Overworld 32x32/Tileset/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -10721,11 +9406,6 @@
     "roles": [
       "world-prop"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Overworld/Overworld 32x32/previews/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Overworld/Overworld 32x32/previews/beaches.png",
@@ -10743,11 +9423,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Tiny RPG Mountain Files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Tiny RPG Mountain Files/Preview/mountain-preview-Big.png",
     "status": "reference-preview",
     "roles": []
@@ -10755,11 +9430,6 @@
   {
     "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Tiny RPG Mountain Files/Preview/mountain-preview.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Tiny RPG Mountain Files/aseprite/mountain.ase",
-    "status": "source-or-alternate-export",
     "roles": []
   },
   {
@@ -10777,11 +9447,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Top-Down-Forest/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Top-Down-Forest/PNG/top-down-forest-tileset.png",
     "status": "runtime-mapped",
     "roles": [
@@ -10789,18 +9454,8 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Top-Down-Forest/PSD/top-down-forest.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Top-Down-Forest/top-down-forest-preview.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Top-Down-Town/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -10811,33 +9466,8 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Top-Down-Town/PSD/tiles-temp.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Top-Down-Town/PSD/top-down-town.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/TinyRPG/Environments/Top-Down-Town/top-down-town-preview.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/parallax_forest_pack web/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/parallax_forest_pack web/v1/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/parallax_forest_pack web/v1/layers/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -10869,28 +9499,8 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/parallax_forest_pack web/v1/parallax-forest-back-trees.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/parallax_forest_pack web/v1/parallax-forest.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/TinyRPG/Environments/parallax_forest_pack web/v1/previewpng.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/parallax_forest_pack web/v2/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/parallax_forest_pack web/v2/layers/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -10915,18 +9525,8 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/parallax_forest_pack web/v2/parallax-forest-back-trees.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/TinyRPG/Environments/parallax_forest_pack web/v2/preview.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/single-dungeon-crawler/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -10942,16 +9542,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/single-dungeon-crawler/PSD/single-dungeon-crawler-s1.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/single-dungeon-crawler-objects/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/TinyRPG/Environments/single-dungeon-crawler-objects/PNG/dungeon-crawler-objects-transparent.png",
     "status": "runtime-mapped",
     "roles": [
@@ -10964,26 +9554,6 @@
     "roles": [
       "dungeon-brick-terrain"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/TinyRPG/Environments/single-dungeon-crawler-objects/PSD/dungeon-crawler-objects.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/Grotto-escape-2-lizzard/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Warped/Characters/Grotto-escape-2-lizzard/Previews/hurt.gif",
@@ -11013,11 +9583,6 @@
   {
     "path": "super/Legacy Collection/Assets/Warped/Characters/Grotto-escape-2-lizzard/Previews/walk.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/Grotto-escape-2-lizzard/sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -11252,11 +9817,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/Grotto-escape-2-snake/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Characters/Grotto-escape-2-snake/Previews/attack.gif",
     "status": "reference-preview",
     "roles": []
@@ -11289,11 +9849,6 @@
   {
     "path": "super/Legacy Collection/Assets/Warped/Characters/Grotto-escape-2-snake/Previews/walk.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/Grotto-escape-2-snake/sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -11542,16 +10097,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/Warped Vehicles Files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/Warped Vehicles Files/vehicle 1/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Characters/Warped Vehicles Files/vehicle 1/Sprites/vehicle-1.png",
     "status": "runtime-mapped",
     "roles": [
@@ -11604,21 +10149,11 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/Warped Vehicles Files/vehicle 1/vehicle-1.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Characters/Warped Vehicles Files/vehicle 1/vehicle-1.png",
     "status": "runtime-mapped",
     "roles": [
       "parked-vehicle"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/Warped Vehicles Files/vehicle 2/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Warped/Characters/Warped Vehicles Files/vehicle 2/Sprites/vehicle-2-1.png",
@@ -11673,31 +10208,11 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/Warped Vehicles Files/vehicle 2/vehicle-2.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Characters/Warped Vehicles Files/vehicle 2/vehicle-2.png",
     "status": "runtime-mapped",
     "roles": [
       "parked-vehicle"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/Warped Vehicles Files/vehicle 3/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/Warped Vehicles Files/vehicle 3/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/Warped Vehicles Files/vehicle 3/Sprites/frames-thrust/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Warped/Characters/Warped Vehicles Files/vehicle 3/Sprites/frames-thrust/thrust-back/thrust-back1.png",
@@ -11782,26 +10297,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/Warped Vehicles Files/vehicle 3/vehicle-3.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/alien-flying-enemy/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/alien-flying-enemy/Alien-enemy-flying.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/alien-flying-enemy/PSD/alien-enemy-2-flying.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Characters/alien-flying-enemy/Previews/alien-enemy-2-flying-preview.gif",
     "status": "reference-preview",
     "roles": []
@@ -11875,26 +10370,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/alien-walking-enemy/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/alien-walking-enemy/PSD/alien-enemy-idle.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/alien-walking-enemy/PSD/alien-enemy-walk.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/alien-walking-enemy/Previews/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Characters/alien-walking-enemy/Previews/alien-enemy-idle.gif",
     "status": "reference-preview",
     "roles": []
@@ -11902,11 +10377,6 @@
   {
     "path": "super/Legacy Collection/Assets/Warped/Characters/alien-walking-enemy/Previews/alien-enemy-walk.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/alien-walking-enemy/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -11990,16 +10460,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/bipedal-Unit/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/bipedal-Unit/PSD/bipedal-unit-05.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Characters/bipedal-Unit/Previews/preview.gif",
     "status": "reference-preview",
     "roles": []
@@ -12064,51 +10524,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/cyberpunk-detective/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/cyberpunk-detective/PSD/crouch.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/cyberpunk-detective/PSD/cyberpunk-detective.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/cyberpunk-detective/PSD/death.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/cyberpunk-detective/PSD/draw-gun.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/cyberpunk-detective/PSD/gun-walk.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/cyberpunk-detective/PSD/punch.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/cyberpunk-detective/PSD/shot.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/cyberpunk-detective/PSD/walk.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Characters/cyberpunk-detective/Previews/crouch.gif",
     "status": "reference-preview",
     "roles": []
@@ -12141,11 +10556,6 @@
   {
     "path": "super/Legacy Collection/Assets/Warped/Characters/cyberpunk-detective/Previews/walk.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/cyberpunk-detective/sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -12436,11 +10846,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/mech-unit/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Characters/mech-unit/gifs previews/mech-unit.gif",
     "status": "reference-preview",
     "roles": []
@@ -12518,16 +10923,6 @@
   {
     "path": "super/Legacy Collection/Assets/Warped/Characters/mech-unit/spritesheet/mech-unit.png",
     "status": "alternate-sheet-layout",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/space-marine-lite/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/space-marine-lite/Sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -12842,21 +11237,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/space-marine-lite/player.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/spaceship-unit/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/spaceship-unit/Gifs Previews/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Characters/spaceship-unit/Gifs Previews/Ship-and-thrust.gif",
     "status": "reference-preview",
     "roles": []
@@ -12970,11 +11350,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/spaceship-unit/Spritesheets/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Characters/spaceship-unit/Spritesheets/Spritesheet.png",
     "status": "alternate-sheet-layout",
     "roles": []
@@ -12987,11 +11362,6 @@
   {
     "path": "super/Legacy Collection/Assets/Warped/Characters/spaceship-unit/Spritesheets/separated sprites/thrust.png",
     "status": "alternate-sheet-layout",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/tank-unit/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -13035,11 +11405,6 @@
   {
     "path": "super/Legacy Collection/Assets/Warped/Characters/tank-unit/tank-unit-preview.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/top-down-boss/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -13226,26 +11591,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/top-down-boss/PSD/boss-bolts.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/top-down-boss/PSD/boss-rays.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/top-down-boss/PSD/boss-thrust.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/top-down-boss/PSD/boss.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Characters/top-down-boss/Previews/bolt.gif",
     "status": "reference-preview",
     "roles": []
@@ -13266,11 +11611,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/top-down-shooter-enemies/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Characters/top-down-shooter-enemies/Previews/enemy-01.gif",
     "status": "reference-preview",
     "roles": []
@@ -13288,11 +11628,6 @@
   {
     "path": "super/Legacy Collection/Assets/Warped/Characters/top-down-shooter-enemies/Previews/enemy-explosion.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/top-down-shooter-enemies/sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -13464,11 +11799,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/top-down-shooter-ship/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Characters/top-down-shooter-ship/Previews/ship-01.gif",
     "status": "reference-preview",
     "roles": []
@@ -13501,11 +11831,6 @@
   {
     "path": "super/Legacy Collection/Assets/Warped/Characters/top-down-shooter-ship/Previews/thrust/ship-04.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/top-down-shooter-ship/sprites/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -13649,11 +11974,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/top-down-shooter-ship/sprites/thrust/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Characters/top-down-shooter-ship/sprites/thrust/01/_0000_Layer-2.png",
     "status": "runtime-mapped",
     "roles": [
@@ -13694,11 +12014,6 @@
     "roles": [
       "actor:a39c1efbd13f"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Characters/top-down-shooter-ship/spritesheets/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Warped/Characters/top-down-shooter-ship/spritesheets/red/ship-01.png",
@@ -13768,21 +12083,6 @@
     "roles": [
       "pixel-verified-frame-alias"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/Ocean View Files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/Ocean View Files/Layers/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Warped/Environments/Ocean View Files/Layers/Day/Back.png",
@@ -13968,21 +12268,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/Ocean View Files/aseprite/env.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/Scifi lab Files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/Scifi lab Files/aseprite/env.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Environments/Scifi lab Files/layers/Props/support.png",
     "status": "runtime-mapped",
     "roles": [
@@ -14037,16 +12322,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/Synth City/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/Synth City/Version 1/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Environments/Synth City/Version 1/PNG/cyberpunk-street.png",
     "status": "runtime-mapped",
     "roles": [
@@ -14073,16 +12348,6 @@
     "roles": [
       "world-prop"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/Synth City/Version 1/PSD/cyberpunk-street.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/Synth City/Version 2/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Warped/Environments/Synth City/Version 2/Layers/back.png",
@@ -14118,11 +12383,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/Synth City/city skyline/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Environments/Synth City/city skyline/Layers/back.png",
     "status": "runtime-mapped",
     "roles": [
@@ -14144,18 +12404,8 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/Synth City/city skyline/cyberpunk-street.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Environments/Synth City/city skyline/preview.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/Urban-landscape-files/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -14178,21 +12428,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/Urban-landscape-files/urban-landscape-background.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/Warped Zone 202/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/Warped Zone 202/Zone-202.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Environments/Warped Zone 202/back-2.png",
     "status": "runtime-mapped",
     "roles": [
@@ -14205,11 +12440,6 @@
     "roles": [
       "world-prop"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/Warped Zone 202/previews/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Warped/Environments/Warped Zone 202/previews/Zone-202-big.png",
@@ -14227,11 +12457,6 @@
     "roles": [
       "terrain-tiles"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/alien-environment/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Warped/Environments/alien-environment/PNG/layers/back-structures.png",
@@ -14257,16 +12482,6 @@
   {
     "path": "super/Legacy Collection/Assets/Warped/Environments/alien-environment/PNG/preview-alien-environment.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/alien-environment/PSD/alien-environment.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/another-world/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -14301,26 +12516,6 @@
     "roles": [
       "parallax-background"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/another-world/PSD/another-world.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/bulkhead-walls/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/bulkhead-walls/v1/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/bulkhead-walls/v1/bulkhead-walls.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Warped/Environments/bulkhead-walls/v1/bulkhead-wallsx1.png",
@@ -14365,11 +12560,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/bulkhead-walls/v2/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Environments/bulkhead-walls/v2/PNG/bg-wall-with-supports.png",
     "status": "runtime-mapped",
     "roles": [
@@ -14403,21 +12593,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/bulkhead-walls/v2/PSD/bulkhead-walls-v2.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/cyberpunk-corridor-files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/cyberpunk-corridor-files/PNG/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Environments/cyberpunk-corridor-files/PNG/back.png",
     "status": "runtime-mapped",
     "roles": [
@@ -14439,18 +12614,8 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/cyberpunk-corridor-files/PSD/cyberpunk-corridor.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Environments/cyberpunk-corridor-files/cyberpunk-corridor-PREVIEW.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/cyberpunk-detective-props/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -14508,46 +12673,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/cyberpunk-detective-props/PSD/cyberpunk-props-1.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/cyberpunk-detective-props/PSD/cyberpunk-props-2.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/cyberpunk-detective-props/PSD/cyberpunk-props-3.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/cyberpunk-detective-props/PSD/cyberpunk-props-4.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/cyberpunk-detective-props/PSD/cyberpunk-props-5.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/cyberpunk-detective-props/PSD/cyberpunk-props-6.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/cyberpunk-detective-props/PSD/cyberpunk-props-preview.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/parallax-industrial-web/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Environments/parallax-industrial-web/Layers/bg.png",
     "status": "runtime-mapped",
     "roles": [
@@ -14576,16 +12701,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/parallax-industrial-web/parallax-industrial.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/sci-fi-environment-background-files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Environments/sci-fi-environment-background-files/PNG/back.png",
     "status": "runtime-mapped",
     "roles": [
@@ -14607,18 +12722,8 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/sci-fi-environment-background-files/PSD/sci-fi-environment-tileset.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Environments/sci-fi-environment-background-files/preview-sci-fi-environment-tileset.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/sci-fi-interior-platform/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -14636,33 +12741,13 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/sci-fi-interior-platform/PSD/sci-fi-interior-platform.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Environments/sci-fi-interior-platform/preview-sci-fi-interior-platform.png",
     "status": "reference-preview",
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/space_background_pack/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/space_background_pack/Blue Version/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Environments/space_background_pack/Blue Version/blue-preview.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/space_background_pack/Blue Version/layered/.DS_Store",
-    "status": "documentation-or-metadata",
     "roles": []
   },
   {
@@ -14715,21 +12800,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/space_background_pack/Old Version/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/space_background_pack/Old Version/PSD/parallax-space-backgound.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/space_background_pack/Old Version/layers/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Environments/space_background_pack/Old Version/layers/parallax-space-backgound.png",
     "status": "runtime-mapped",
     "roles": [
@@ -14770,11 +12840,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/top-down-dungeon-sci-fi/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Environments/top-down-dungeon-sci-fi/PNG/preview-top-down-sci-fi.png",
     "status": "reference-preview",
     "roles": []
@@ -14785,16 +12850,6 @@
     "roles": [
       "terrain-tiles"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/top-down-dungeon-sci-fi/PSD/top-down-sci-fi.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/top-down-space-environment/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Warped/Environments/top-down-space-environment/PNG/layers/cut-out-sprites/asteroid-01.png",
@@ -14872,21 +12927,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Environments/top-down-space-environment/PSD/stage.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Misc/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Misc/Warped Portraits Files/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Misc/Warped Portraits Files/Portraits with transparent bg/portraits1.png",
     "status": "runtime-mapped",
     "roles": [
@@ -14941,16 +12981,6 @@
     "roles": [
       "relay-portrait"
     ]
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Misc/Warped Portraits Files/portraits.ase",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Misc/asteroid-fighter Pack/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
   },
   {
     "path": "super/Legacy Collection/Assets/Warped/Misc/asteroid-fighter Pack/PNG/asteroids/asteroid-1.png",
@@ -15023,21 +13053,6 @@
     ]
   },
   {
-    "path": "super/Legacy Collection/Assets/Warped/Misc/asteroid-fighter Pack/PSD/asteroid-fighter.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Misc/asteroid-fighter Pack/PSD/ship.psd",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Collection/Assets/Warped/Misc/asteroid-fighter Pack/previews/.DS_Store",
-    "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Collection/Assets/Warped/Misc/asteroid-fighter Pack/previews/asteroid-fighter-x1.png",
     "status": "reference-preview",
     "roles": []
@@ -15048,11 +13063,6 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Fantasy - Debug Map/Assets/Tiles.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Fantasy - Debug Map/Assets/Tiles.png",
     "status": "runtime-mapped",
     "roles": [
@@ -15060,18 +13070,8 @@
     ]
   },
   {
-    "path": "super/Legacy Fantasy - Debug Map/MockUp/Cover.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Fantasy - Debug Map/MockUp/Cover.png",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy Fantasy - Debug Map/MockUp/MockUp_01.aseprite",
-    "status": "source-or-alternate-export",
     "roles": []
   },
   {
@@ -15085,18 +13085,8 @@
     "roles": []
   },
   {
-    "path": "super/Legacy Fantasy - Debug Map/MockUp/Tiles.png~",
-    "status": "reference-preview",
-    "roles": []
-  },
-  {
     "path": "super/Legacy Fantasy - Debug Map/Terms.txt",
     "status": "documentation-or-metadata",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Assets/Buildings.aseprite",
-    "status": "source-or-alternate-export",
     "roles": []
   },
   {
@@ -15105,11 +13095,6 @@
     "roles": [
       "world-prop"
     ]
-  },
-  {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Assets/Hive.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
   },
   {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Assets/Hive.png",
@@ -15126,26 +13111,11 @@
     ]
   },
   {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Assets/Props-Rocks.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Assets/Props-Rocks.png",
     "status": "runtime-mapped",
     "roles": [
       "segmented-prop-atlas"
     ]
-  },
-  {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Assets/Sprite-0011.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Assets/Tiles.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
   },
   {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Assets/Tiles.png",
@@ -15155,21 +13125,11 @@
     ]
   },
   {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Assets/Tree-Assets.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Assets/Tree-Assets.png",
     "status": "runtime-mapped",
     "roles": [
       "world-prop"
     ]
-  },
-  {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Background/Background.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
   },
   {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Background/Background.png",
@@ -15186,11 +13146,6 @@
     ]
   },
   {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Character/Attack-01/Attack-01.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Character/Attack-01/Attack-01.gif",
     "status": "reference-preview",
     "roles": []
@@ -15201,11 +13156,6 @@
     "roles": [
       "actor:9741ef032227"
     ]
-  },
-  {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Character/Dead/Dead.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
   },
   {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Character/Dead/Dead.gif",
@@ -15220,11 +13170,6 @@
     ]
   },
   {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Character/Idle/Idle.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Character/Idle/Idle.gif",
     "status": "reference-preview",
     "roles": []
@@ -15235,21 +13180,6 @@
     "roles": [
       "actor:9741ef032227"
     ]
-  },
-  {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Character/Jumlp-All/Jump-All.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Character/Jumlp-All/Sprite-0003.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Character/Jump/Jump.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
   },
   {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Character/Jump/Jump.gif",
@@ -15264,11 +13194,6 @@
     ]
   },
   {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Character/Jump-End/Jump-End.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Character/Jump-End/Jump-End.gif",
     "status": "reference-preview",
     "roles": []
@@ -15281,11 +13206,6 @@
     ]
   },
   {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Character/Jump-Start/Jump-Start.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Character/Run/Run-Sheet.png",
     "status": "runtime-mapped",
     "roles": [
@@ -15293,18 +13213,8 @@
     ]
   },
   {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Character/Run/Run.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Character/Run/Run.gif",
     "status": "reference-preview",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/HUD/Base-01.aseprite",
-    "status": "source-or-alternate-export",
     "roles": []
   },
   {
@@ -15336,11 +13246,6 @@
     ]
   },
   {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Mob/Boar/Hit-Vanish/Hit.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Mob/Boar/Idle/Idle-Sheet-White.png",
     "status": "runtime-mapped",
     "roles": [
@@ -15360,11 +13265,6 @@
     "roles": [
       "actor:301c573e7fac"
     ]
-  },
-  {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Mob/Boar/Idle/Idle.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
   },
   {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Mob/Boar/Run/Run-Sheet-Black.png",
@@ -15388,11 +13288,6 @@
     ]
   },
   {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Mob/Boar/Run/Run.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Mob/Boar/Walk/Walk-Base-Sheet-White.png",
     "status": "runtime-mapped",
     "roles": [
@@ -15414,21 +13309,11 @@
     ]
   },
   {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Mob/Boar/Walk/Walk-Base.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Mob/Small Bee/Attack/Attack-Sheet.png",
     "status": "runtime-mapped",
     "roles": [
       "actor:9def10cd190b"
     ]
-  },
-  {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Mob/Small Bee/Attack/Attack.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
   },
   {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Mob/Small Bee/Fly/Fly-Sheet.png",
@@ -15438,11 +13323,6 @@
     ]
   },
   {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Mob/Small Bee/Fly/Fly.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Mob/Small Bee/Hit/Hit-Sheet.png",
     "status": "runtime-mapped",
     "roles": [
@@ -15450,26 +13330,11 @@
     ]
   },
   {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Mob/Small Bee/Hit/Hit.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Mob/Snail/Dead-Sheet.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Mob/Snail/Dead-Sheet.png",
     "status": "runtime-mapped",
     "roles": [
       "actor:42a0aa4f1440"
     ]
-  },
-  {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Mob/Snail/Hide-Sheet.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
   },
   {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Mob/Snail/Hide-Sheet.png",
@@ -15486,21 +13351,11 @@
     ]
   },
   {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Mob/Snail/walk-Sheet.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Mob/Snail/walk-Sheet.png",
     "status": "runtime-mapped",
     "roles": [
       "actor:42a0aa4f1440"
     ]
-  },
-  {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Trees/Background.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
   },
   {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Trees/Background.png",
@@ -15510,21 +13365,11 @@
     ]
   },
   {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Trees/Dark-Tree.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Trees/Dark-Tree.png",
     "status": "runtime-mapped",
     "roles": [
       "world-tree-atlas"
     ]
-  },
-  {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Trees/Golden-Tree.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
   },
   {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Trees/Golden-Tree.png",
@@ -15534,11 +13379,6 @@
     ]
   },
   {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Trees/Green-Tree.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Trees/Green-Tree.png",
     "status": "runtime-mapped",
     "roles": [
@@ -15546,21 +13386,11 @@
     ]
   },
   {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Trees/Red-Tree.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
-  },
-  {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Trees/Red-Tree.png",
     "status": "runtime-mapped",
     "roles": [
       "world-tree-atlas"
     ]
-  },
-  {
-    "path": "super/Legacy-Fantasy - High Forest 2.3/Trees/Yellow-Tree.aseprite",
-    "status": "source-or-alternate-export",
-    "roles": []
   },
   {
     "path": "super/Legacy-Fantasy - High Forest 2.3/Trees/Yellow-Tree.png",
@@ -15778,11 +13608,6 @@
     "roles": []
   },
   {
-    "path": "super/Mario's Madness Model Pack v2/Mario's Madness Model Pack v2/Super Horror Mario v2/Starman_M.blend1",
-    "status": "source-needs-conversion",
-    "roles": []
-  },
-  {
     "path": "super/Mario's Madness Model Pack v2/Mario's Madness Model Pack v2/Super Horror Mario v2/SuperHorrorMario_v2.fbx",
     "status": "runtime-mapped",
     "roles": [
@@ -15829,11 +13654,6 @@
   },
   {
     "path": "super/Mario's Madness Model Pack v2/Mario's Madness Model Pack v2/Super Horror Peach v2/HorrorPeach_Blend.blend",
-    "status": "source-needs-conversion",
-    "roles": []
-  },
-  {
-    "path": "super/Mario's Madness Model Pack v2/Mario's Madness Model Pack v2/Super Horror Peach v2/HorrorPeach_Blend.blend1",
     "status": "source-needs-conversion",
     "roles": []
   },

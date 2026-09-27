@@ -206,6 +206,7 @@
 
     if (G.state !== "menu" && G.player) {
       NR.adventure.draw(ctx, cam, view);
+      NR.modes?.draw(ctx, cam, view);
       for (const p of G.pickups) p.draw(ctx);
       NR.spriteRender.drawCorpses(ctx, G);
       for (const e of G.enemies) e.draw(ctx);
@@ -228,6 +229,7 @@
       const hs = (NR.profile.settings && NR.profile.settings.hudScale) || 1;
       if (hs !== 1) { ctx.scale(hs, hs); }
       NR.hud.draw(ctx, G, cw / hs, ch / hs);
+      NR.modes?.drawHud(ctx, G, cw / hs, ch / hs);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
   }

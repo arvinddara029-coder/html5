@@ -38,11 +38,14 @@
     _secMark: 0,
   });
 
+  /* game: which NR.game mode the room runs */
   const MODES = {
-    duo:    { label: "DUO — WAVE CO-OP", players: 2, pvp: false },
-    duel:   { label: "1v1 DUEL",         players: 2, pvp: true },
-    team2:  { label: "2v2 TEAM CLASH",   players: 4, pvp: true },
-    team4:  { label: "4v4 TEAM WAR",     players: 8, pvp: true },
+    climb:  { label: "WAVE CLIMB · CO-OP",   players: 4, pvp: false, game: "climb" },
+    run:    { label: "SURVIVAL RUN · CO-OP", players: 4, pvp: false, game: "run" },
+    duo:    { label: "DUO — WAVE CLIMB",     players: 2, pvp: false, game: "climb" },
+    duel:   { label: "1v1 DUEL",             players: 2, pvp: true,  game: "pvp" },
+    team2:  { label: "2v2 TEAM CLASH",       players: 4, pvp: true,  game: "pvp" },
+    team4:  { label: "4v4 TEAM WAR",         players: 8, pvp: true,  game: "pvp" },
   };
   N.modes = MODES;
 
@@ -67,17 +70,25 @@
   }
 
   /* ---------- PeerTransport: WebRTC data channels via PeerJS ---------- */
-  const PEERJS_URL = "https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js";
-  function loadPeerJS() {
+  /* PeerJS is bundled locally (assets/vendor) — the CDN is only a fallback. */
+  const PEERJS_URLS = ["assets/vendor/peerjs.min.js", "https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"];
+  function loadScript(url) {
     return new Promise((resolve, reject) => {
-      if (window.Peer) return resolve(window.Peer);
       const s = document.createElement("script");
-      s.src = PEERJS_URL; s.async = true;
+      s.src = url; s.async = true;
       const to = setTimeout(() => reject(new Error("PeerJS load timeout")), 12000);
       s.onload = () => { clearTimeout(to); window.Peer ? resolve(window.Peer) : reject(new Error("PeerJS missing")); };
-      s.onerror = () => { clearTimeout(to); reject(new Error("PeerJS failed to load")); };
+      s.onerror = () => { clearTimeout(to); s.remove(); reject(new Error("PeerJS failed to load")); };
       document.head.append(s);
     });
+  }
+  async function loadPeerJS() {
+    if (window.Peer) return window.Peer;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) throw new Error("You are offline — check your internet connection");
+    if (typeof RTCPeerConnection === "undefined") throw new Error("This browser does not support WebRTC online play");
+    let last;
+    for (const u of PEERJS_URLS) { try { return await loadScript(u); } catch (e) { last = e; } }
+    throw last || new Error("PeerJS failed to load");
   }
 
   class PeerTransport {
@@ -103,11 +114,12 @@
             ? new Peer(hostId, { debug: 0 })
             : new Peer({ debug: 0 });
         } catch (e) { reject(e); return; }
-        const fail = (why) => { if (!this.alive) return; this.alive = false; reject(new Error(why)); };
+        const fail = (why) => { if (!this.alive) return; this.alive = false; clearTimeout(this._openTo); try { this.peer && this.peer.destroy(); } catch (_) {} reject(new Error(why)); };
+        this._openTo = setTimeout(() => { if (!this.myId) fail("Matchmaking server timed out — retry in a moment"); }, 15000);
         this.peer.on("open", (id) => {
           this.myId = id;
           if (this.role === "host") {
-            this.peer.on("connection", (conn) => this.wire(conn));
+            this.peer.on("connection", (conn) => { conn.on("open", () => this.wire(conn)); });
             resolve(true);
           } else {
             const conn = this.peer.connect(hostId, { reliable: false, serialization: "json" });
@@ -120,6 +132,8 @@
           const t = String(e && e.type || e);
           if (t === "peer-unavailable") fail("Room not found — check the code");
           else if (t === "unavailable-id") fail("Room code already in use — create a new one");
+          else if (t === "network" || t === "server-error" || t === "socket-error" || t === "socket-closed") fail("Matchmaking server unreachable — check your connection and retry");
+          else if (t === "browser-incompatible") fail("This browser does not support WebRTC online play");
           else NR.diag?.net("peer error: " + t);
         });
         this.peer.on("disconnected", () => { if (this.alive) { try { this.peer.reconnect(); } catch (_) {} } });
@@ -171,10 +185,10 @@
   }
   N.myId = function () { return (N.transport && N.transport.myId) || "me"; };
 
-  N.createRoom = async function (modeId) {
-    const def = MODES[modeId] || MODES.duo;
+  N.createRoom = async function (modeId, fixedCode, quick) {
+    const def = MODES[modeId] || MODES.climb;
     try {
-      const code = makeCode();
+      const code = fixedCode || makeCode();
       const t = new PeerTransport("host", code);
       await t.connect();
       N.transport = t;
@@ -185,7 +199,7 @@
         hostId: N.myId(),
         members: [Object.assign(myProfile(), { host: true, ready: true, connected: true })],
         seed: (Math.random() * 4294967296) >>> 0,
-        started: false, round: 0,
+        started: false, round: 0, quick: !!quick,
       };
       wireTransport(t);
       // advertise on the platform so the CrazyGames Join/Invite UI works
@@ -195,7 +209,7 @@
       return N.room;
     } catch (e) {
       NR.diag.net("createRoom failed: " + (e.message || e));
-      NR.hub?.notify("Could not create an online room: " + (e.message || e));
+      if (!N._quiet) { NR.hub?.notify("Could not create an online room: " + (e.message || e)); NR.audio?.play("netError"); }
       return null;
     }
   };
@@ -220,9 +234,9 @@
       roomChanged();
       return N.room;
     } catch (e) {
-      NR.transport = null; N.connected = false; N.mode = "offline";
+      N.transport = null; N.connected = false; N.mode = "offline";
       NR.diag.net("joinRoom failed: " + (e.message || e));
-      NR.hub?.notify("Could not join: " + (e.message || e));
+      if (!N._quiet) { NR.hub?.notify("Could not join: " + (e.message || e)); NR.audio?.play("netError"); }
       return null;
     }
   };
@@ -265,6 +279,12 @@
       if (!msg || typeof msg !== "object") return;
       if (msg.k === "ping") { t.send({ k: "pong", t: msg.t }, from); return; }
       if (msg.k === "pong") { N._ping = Math.round(performance.now() - msg.t); return; }
+      if (msg.k === "md" || msg.k === "es") {
+        // host relays guest mode events (reach / pvp-dead / dmg) to everyone else
+        if (N.mode === "host" && msg.k === "md" && msg.e !== "reach") for (const id of t.peers ? t.peers() : []) if (id !== from) t.send(msg, id);
+        try { NR.modes?.onNet(from, msg); } catch (e) { NR.diag?.net("mode message error: " + e.message); }
+        return;
+      }
       if (N.mode === "host") hostHandle(from, msg);
       else guestHandle(from, msg);
     });
@@ -278,6 +298,15 @@
     });
     t.on("peer-leave", (id) => {
       NR.diag.net("peer left " + id);
+      if (N.mode === "guest") {
+        // the host is gone: keep playing offline instead of freezing
+        const G = NR.game, inMatch = G && G.online && (G.state === "playing" || G.state === "upgrade" || G.state === "pause");
+        N.leaveRoom(false);
+        if (inMatch) { G.online = false; G.pvp = false; NR.hub?.notify("Host disconnected — the run continues offline."); G.banner?.("CONNECTION LOST", "continuing solo", "#ff9f6e"); }
+        else if (!N._quiet) NR.hub?.notify("The room host disconnected.");
+        NR.audio?.play("netError");
+        return;
+      }
       if (N.room) {
         const m = N.room.members.find((x) => x.id === id);
         if (m) { m.connected = false; m.online = false; }
@@ -323,7 +352,7 @@
         N.transport.broadcast({ k: "member-left", id: from });
         roomChanged(); break;
       }
-      case "p-state": upsertRemote(from, msg); break;             // guest position
+      case "p-state": upsertRemote(from, msg); if (N.transport.peers) for (const id of N.transport.peers()) if (id !== from) N.transport.send(Object.assign({}, msg, { from }), id); break; // guest position
       case "p-event": N.transport.broadcast({ k: "p-event", from, ev: msg.ev }); applyRemoteEvent(from, msg.ev); break;
       case "hit-enemy": {
         // guest damaged a host-side enemy — authoritative hp on host
@@ -354,8 +383,8 @@
         if (N.room.started) NR.social?.onMatchStart?.(N.room, true);
         break;
       }
-      case "room-full": NR.hub?.notify("That room is full."); N.leaveRoom(false); break;
-      case "room-started": NR.hub?.notify("That match already started."); N.leaveRoom(false); break;
+      case "room-full": if (!N._quiet) NR.hub?.notify("That room is full."); N.leaveRoom(false); break;
+      case "room-started": if (!N._quiet) NR.hub?.notify("That match already started."); N.leaveRoom(false); break;
       case "member-left": {
         if (N.room) { const m = N.room.members.find((x) => x.id === msg.id); if (m) m.connected = false; }
         N.remote.delete(msg.id); roomChanged(); break;
@@ -391,15 +420,18 @@
       this.attackT = 0;
     }
     pushState(s) {
-      this.tx = s.x; this.ty = s.y;
+      const W = NR.world;
+      this.tx = s.x - (W.originX || 0); this.ty = s.y - (W.originY || 0);
+      if (!this.x && !this.y) { this.x = this.tx; this.y = this.ty; }
       this.facing = s.f || this.facing; this.anim = s.a || "idle";
       this.hp = s.hp; this.maxHp = s.mhp || this.maxHp; this.energy = s.en || 0;
       this.lastMsg = performance.now();
     }
     update(dt) {
       const k = Math.min(1, dt / INTERP * 0.9);
-      this.x = U.lerp(this.x || this.tx, this.tx, k);
-      this.y = U.lerp(this.y || this.ty, this.ty, k);
+      if (Math.abs(this.tx - this.x) > 900 || Math.abs(this.ty - this.y) > 700) { this.x = this.tx; this.y = this.ty; } // teleport / re-base
+      this.x = U.lerp(this.x, this.tx, k);
+      this.y = U.lerp(this.y, this.ty, k);
       this.attackT = Math.max(0, this.attackT - dt);
     }
     draw(ctx) {
@@ -445,7 +477,9 @@
     // PvP damage
     if (ev.a === "hit-player" && N.room && N.room.pvp) {
       const G = NR.game;
-      if (G && G.player && !G.player.dead && Math.abs(G.player.x - r.x) < 170 && Math.abs(G.player.y - r.y) < 120) {
+      if (NR.modes && N.room.mode !== "duel" && NR.modes.teamOf(from) === NR.modes.teamOf(N.myId())) return; // no friendly fire
+      if (G) G._lastHitBy = from;
+      if (G && G.player && !G.player.dead && Math.abs(G.player.x - r.x) < 190 && Math.abs(G.player.y - r.y) < 130) {
         G.hurtPlayer(ev.dmg || 10, Math.sign(G.player.x - r.x) || 1, "pvp");
       }
     }
@@ -479,7 +513,7 @@
     if (t - N._lastSync < 100) return;
     N._lastSync = t; N._updatesThisSec++;
     N.transport.send({
-      k: "p-state", x: Math.round(p.x), y: Math.round(p.y), f: p.facing,
+      k: "p-state", x: Math.round(p.x + (NR.world.originX || 0)), y: Math.round(p.y + (NR.world.originY || 0)), f: p.facing,
       a: p.pose && p.pose.anim || "idle", hp: Math.round(p.hp), mhp: Math.round(p.maxHp), en: Math.round(p.energy),
     });
   };
@@ -547,4 +581,94 @@
 
   function roomChanged() { for (const fn of N.onRoomChanged) { try { fn(N.room); } catch (_) {} } }
   N.onRoom = function (fn) { N.onRoomChanged.push(fn); };
+})();
+
+/* ============ QUICK PLAY — serverless matchmaking over the PeerJS broker ============
+   Rooms live at deterministic ids per mode: neon-ronin-QP<mode><slot>.
+   For each slot we try to JOIN; if nobody hosts that slot we HOST it; if the
+   id was grabbed at the same instant we retry joining. Full / already-started
+   rooms are skipped. The host auto-starts when the room fills (or after a
+   short grace period once at least two players are in). */
+(function () {
+  const N = NR.net;
+  const SLOTS = 10, VERSION = "4";
+  let cancelled = false;
+  N.quick = { searching: false, status: "" };
+  function status(s, cb) { N.quick.status = s; try { cb && cb(s); } catch (_) {} }
+  function waitRoomState(ms) {
+    return new Promise((resolve) => {
+      const t0 = Date.now();
+      const iv = setInterval(() => {
+        if (!N.connected || !N.room) { clearInterval(iv); resolve(false); return; }
+        if (N.room.members && N.room.members.length && N.room.mode) { clearInterval(iv); resolve(true); return; }
+        if (Date.now() - t0 > ms) { clearInterval(iv); resolve(false); }
+      }, 100);
+    });
+  }
+  N.cancelQuick = function () {
+    cancelled = true; N.quick.searching = false;
+    if (N.room && N.room.quick && !N.room.started) N.leaveRoom(false);
+  };
+  N.quickPlay = async function (modeId, onStatus) {
+    if (N.quick.searching) return null;
+    if (N.transport) N.leaveRoom(false);
+    const def = N.modes[modeId] ? modeId : "climb";
+    cancelled = false; N.quick.searching = true; N._quiet = true;
+    try {
+      for (let round = 0; round < 2 && !cancelled; round++) {
+        for (let slot = 0; slot < SLOTS && !cancelled; slot++) {
+          const code = "QP" + VERSION + def.toUpperCase() + slot;
+          status(`Searching ${N.modes[def].label} · server ${slot + 1}/${SLOTS}…`, onStatus);
+          NR.audio?.play("searching");
+          // 1) try to join an existing host
+          const joined = await N.joinRoom(code);
+          if (cancelled) { if (joined) N.leaveRoom(false); break; }
+          if (joined) {
+            const ok = await waitRoomState(5000);
+            if (ok && N.room && !N.room.started) {
+              const me = N.room.members.find((m) => m.id === N.myId());
+              if (!me || !me.ready) N.setReady(true);
+              status("Match found! Waiting for the host to start…", onStatus);
+              NR.audio?.play("matchFound");
+              return N.room;
+            }
+            if (N.transport) N.leaveRoom(false);   // full / started / no answer → next slot
+            continue;
+          }
+          // 2) nobody there → become the host of this slot
+          const room = await N.createRoom(def, code, true);
+          if (cancelled) { if (room) N.leaveRoom(false); break; }
+          if (room) {
+            status("Room ready — waiting for players… (you can start solo any time)", onStatus);
+            NR.audio?.play("matchFound");
+            return room;
+          }
+          // id taken at the same moment → someone else hosts it; the next loop joins
+        }
+      }
+      if (!cancelled) {
+        status("No online players reachable. Check your connection or try again.", onStatus);
+        NR.audio?.play("netError");
+      }
+      return null;
+    } catch (e) {
+      status("Quick play failed: " + (e.message || e), onStatus);
+      NR.diag?.net("quickPlay error: " + (e.message || e));
+      return null;
+    } finally {
+      N._quiet = false; N.quick.searching = false;
+    }
+  };
+  /* host: auto-start quick rooms */
+  setInterval(() => {
+    try {
+      const R = N.room;
+      if (!R || !R.quick || R.started || N.mode !== "host") { N._qFullT = 0; return; }
+      const live = R.members.filter((m) => m.connected !== false).length;
+      if (live >= R.maxPlayers) N._qFullT = (N._qFullT || 0) + 1;
+      else if (live >= 2) N._qFullT = (N._qFullT || 0) + 0.25;   // ~8s grace for more players
+      else N._qFullT = 0;
+      if (N._qFullT >= 2) { N._qFullT = 0; N.startMatch(); }
+    } catch (e) { NR.diag?.net("quick auto-start: " + e.message); }
+  }, 1000);
 })();

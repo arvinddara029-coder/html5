@@ -412,26 +412,14 @@ test("local record archive is capped and sorted; achievements are idempotent", (
   NR.progress.award("first");
   assert.equal(NR.unlockedAchievements.size, 1);
 });
-test("imported atlas, sound files and license notices are bundled locally", () => {
-  for (const name of [
-    "platformIndustrial_sheet.png",
-    "platformIndustrial_sheet.xml",
-    "License.txt",
-    "LICENSE.md",
-    "ATTRIBUTION.md",
-    "highUp.ogg",
-    "laser3.ogg",
-    "lowDown.ogg",
-    "phaseJump1.ogg",
-    "powerUp1.ogg",
-    "powerUp4.ogg",
-    "zap1.ogg",
-    "zap2.ogg",
-  ])
-    assert.ok(
-      fs.statSync(path.join(root, "assets/kenney", name)).size > 50,
-      name,
-    );
+test("imported atlas, license notices and the assets/super sound bank are bundled locally", () => {
+  for (const name of ["platformIndustrial_sheet.png", "platformIndustrial_sheet.xml", "License.txt", "LICENSE.md", "ATTRIBUTION.md"])
+    assert.ok(fs.statSync(path.join(root, "assets/kenney", name)).size > 50, name);
+  // every mapped sound effect must exist in assets/super (no HTMLAudio .ogg path any more)
+  const { NR } = engine();
+  const paths = NR.audioMap.paths();
+  assert.ok(paths.length > 60);
+  for (const p of paths) assert.ok(fs.statSync(path.join(root, "assets/super", p)).size > 100, p);
 });
 
 test("blocked storage falls back to the latest in-memory value and reports it", () => {

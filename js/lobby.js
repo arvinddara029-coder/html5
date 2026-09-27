@@ -577,7 +577,7 @@
       const c = NR.heroes.current();
       tags.innerHTML =
         `<span class="hero-tag">${c.name} · ${c.tag}</span><span class="hero-tag">${titleFor(P.level || 1)}</span>` +
-        `<span class="hero-tag">${P.mode === "adventure" ? "CAMPAIGN" : P.mode === "survive" ? "SURVIVE" : "WAVE FIGHT"}</span>`;
+        `<span class="hero-tag">${P.mode === "adventure" ? "CAMPAIGN" : P.mode === "run" ? "SURVIVAL RUN" : "WAVE CLIMB"}</span>`;
     }
   };
 
@@ -710,13 +710,14 @@
         NR.audio.play("uiConfirm");
         const mode = b.dataset.pmode;
         closeModal("modal-play");
-        if (mode === "wavefight") { P.mode = "survival"; NR.saveProfile(); startRun(); }
-        else if (mode === "survive") { P.mode = "survive"; NR.saveProfile(); startRun(); }
+        if (mode === "climb" || mode === "wavefight") { P.mode = "climb"; NR.saveProfile(); startRun(); }
+        else if (mode === "run" || mode === "survive") { P.mode = "run"; NR.saveProfile(); startRun(); }
         else if (mode === "campaign") openModal("modal-deploy");
         else if (mode === "online") NR.social.openOnline();
       }));
     const startRun = () => {
-      NR.loader.wrap("ENTERING " + (P.mode === "survive" ? "SURVIVE" : "WAVE FIGHT"),
+      NR.game.online = false; NR.game.pvp = false;
+      NR.loader.wrap("ENTERING " + (P.mode === "run" ? "SURVIVAL RUN" : "WAVE CLIMB"),
         Promise.resolve(NR.game.start()));
     };
 

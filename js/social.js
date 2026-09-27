@@ -216,13 +216,13 @@
     if (first) { first.classList.add("sel"); S.selectedMode = first.dataset.omode; }
     function resolveMode(id) {
       if (id !== "random") return id;
-      const all = ["duo", "duel", "team2", "team4"];
+      const all = ["climb", "run", "duel"];
       return all[Math.floor(Math.random() * all.length)];
     }
     function updateJoinLabel() {
       const label = $("ol-join-label");
       if (!label) return;
-      const names = { duo: "DUO CO-OP", duel: "1v1", team2: "2v2", team4: "4v4", random: "QUICK MATCH" };
+      const names = { climb: "WAVE CLIMB", run: "SURVIVAL RUN", duo: "DUO CO-OP", duel: "1v1", team2: "2v2", team4: "4v4", random: "RANDOM" };
       label.textContent = `02 · CREATE ${names[S.selectedMode] || ""} ROOM — INVITE FRIENDS`;
     }
     updateJoinLabel();
@@ -243,6 +243,19 @@
       const room = await N.joinRoom(code);
       if (room) S.renderRoom();
     });
+    // QUICK PLAY: automatic matchmaking in the selected mode
+    const qpStatus = (t) => { const el = $("qp-status"); if (el) el.textContent = t; };
+    $("ol-quick")?.addEventListener("click", async () => {
+      NR.audio.play("uiConfirm");
+      if (N.quick.searching) return;
+      const mode = resolveMode(S.selectedMode || "climb");
+      $("ol-quick").disabled = true; $("ol-quick-cancel").hidden = false;
+      const room = await N.quickPlay(mode, qpStatus);
+      $("ol-quick").disabled = false; $("ol-quick-cancel").hidden = true;
+      if (room) { S.renderRoom(); $("qp-solo").hidden = N.mode !== "host"; }
+    });
+    $("ol-quick-cancel")?.addEventListener("click", () => { NR.audio.play("uiCancel"); N.cancelQuick(); qpStatus("Search cancelled."); $("qp-solo").hidden = true; });
+    $("qp-solo")?.addEventListener("click", () => { NR.audio.play("uiConfirm"); if (N.mode === "host" && N.room) N.startMatch(); else NR.hub.notify("Only the room host can start."); });
     $("sr-leave")?.addEventListener("click", () => { NR.audio.play("uiClick"); N.leaveRoom(); });
     $("sr-open-online")?.addEventListener("click", () => S.openOnline());
     $("sr-ready")?.addEventListener("click", () => { NR.audio.play("uiToggleOn"); N.setReady(!(N.room?.members.find((m) => m.id === N.myId())?.ready)); });
@@ -281,15 +294,27 @@
   /* called by net when the host starts (both sides) */
   S.onMatchStart = function (room, asGuest) {
     $("modal-online")?.classList.remove("open");
-    const def = NR.net.modes[room.mode];
+    const def = NR.net.modes[room.mode] || NR.net.modes.climb;
     NR.hub.notify("Match starting — " + def.label);
-    // co-op duo runs the WAVE FIGHT content; pvp modes run the arena
-    const mode = def.pvp ? "wavefight" : "survival";
-    NR.profile.mode = mode;
-    NR.game.pvp = !!def.pvp;
-    NR.game.online = true;
+    NR.audio.play("matchFound");
+    // co-op rooms run WAVE CLIMB / SURVIVAL RUN; pvp rooms run the arena
+    NR.profile.mode = def.game || (def.pvp ? "pvp" : "climb");
     $("modal-deploy")?.classList.remove("open");
-    NR.loader.wrap("ENTERING ARENA", Promise.resolve()).then(() => NR.game.start());
+    $("modal-play")?.classList.remove("open");
+    const go = () => {
+      try {
+        if (NR.game.state !== "menu" && NR.game.state !== "over" && NR.game.state !== "victory") NR.game.toMenu();
+        NR.game.start();
+        NR.game.pvp = !!def.pvp;
+        NR.game.online = true;
+        NR.modes?.start(NR.game);   // re-seed with the room seed now that online is set
+      } catch (e) {
+        NR.diag?.net("match start failed: " + e.message);
+        NR.hub.notify("Could not start the match: " + e.message);
+        NR.game.toMenu();
+      }
+    };
+    NR.loader.wrap("ENTERING " + def.label, Promise.resolve()).then(go, go);
   };
 
   /* ---------------- chat with moderation ---------------- */

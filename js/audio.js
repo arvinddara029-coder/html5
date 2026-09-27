@@ -27,7 +27,7 @@
     A.ready = true;
     // expose the graph for the sampled audio map (assets/super bank)
     A._ctx = ctx; A._sfxGain = sfxG; A._musGain = musG; A._masterGain = master;
-    if (NR.audioMap) NR.audioMap.decode(ctx).catch(() => {});
+    if (NR.audioMap) Promise.resolve(NR.audioMap.decode(ctx)).catch(() => {});
     A.setVolumes();
     startMusic();
   };
@@ -56,21 +56,12 @@
     musG.gain.linearRampToValueAtTime(A.musicOn ? 0.84 * NR.profile.musicVolume : 0, ctx.currentTime + rel);
   };
 
-  const sampleFiles = {checkpoint:'powerUp1',cache:'powerUp4',shard:'highUp',sentry:'laser3',gate:'lowDown',clear:'zap1',victory:'phaseJump1',achievement:'zap2'};
-  const samplePools = {}, sampleLast = {};
-  A.sample = function(name) {
-    if(!A.ready || !A.sfxOn || A.muted || !sampleFiles[name])return;
-    const now=performance.now();
-    if(now-(sampleLast[name]||0)<90)return; sampleLast[name]=now;
-    const pool=samplePools[name]||(samplePools[name]=Array.from({length:3},()=>new Audio('assets/kenney/'+sampleFiles[name]+'.ogg')));
-    const clip=pool.find(a=>a.paused||a.ended);if(!clip)return;
-    clip.volume=NR.profile.sfxVolume*.55;clip.currentTime=0;
-    clip.play().catch(()=>A.play('pickup'));
-  };
+  /* A.sample(name) is provided by audiomap.js (decoded assets/super buffers). */
+  A.sample = function (name) { A.play(name); };
   A.setVolumes = function(){
+    if(!ctx)return;
     if(musG)musG.gain.setTargetAtTime(A.musicOn ? 0.84*NR.profile.musicVolume : 0,ctx.currentTime,.05);
     if(sfxG)sfxG.gain.setTargetAtTime(A.sfxOn?1.2*NR.profile.sfxVolume:0,ctx.currentTime,.05);
-    Object.values(samplePools).flat().forEach(a=>{a.volume=A.sfxOn?NR.profile.sfxVolume*.55:0;});
   };
   // Samples and synth buses share the same mute controls.
   const toggleSfx=A.toggleSfx;
@@ -220,16 +211,38 @@
       arp(t, notes[(s / 2 | 0) % notes.length] + 12);
     }
   }
+  /* Scheduler v2: 50ms tick with a 0.35s lookahead survives main-thread
+     stalls (asset decode, GC, heavy frames) without gaps. After a long stall
+     (tab in background) we skip ahead instead of firing a burst of stale
+     notes — that burst was the audible "atak" / crackle. */
+  const LOOKAHEAD = 0.35;
   function startMusic() {
     if (musicTimer || !ctx) return;
-    step = 0; nextT = ctx.currentTime + 0.06;
+    step = 0; nextT = ctx.currentTime + 0.08;
     musicTimer = setInterval(() => {
-      if (!A.ready) return;
-      while (nextT < ctx.currentTime + 0.14) {
-        schedStep(step, nextT);
+      if (!A.ready || ctx.state !== "running") return;
+      const now = ctx.currentTime;
+      if (nextT < now - 0.05) {                       // fell behind: resync
+        const missed = Math.ceil((now - nextT) / STEP);
+        step = (step + missed) % 64; nextT += missed * STEP;
+      }
+      let guard = 0;
+      while (nextT < now + LOOKAHEAD && guard++ < 16) {
+        if (A.musicOn) { try { schedStep(step, nextT); } catch (_) {} }
         step = (step + 1) % 64;
         nextT += STEP;
       }
-    }, 30);
+    }, 50);
   }
+  /* pause the whole graph while the tab is hidden; resume cleanly */
+  if (typeof document !== "undefined" && document.addEventListener) {
+    document.addEventListener("visibilitychange", () => {
+      if (!ctx) return;
+      try {
+        if (document.hidden) ctx.suspend();
+        else ctx.resume().then(() => { nextT = ctx.currentTime + 0.08; });
+      } catch (_) {}
+    });
+  }
+
 })();
