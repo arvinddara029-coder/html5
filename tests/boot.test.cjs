@@ -960,3 +960,129 @@ test("hero select + enemy codex render and survive churn", () => {
   G.enemies.push(new NR.Wraith(400, NR.world.groundY, 1)); // codex previews instantiate enemies
   G.update(1 / 60, 1 / 60);
 });
+
+/* ================= FEEDBACK PASS 3 — regressions ================= */
+
+test("hud glow-text cache renders score/combo/banners without per-frame blur", () => {
+  const E = engine();
+  const { NR } = E;
+  NR.sprites.init(); NR.world.init(); NR.ui.init();
+  const G = NR.game;
+  G.player = new NR.Player();
+  NR.applyCharacter(G.player, "kaito");
+  G.state = "playing";
+  G.score = 123456; G.combo = 7; G.comboT = 2; G.wave = 3;
+  G.bossActive = true; G.bossRef = { hp: 50, maxHp: 100, phase: 2, bossName: "SHOGUN-9" };
+  G.banners = [{ text: "BOSS INBOUND", sub: "brace yourself", col: "#ff2d95", t: 0.4, life: 2 }];
+  // must not throw with the cached-glow path (stub canvas falls back to plain fillText)
+  const ctx = E.dom.el("canvas").getContext("2d");
+  NR.hud.draw(ctx, G, 960, 540);
+  NR.hud.draw(ctx, G, 960, 540); // second frame exercises the cache-hit path
+  G.bossRef.bossName = "VOID BRUTE";
+  NR.hud.draw(ctx, G, 960, 540); // new boss name renders through the cache too
+});
+
+test("spells unlock by level OR coin purchase and both paths equip", () => {
+  const E = engine();
+  const { NR } = E;
+  const P = NR.profile, Ev = NR.evolution;
+  P.level = 1; P.coins = 10000; P.spellUnlocks = {};
+  const nova = Ev.spells.find((s) => s.id === "nova"); // level 10 gate
+  assert.ok(nova && nova.level > P.level, "nova starts above player level");
+  assert.ok(!Ev.isUnlocked(nova), "nova locked at level 1");
+  const price = Ev.spellPrice(nova);
+  assert.ok(price > 0, "early unlock has a coin price");
+  assert.ok(Ev.buySpell(nova.id), "purchase succeeds with enough coins");
+  assert.equal(P.coins, 10000 - price, "coins actually deducted");
+  assert.ok(Ev.isUnlocked(nova), "purchased spell counts as unlocked");
+  assert.ok(Ev.slots.includes(nova.id), "purchase auto-equips into the loadout");
+  // level path still free: a fresh spell unlocks via levels without coins
+  P.coins = 0;
+  const frost = Ev.spells.find((s) => s.id === "frost");
+  assert.ok(!Ev.buySpell(nova.id), "double purchase refused");
+  P.level = frost.level;
+  assert.ok(Ev.isUnlocked(frost), "frost free at its level");
+  Ev.equip(frost.id);
+  assert.ok(Ev.slots.includes(frost.id), "level-unlocked spell equips");
+  // insufficient coins refuse politely
+  P.level = 1; P.coins = 5;
+  const star = Ev.spells.find((s) => s.id === "star");
+  assert.ok(!Ev.buySpell(star.id), "purchase refused without coins");
+  assert.ok(!P.spellUnlocks[star.id], "no unlock recorded on refusal");
+});
+
+test("music switches between menu and battle tracks without breaking", () => {
+  const E = engine();
+  const { NR } = E;
+  const A = NR.audio;
+  assert.equal(typeof A.setMusicMode, "function", "setMusicMode exists");
+  assert.equal(A.musicMode(), "menu", "starts on the menu track");
+  A.setMusicMode("battle");
+  assert.equal(A.musicMode(), "battle", "battle track engaged");
+  A.setMusicMode("battle"); // idempotent
+  A.setMusicMode("menu");
+  assert.equal(A.musicMode(), "menu", "returns to menu track");
+});
+
+test("enemy codex preloads boss sheets + super actors and stays defensive", () => {
+  const E = engine();
+  const { NR } = E;
+  NR.sprites.init(); NR.world.init(); NR.ui.init(); NR.lobby.init();
+  const preloaded = [];
+  NR.assets.preload = (paths) => { preloaded.push(...paths); return Promise.resolve(); };
+  NR.bossDefs.rotation = () => { throw new Error("boom"); }; // hostile rotation must not blank the codex
+  NR.codex.openEnemies();
+  const body = E.dom.document.getElementById("enemy-codex-body");
+  assert.ok(body.children.length >= 2, "codex still renders sections when rotation throws");
+  NR.bossDefs.rotation = () => [{ name: "A", skin: "mech", style: "melee", reward: 10 }];
+  NR.codex.openEnemies();
+  assert.ok(preloaded.some((p) => /boss|mech|orc/i.test(String(p))), "boss sheet paths preloaded for lobby previews");
+});
+
+test("online wave leaderboard ranks runs and lobby wires ONLINE PLAY", () => {
+  const E = engine();
+  const { NR } = E;
+  NR.records = [
+    { name: "AAA", mode: "survival", wave: 12, score: 40000 },
+    { name: "BBB", mode: "survive", wave: 20, score: 90000 },
+    { name: "CCC", mode: "survival", wave: 5, score: 12000 },
+  ];
+  NR.social.renderLeaderboard();
+  const box = E.dom.document.getElementById("ol-leaderboard");
+  assert.ok(box.children.length >= 3, "leaderboard rows render from the run archive");
+  const waves = [...box.children].map((c) => (String(c.innerHTML).match(/WAVE (\d+)/) || [])[1] | 0);
+  assert.ok(waves[0] === 20, "highest wave ranks first (got " + waves[0] + ")");
+  assert.deepEqual(waves.slice(0, 3), [20, 12, 5], "rows sorted by waves reached");
+  // nav swap: ONLINE PLAY replaces ENEMIES, codex stays reachable from hero select
+  const html = require("node:fs").readFileSync("index.html", "utf8");
+  assert.ok(html.includes('id="lb-online"'), "ONLINE PLAY nav button present");
+  assert.ok(!html.includes('id="lb-enemies"'), "ENEMIES nav button removed");
+  assert.ok(html.includes('id="hs-codex-link"'), "enemy codex linked from hero select footer");
+  // random quick-match resolves to a real mode id
+  assert.ok(html.includes('data-omode="random"'), "RANDOM quick-match card present");
+  const modes = NR.net.modes;
+  for (const id of ["duo", "duel", "team2", "team4"]) assert.ok(modes[id], "mode still defined: " + id);
+});
+
+test("settings no longer surface the player-facing error log", () => {
+  const html = require("node:fs").readFileSync("index.html", "utf8");
+  assert.ok(!html.includes("diag-list"), "error log list removed from settings DOM");
+  assert.ok(!html.includes("btn-diag-copy"), "copy-diagnostics button removed");
+  assert.ok(html.includes("js/diagnostics.js"), "internal diagnostics collection still loaded");
+});
+
+test("super boss hurt() never references undefined helpers (stray-global regression)", () => {
+  const E = engine();
+  const { NR } = E;
+  NR.sprites.init(); NR.world.init();
+  const G = NR.game;
+  G.enemies.length = 0;
+  const def = { name: "TEST WARDEN", actor: (NR.superContent?.actors || [])[0], style: "melee", reward: 10 };
+  const b = NR.bossDefs.spawn(def, 300, 1, 1);
+  if (b) {
+    b.state = "fight"; // skip intro so hurt() applies damage
+    const ok = b.hurt(50, 1, 0, false, G);
+    assert.equal(typeof ok, "boolean", "hurt returns cleanly instead of throwing");
+    assert.ok(b.hp < b.maxHp, "damage applied");
+  }
+});

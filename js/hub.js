@@ -147,8 +147,9 @@
     if (kunaiEl) kunaiEl.classList.toggle('not-ready',p.kunaiCharges===0);
     if (attackEl) attackEl.classList.toggle('counter-ready',p.counterT>0);
     // hero signature kit buttons (E / Z / X)
+    const KIT_ACTS = ["tactical", "ability2", "ability3"]; // input action ids, in slot order
     for (let i = 0; i < 3; i++) {
-      const el = document.querySelector(`[data-act="ability${i+1}"]`);
+      const el = document.querySelector(`[data-act="${KIT_ACTS[i]}"]`);
       const cdEl = document.querySelector(`#ab${i+1}-cd`);
       if (!el || !cdEl || !p.ab) continue;
       const kit = NR.abilities;

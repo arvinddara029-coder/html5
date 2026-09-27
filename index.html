@@ -73,9 +73,10 @@
               <span class="nb-icon"><svg class="ico" aria-hidden="true"><use href="#i-swords"/></svg></span>
               <span>HEROES<small>12 signature fighters · pick your kit</small></span>
             </button>
-            <button class="nav-btn" id="lb-enemies">
-              <span class="nb-icon"><svg class="ico" aria-hidden="true"><use href="#i-skull"/></svg></span>
-              <span>ENEMIES<small>Know the roster before you fight</small></span>
+            <button class="nav-btn online" id="lb-online">
+              <span class="nb-icon"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg></span>
+              <span>ONLINE PLAY<small>1v1 · 2v2 · 4v4 · co-op · invites</small></span>
+              <i class="live-dot" aria-hidden="true"></i>
             </button>
             <button class="nav-btn" id="lb-vault">
               <span class="nb-icon"><svg class="ico" aria-hidden="true"><use href="#i-bag"/></svg></span>
@@ -191,28 +192,33 @@
         </div>
       </div>
 
-      <!-- ============ PLAY / MODE SELECT modal ============ -->
-      <div class="lobby-modal" id="modal-play" role="dialog" aria-label="Choose a mode">
-        <div class="wood-panel">
-          <div class="lm-head"><h2>CHOOSE YOUR BATTLE</h2><button class="lm-close" data-close="modal-play" aria-label="Close">✕</button></div>
-          <div class="play-modes" id="play-modes">
-            <button class="pm-card" data-pmode="wavefight">
-              <span class="pm-tag">STRUCTURED WAVES</span>
-              <h3>WAVE FIGHT</h3>
-              <p>Escalating combat waves. A boss every 5th wave. Choose an upgrade after each wave and push your record deeper.</p>
-              <small>BOSSES · UPGRADES · PROGRESSION</small>
-            </button>
-            <button class="pm-card" data-pmode="survive">
-              <span class="pm-tag">ENDLESS PRESSURE</span>
-              <h3>SURVIVE</h3>
-              <p>No wave breaks — the spawn pressure climbs every second. Milestone bosses every 3 minutes. Pure high-score survival.</p>
-              <small>ESCALATION · TIME ATTACK · HIGH SCORE</small>
-            </button>
-          </div>
-          <div class="play-secondary">
-            <button data-pmode="campaign"><svg class="ico" aria-hidden="true"><use href="#i-map"/></svg> CAMPAIGN · WORLDS</button>
-            <button data-pmode="online"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg> ONLINE · WITH FRIENDS</button>
-          </div>
+      <!-- ============ PLAY / MODE SELECT — game-style full-bleed ============ -->
+      <div class="lobby-modal gamemode" id="modal-play" role="dialog" aria-label="Choose a mode">
+        <div class="gm-panel">
+        <button class="lm-close" data-close="modal-play" aria-label="Close">✕</button>
+        <h2 class="gm-title">SELECT<br/>BATTLE MODE</h2>
+        <div class="play-modes" id="play-modes">
+          <button class="pm-card" data-pmode="wavefight" style="--art:url('assets/bg_reactor.jpg')">
+            <span class="pm-frame"></span>
+            <span class="pm-tag">STRUCTURED WAVES</span>
+            <h3>WAVE<br/>FIGHT</h3>
+            <p>Escalating waves. A boss every 5th wave. Pick an upgrade after each wave and push your record deeper.</p>
+            <small>▶ BOSSES · UPGRADES · PROGRESSION</small>
+            <span class="pm-best" id="pm-best-wave"></span>
+          </button>
+          <button class="pm-card" data-pmode="survive" style="--art:url('assets/bg_garden.jpg')">
+            <span class="pm-frame"></span>
+            <span class="pm-tag">ENDLESS PRESSURE</span>
+            <h3>SURVIVE</h3>
+            <p>No wave breaks — pressure climbs every second. Milestone bosses every 3 minutes. Pure high-score survival.</p>
+            <small>▶ ESCALATION · TIME ATTACK · HIGH SCORE</small>
+            <span class="pm-best" id="pm-best-survive"></span>
+          </button>
+        </div>
+        <div class="play-secondary">
+          <button data-pmode="campaign"><svg class="ico" aria-hidden="true"><use href="#i-map"/></svg> CAMPAIGN · WORLDS</button>
+          <button data-pmode="online"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg> ONLINE · WITH FRIENDS</button>
+        </div>
         </div>
       </div>
 
@@ -224,6 +230,9 @@
             <div class="hs-preview-wrap"><canvas id="hero-select-preview" width="300" height="430"></canvas><span class="vp-plate">LIVE MODEL</span></div>
             <div class="hs-detail" id="hero-detail"></div>
             <div class="hs-grid-wrap"><div class="hs-grid-label">ROSTER</div><div class="hs-grid" id="hero-grid"></div></div>
+          </div>
+          <div class="hs-footer">
+            <button class="hs-codex-link" id="hs-codex-link">☠ ENEMY CODEX — study the roster</button>
           </div>
         </div>
       </div>
@@ -260,15 +269,18 @@
             <button class="om-card" data-omode="duel"><span>1v1</span><small>head-to-head duel</small></button>
             <button class="om-card" data-omode="team2"><span>2v2</span><small>team clash</small></button>
             <button class="om-card" data-omode="team4"><span>4v4</span><small>team war</small></button>
+            <button class="om-card random" data-omode="random"><span>RANDOM</span><small>quick match — any mode</small></button>
           </div>
           <div class="online-join">
-            <div class="lm-label">02 · CREATE OR JOIN</div>
+            <div class="lm-label" id="ol-join-label">02 · CREATE OR JOIN</div>
             <div class="oj-row">
               <button class="gold-btn" id="ol-create">CREATE ROOM</button>
               <input id="ol-code" maxlength="6" placeholder="ROOM CODE" aria-label="Room code"/>
               <button class="gold-btn" id="ol-join">JOIN</button>
             </div>
             <p class="deploy-note">Rooms run over direct WebRTC connections. Invite links use your CrazyGames account when available; friends can also join with the code.</p>
+            <div class="lm-label" style="margin-top:14px">03 · WAVE-CLEAR LEADERBOARD</div>
+            <div class="ol-leaderboard" id="ol-leaderboard"></div>
           </div>
         </div>
       </div>
@@ -391,11 +403,7 @@
       <div class="set-row"><p>FLOATING NUMBERS</p><button class="btn toggle on" id="tgl-float">ON</button></div>
       <div class="set-row volume-row"><label for="hud-scale">HUD SCALE</label><input type="range" id="hud-scale" min="0.7" max="1.4" step="0.05"/><output id="hud-scale-out">100%</output></div>
       <div class="set-row volume-row"><label for="vfx-intensity">VFX INTENSITY</label><input type="range" id="vfx-intensity" min="0.4" max="1.3" step="0.05"/><output id="vfx-intensity-out">100%</output></div>
-      <h3 class="set-heading">DIAGNOSTICS / ERROR LOG</h3>
-      <div class="diag-wrap">
-        <div class="diag-tools"><button class="btn" id="btn-diag-copy">COPY ALL</button><button class="btn" id="btn-diag-export">EXPORT JSON</button><button class="btn" id="btn-diag-clear">CLEAR</button></div>
-        <div class="diag-list" id="diag-list" aria-live="polite"></div>
-      </div>
+
       <div class="set-row"><label for="callsign">CALLSIGN</label><input id="callsign" maxlength="16" autocomplete="off" value="RONIN_01" aria-describedby="callsign-help"/></div><p id="callsign-help" class="setting-help">3–16 letters, numbers or underscores. Used in your local run archive.</p>
       <div class="set-row"><p>SCREEN SHAKE</p><button class="btn toggle on" id="tgl-shake">ON</button></div>
       <div class="set-row"><p>ON-SCREEN CONTROLS</p><button class="btn toggle on" id="tgl-controls">ON</button></div>

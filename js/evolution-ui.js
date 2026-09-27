@@ -20,9 +20,22 @@
     for(const s of E.spells){const card=document.createElement('article');const rank=1+Math.floor((NR.profile.level-1)/5);
       const h=document.createElement('h3');h.textContent=s.name;card.append(h);
       para(`${s.desc} · ${E.spellCost(s)} energy · ${E.spellCooldown(s).toFixed(1)}s cooldown · Rank ${rank}`,card);
-      const locked=NR.profile.level<s.level;
-      const b=button(locked?`UNLOCK AT LEVEL ${s.level}`:E.slots.includes(s.id)?`REMOVE · SLOT ${E.slots.indexOf(s.id)+1}`:'EQUIP',()=>{E.equip(s.id);E.vault();});
-      b.disabled=locked || (!E.slots.includes(s.id) && E.slots.length>=10);card.append(b);grid.append(card);
+      const locked=!E.isUnlocked(s);
+      const ownedByLevel=(NR.profile.level||1)>=(s.level||1);
+      const price=E.spellPrice(s);
+      if(locked){
+        // two ways in: reach the level (free) or buy now with coins
+        const buy=button(`BUY NOW · ${price} COINS`,()=>{if(E.buySpell(s.id)){E.vault();NR.audio.play('purchase');}else NR.audio.play('deny');});
+        buy.disabled=(NR.profile.coins||0)<price;buy.classList.add('buy');
+        card.append(buy,document.createElement('br'));
+        const lvl=button(`FREE AT LEVEL ${s.level}`,()=>NR.hub.notify(`Reach player level ${s.level} to unlock ${s.name} for free.`));
+        lvl.classList.add('ghost');card.append(lvl);
+      } else {
+        const b=button(E.slots.includes(s.id)?`REMOVE · SLOT ${E.slots.indexOf(s.id)+1}`:'EQUIP',()=>{E.equip(s.id);E.vault();});
+        b.disabled=!E.slots.includes(s.id) && E.slots.length>=10;card.append(b);
+        if(!ownedByLevel){const tag=document.createElement('small');tag.className='purchased-tag';tag.textContent='PURCHASED EARLY';card.append(tag);}
+      }
+      grid.append(card);
     }
     const gear=document.createElement('details'),summary=document.createElement('summary');summary.textContent='EQUIPPED ITEM POWERS';gear.append(summary);
     for(const [cat,id] of Object.entries({...NR.profile.appearance,pet:NR.profile.pet}))if(id && NR.catalog[cat])para(`${cat.toUpperCase()} · ${id}: ${E.describe(cat,id)}`,gear);

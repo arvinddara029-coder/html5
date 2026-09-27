@@ -347,3 +347,88 @@ body.no-shadows .hero-plate, body.no-shadows .lobby-fireflies i { box-shadow: no
   .cx-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
 }
 .hs-customize { margin-top: 6px; width: 100%; }
+
+/* ============ FEEDBACK PASS 3 — game-style modes, online nav, overflow hardening ============ */
+
+/* --- ONLINE PLAY nav button (replaces ENEMIES) — distinct live styling --- */
+.nav-btn.online { position: relative; }
+.nav-btn.online .nb-icon { color: #7dffc9; filter: drop-shadow(0 0 6px rgba(125,255,201,.5)); }
+.nav-btn.online span { color: #d9ffe9; }
+.nav-btn.online small { color: #79d9a8; }
+.live-dot { position: absolute; top: 10px; right: 12px; width: 8px; height: 8px; border-radius: 50%;
+  background: #42ff9c; box-shadow: 0 0 8px #42ff9c; animation: livepulse 1.6s infinite; }
+@keyframes livepulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .45; transform: scale(.7); } }
+
+/* --- PLAY modal → console-style mode select (big art panels, no website look) --- */
+.lobby-modal.gamemode { background: rgba(2, 5, 12, .82); }
+.gm-panel { position: relative; width: min(96vw, 1040px); max-height: min(92vh, 860px); overflow-y: auto;
+  background: linear-gradient(170deg, rgba(8,18,32,.97), rgba(4,10,20,.98));
+  border: 1px solid rgba(0,255,244,.22); border-radius: 10px;
+  box-shadow: 0 0 60px rgba(0,255,244,.12), inset 0 0 90px rgba(0,0,0,.55); padding-bottom: 4px; }
+.gm-panel .lm-close { position: absolute; top: 10px; right: 12px; z-index: 3; }
+.gm-title { font: 900 clamp(30px, 5vw, 54px)/0.95 Orbitron, sans-serif; letter-spacing: .06em;
+  color: #eafcff; text-align: left; margin: 22px 26px 4px; text-shadow: 0 0 18px rgba(0,255,244,.45); }
+.gamemode .play-modes { grid-template-columns: repeat(auto-fit, minmax(min(300px, 44vw), 1fr)); gap: 18px; padding: 18px 26px 6px; }
+.pm-card { position: relative; min-height: clamp(200px, 34vh, 300px); border: 2px solid rgba(255,255,255,.14);
+  border-radius: 8px; overflow: hidden; background: #0a1420 center/cover no-repeat; background-image: var(--art);
+  display: flex; flex-direction: column; justify-content: flex-end; padding: 18px; text-align: left;
+  transition: transform .14s ease, border-color .14s ease; }
+.pm-card::before { content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(4,10,20,.18) 0%, rgba(4,10,20,.72) 55%, rgba(2,6,14,.94) 100%); }
+.pm-card > * { position: relative; }
+.pm-frame { position: absolute !important; inset: 10px; border: 1px solid rgba(0,255,244,0);
+  transition: border-color .14s ease, box-shadow .14s ease; pointer-events: none; }
+.pm-card:hover { transform: translateY(-3px) scale(1.012); border-color: rgba(0,255,244,.65); }
+.pm-card:hover .pm-frame { border-color: rgba(0,255,244,.5); box-shadow: inset 0 0 24px rgba(0,255,244,.12); }
+.pm-card .pm-tag { font: 700 10px/1 Orbitron; letter-spacing: .22em; color: #00fff4; margin-bottom: 8px; }
+.pm-card h3 { font: 900 clamp(30px, 4.6vw, 46px)/.95 "Barlow Condensed"; color: #fff; margin: 0 0 8px;
+  text-shadow: 0 2px 14px rgba(0,0,0,.8); }
+.pm-card p { font: 500 13px/1.45 "DM Sans"; color: #cfe0e2; margin: 0 0 10px; max-width: 42ch; }
+.pm-card small { font: 700 10px/1 Orbitron; letter-spacing: .14em; color: #9be7e2; }
+.pm-best { font: 700 11px/1 Orbitron; letter-spacing: .1em; color: #ffe14d; margin-top: 8px; }
+.gamemode .play-secondary { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px 26px 20px; }
+.gamemode .play-secondary button { flex: 1 1 200px; font: 800 13px Orbitron; letter-spacing: .1em; padding: 13px 16px; }
+
+/* --- ONLINE modal: random card + wave leaderboard --- */
+.om-card.random { border-style: dashed; }
+.om-card.random span { color: #ffe14d; }
+.ol-leaderboard { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto;
+  border: 1px solid rgba(255,255,255,.12); border-radius: 6px; padding: 8px 10px; background: rgba(4,10,18,.55); }
+.ol-row { display: grid; grid-template-columns: 34px 1fr auto auto auto; gap: 10px; align-items: center;
+  font: 600 12px "DM Sans"; color: #cfe0e2; padding: 4px 6px; border-radius: 4px; }
+.ol-row:nth-child(odd) { background: rgba(255,255,255,.04); }
+.ol-row.live { outline: 1px solid rgba(66,255,156,.25); }
+.ol-rank { color: #00fff4; font: 700 11px Orbitron; }
+.ol-row b { color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ol-row small { color: #8fb0e8; font: 700 9px Orbitron; letter-spacing: .1em; }
+.ol-wave { color: #ffe14d; font: 700 11px Orbitron; }
+.ol-score { color: #9baeb0; font: 600 11px "DM Sans"; }
+.ol-row.empty { display: block; text-align: center; color: #8fb0e8; font-style: italic; padding: 14px 0; }
+
+/* --- spell shop tags --- */
+.purchased-tag { display: block; margin-top: 6px; font: 700 9px Orbitron; letter-spacing: .16em; color: #ffe14d; }
+.evo-grid article button.buy { box-shadow: 0 0 14px rgba(255,180,60,.35); }
+.evo-grid article button.ghost { background: transparent; border: 1px dashed rgba(255,255,255,.25); color: #9baeb0; }
+
+/* --- OVERFLOW HARDENING: nothing may leave the viewport --- */
+.lobby-modal .wood-panel { width: min(880px, 96vw); max-height: min(92vh, 880px); overflow-y: auto;
+  overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.hs-layout { max-height: min(78vh, 720px); overflow-y: auto; }
+.cx-body { max-height: min(70vh, 640px); overflow-y: auto; }
+.online-join, .play-modes, .online-modes { min-width: 0; }
+.lobby-modal img, .lobby-modal canvas { max-width: 100%; }
+.online-join pre { max-width: 100%; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+@media (max-width: 720px) {
+  .pm-card { min-height: 180px; padding: 14px; }
+  .gamemode .play-modes { padding: 12px 14px 4px; gap: 12px; }
+  .gm-title { margin: 16px 16px 0; font-size: clamp(26px, 8vw, 40px); }
+  .gamemode .play-secondary { padding: 8px 14px 14px; }
+  .ol-row { grid-template-columns: 28px 1fr auto; }
+  .ol-row small, .ol-row .ol-score { display: none; }
+}
+
+/* --- hero-select footer codex link --- */
+.hs-footer { display: flex; justify-content: center; padding: 6px 0 10px; }
+.hs-codex-link { background: none; border: 1px dashed rgba(255,255,255,.22); color: #8fb0e8;
+  font: 700 11px Orbitron; letter-spacing: .12em; padding: 8px 16px; border-radius: 5px; cursor: pointer; }
+.hs-codex-link:hover { color: #fff; border-color: rgba(0,255,244,.5); }

@@ -693,6 +693,7 @@
     if ($("lb-play")) $("lb-play").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-play"); });
     if ($("lb-map")) $("lb-map").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-map"); });
     if ($("lb-heroes")) $("lb-heroes").addEventListener("click", () => { NR.audio.play("ui"); NR.vault.openVault("hero"); });
+    if ($("lb-online")) $("lb-online").addEventListener("click", () => { NR.audio.play("uiConfirm"); NR.social.openOnline(); });
     if ($("lb-vault")) $("lb-vault").addEventListener("click", () => { NR.audio.play("ui"); NR.vault.openVault(); });
     if ($("lb-shop")) $("lb-shop").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-shop"); });
     if ($("lb-settings")) $("lb-settings").addEventListener("click", () => { NR.audio.play("ui"); NR.ui.show("set"); });

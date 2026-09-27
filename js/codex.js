@@ -274,6 +274,34 @@
     return prev;
   }
 
+  /* Boss rotation that can never blank the codex: each entry validated. */
+  function bossRotation() {
+    if (!NR.bossDefs || typeof NR.bossDefs.rotation !== "function") return [];
+    try {
+      const list = NR.bossDefs.rotation();
+      return Array.isArray(list) ? list.filter((d) => d && d.name) : [];
+    } catch (_) { return []; }
+  }
+
+  /* The codex opens from the lobby, before the game preloads its sheets —
+     boss canvases and super-actor clips come up BLANK unless we pull the
+     images ourselves. Fire-and-forget preload; previews redraw every rAF so
+     art pops in as soon as each image decodes. */
+  function preloadCodexArt(rotation, supers) {
+    try {
+      const paths = new Set();
+      if (NR.bossSkins && NR.sheets) {
+        for (const def of rotation) {
+          const sk = NR.bossSkins[def.skin] || NR.bossSkins.mech;
+          const sheet = sk && sk.sheet && NR.sheets[sk.sheet];
+          if (sheet) for (const a of Object.values(sheet.anims || {})) if (a.path) paths.add(a.path);
+        }
+      }
+      if (paths.size && NR.assets && NR.assets.preload) NR.assets.preload([...paths]);
+      if (NR.superRuntime && NR.superRuntime.preloadActor) for (const a of supers) NR.superRuntime.preloadActor(a);
+    } catch (_) { /* previews stay dark — names/meta always render */ }
+  }
+
   CX.openEnemies = function () {
     const modal = $("modal-enemies");
     if (!modal) return;
@@ -281,11 +309,14 @@
     qsa(".lobby-modal.open").forEach((el) => el.classList.remove("open"));
     modal.classList.add("open");
     NR.audio.play("uiConfirm");
-    renderEnemies();
+    const rotation = bossRotation();
+    const supers = (NR.superContent && NR.superContent.actors ? NR.superContent.actors : []).filter((a) => a && a.role === "enemy").slice(0, 8);
+    preloadCodexArt(rotation, supers);
+    renderEnemies(rotation, supers);
     stopWhenClosed();
   };
 
-  function renderEnemies() {
+  function renderEnemies(rotation, supers) {
     const body = $("enemy-codex-body");
     if (!body) return;
     body.replaceChildren();
@@ -347,8 +378,8 @@
 
     /* --- boss rotation --- */
     const bossGrid = section("BOSS ROTATION", "a boss guards every 5th wave · survive milestones every 3:00");
-    if (NR.bossDefs) {
-      for (const def of NR.bossDefs.rotation()) {
+    if (rotation.length) {
+      for (const def of rotation) {
         const card = document.createElement("div");
         card.className = "cx-card boss";
         const cv = document.createElement("canvas");
@@ -382,9 +413,8 @@
     }
 
     /* --- super threats (late-world super-actor enemies) --- */
-    if (NR.superContent && NR.superContent.actors) {
-      const supers = NR.superContent.actors.filter((a) => a.role === "enemy").slice(0, 8);
-      if (supers.length) {
+    if (supers.length) {
+      {
         const sg = section("SUPER THREATS", "late-world elites from the super collection");
         for (const a of supers) {
           const card = document.createElement("div");
@@ -430,5 +460,7 @@
     if (eb) eb.addEventListener("click", () => CX.openEnemies());
     const backBtn = $("hs-back");
     if (backBtn) backBtn.addEventListener("click", () => CX.openHeroes());
+    const hsCodex = $("hs-codex-link"); // enemy codex lives here now that nav shows ONLINE PLAY
+    if (hsCodex) hsCodex.addEventListener("click", () => CX.openEnemies());
   };
 })();

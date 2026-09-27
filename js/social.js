@@ -55,7 +55,24 @@
   };
 
   /* ---------------- room UI ---------------- */
+  /* broadcast my wave best to the party so the leaderboard is live */
+  S.shareBest = function () {
+    const N = NR.net, P = NR.profile;
+    if (!N.room || !N.sendEvent) return;
+    let wave = 0, score = 0;
+    for (const r of (NR.records || [])) {
+      if (r.mode !== "survival" && r.mode !== "survive" && r.mode !== "online") continue;
+      if ((r.wave | 0) > wave) { wave = r.wave | 0; score = Math.round(r.score || 0); }
+    }
+    if (P.onlineBest) for (const b of Object.values(P.onlineBest)) {
+      if ((b.wave | 0) > wave) { wave = b.wave | 0; score = Math.round(b.score || 0); }
+    }
+    N.sendEvent({ a: "best", wave, score });
+  };
+
   S.renderRoom = function () {
+    S.shareBest && S.shareBest();
+    S.renderLeaderboard && S.renderLeaderboard();
     const box = $("social-room");
     if (!box) return;
     const N = NR.net;
@@ -124,6 +141,55 @@
     m.classList.add("open");
     NR.audio.play("uiClick");
     S.renderRoom();
+    S.renderLeaderboard();
+  };
+
+  /* Wave-clear leaderboard: waves reached per player. Personal results are the
+     validated local archive (NR.records + profile.onlineBest); while you are in
+     a room the party panel shares every member's best over the net channel. */
+  S.renderLeaderboard = function () {
+    const box = $("ol-leaderboard");
+    if (!box) return;
+    const N = NR.net;
+    const rows = [];
+    // party members (live room) — everyone announces their wave best
+    if (N.room && N.room.members) {
+      for (const m of N.room.members.values ? [...N.room.members.values()] : []) {
+        const best = m.best || { wave: 0, score: 0 };
+        rows.push({ name: m.name || "RONIN", tag: N.room.modeLabel || "ROOM", wave: best.wave | 0, score: best.score | 0, live: true });
+      }
+    }
+    // personal archive
+    const P = NR.profile;
+    for (const r of (NR.records || [])) {
+      if (r.mode !== "survival" && r.mode !== "survive" && r.mode !== "online") continue;
+      rows.push({ name: r.name || P.name, tag: r.mode === "survive" ? "SURVIVE" : r.mode === "online" ? "ONLINE" : "WAVE FIGHT", wave: r.wave | 0, score: Math.round(r.score), date: r.date });
+    }
+    if (P.onlineBest) for (const [mode, b] of Object.entries(P.onlineBest)) {
+      rows.push({ name: b.name || P.name, tag: ("ONLINE " + mode).toUpperCase(), wave: b.wave | 0, score: Math.round(b.score || 0), live: true });
+    }
+    rows.sort((a, b) => (b.wave - a.wave) || (b.score - a.score));
+    const seen = new Set();
+    const top = [];
+    for (const r of rows) {
+      const k = r.name + "|" + r.tag + "|" + r.wave;
+      if (seen.has(k)) continue;
+      seen.add(k); top.push(r);
+      if (top.length >= 10) break;
+    }
+    box.replaceChildren(...(top.length ? top.map((r, i) => {
+      const el = document.createElement("div");
+      el.className = "ol-row" + (r.live ? " live" : "");
+      el.innerHTML = `<span class="ol-rank">#${i + 1}</span><b></b><small>${r.tag}</small>` +
+        `<span class="ol-wave">WAVE ${r.wave || 0}</span><span class="ol-score">${(r.score || 0).toLocaleString("en-US")}</span>`;
+      el.querySelector("b").textContent = r.name;
+      return el;
+    }) : (() => {
+      const el = document.createElement("div");
+      el.className = "ol-row empty";
+      el.innerHTML = "<i>No runs yet — clear waves to claim the top spot.</i>";
+      return [el];
+    })()));
   };
 
   /* ---------------- mode select + create/join ---------------- */
@@ -131,7 +197,7 @@
     S.muted = new Set();
     S.blocked = new Set();
     const N = NR.net;
-    N.onRoom(() => S.renderRoom());
+    N.onRoom(() => { S.renderRoom(); S.renderLeaderboard(); });
     N.onChat((msg) => S.onChatMessage(msg));
 
     const modal = $("modal-online");
@@ -143,15 +209,33 @@
       b.addEventListener("click", () => {
         qsa("#online-modes .om-card").forEach((x) => x.classList.toggle("sel", x === b));
         S.selectedMode = b.dataset.omode;
-        NR.audio.play("uiClick");
+        NR.audio.play("uiConfirm");
+        updateJoinLabel();
       }));
     const first = qs("#online-modes .om-card");
     if (first) { first.classList.add("sel"); S.selectedMode = first.dataset.omode; }
+    function resolveMode(id) {
+      if (id !== "random") return id;
+      const all = ["duo", "duel", "team2", "team4"];
+      return all[Math.floor(Math.random() * all.length)];
+    }
+    function updateJoinLabel() {
+      const label = $("ol-join-label");
+      if (!label) return;
+      const names = { duo: "DUO CO-OP", duel: "1v1", team2: "2v2", team4: "4v4", random: "QUICK MATCH" };
+      label.textContent = `02 · CREATE ${names[S.selectedMode] || ""} ROOM — INVITE FRIENDS`;
+    }
+    updateJoinLabel();
 
     $("ol-create")?.addEventListener("click", async () => {
       NR.audio.play("uiConfirm");
-      const room = await N.createRoom(S.selectedMode || "duo");
-      if (room) { NR.audio.play("socialNotify"); S.renderRoom(); }
+      const mode = resolveMode(S.selectedMode || "duo");
+      const room = await N.createRoom(mode);
+      if (room) {
+        NR.audio.play("socialNotify");
+        S.renderRoom();
+        NR.hub.notify(`Room ${room.code} ready — invite friends with the link.`);
+      }
     });
     $("ol-join")?.addEventListener("click", async () => {
       NR.audio.play("uiConfirm");

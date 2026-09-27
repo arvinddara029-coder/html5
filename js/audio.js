@@ -156,7 +156,30 @@
     { root: 31, tri: [55, 59, 62] },
   ];
   const BASS = [0, -1, 0, -1, 12, -1, 0, 0, -1, 0, 10, -1, 12, -1, 7, -1]; // semitone offsets (-1 = rest)
+
+  /* ---- TWO music modes ----
+     "menu": the original airy synthwave (pads + arp, no drums)
+     "battle": a darker, driving combat loop — different progression,
+     4-on-the-floor kick, offbeat bass stabs and a rhythmic lead riff.
+     The player asked for a different track during gameplay; both remain
+     fully synthesized (zero asset load) and share the mixer. */
+  const BATTLE_PROG = [
+    { root: 28, tri: [52, 55, 59] },  // Em
+    { root: 31, tri: [55, 58, 62] },  // Gm
+    { root: 26, tri: [50, 53, 57] },  // Dm
+    { root: 33, tri: [52, 56, 59] },  // F#dim-flavoured stab
+  ];
+  const BATTLE_BASS = [0, -1, 0, 0, -1, 12, -1, 0, 0, -1, 0, 0, -1, 7, -1, 10];
+  const BATTLE_LEAD = [12, -1, 15, -1, 19, -1, 15, -1, 12, -1, 10, -1, 12, -1, -1, -1];
+  let musicMode = "menu";
   let step = 0, nextT = 0, musicTimer = null;
+  A.setMusicMode = function (m) {
+    if (musicMode === m) return;
+    musicMode = m;
+    step = 0; // restart the pattern so the change is audible immediately
+    if (A.ready) A.duck(0.12, 0.5);
+  };
+  A.musicMode = () => musicMode;
 
   function kick(t) { tone({ t, type: "sine", f0: 150, f1: 38, dur: 0.24, vol: 0.75, dest: musG, a: 0.002 }); }
   function snare(t) { noise({ t, dur: 0.14, vol: 0.3, ft: "bandpass", ff: 1900, q: 1.1, dest: musG }); tone({ t, type: "triangle", f0: 190, f1: 120, dur: 0.09, vol: 0.14, dest: musG }); }
@@ -171,7 +194,20 @@
   function arp(t, m) { tone({ t, type: "triangle", f0: midi(m), dur: 0.14, vol: 0.09, dest: musG, echo: 0.6, ff: 3200 }); }
 
   function schedStep(s, t) {
-    const bar = ((s / 16) | 0) % 4, st = s % 16, ch = PROG[bar];
+    const bar = ((s / 16) | 0) % 4, st = s % 16;
+    if (musicMode === "battle") {
+      /* driving combat loop: four-on-the-floor, offbeat bass, stab lead */
+      const ch = BATTLE_PROG[bar];
+      if (st % 4 === 0) kick(t);
+      if (st === 4 || st === 12) snare(t);
+      if (st % 2 === 1) hat(t, st % 4 === 3 ? 0.1 : 0.06);
+      if (st === 14) hat(t, 0.12);
+      if (BATTLE_BASS[st] >= 0) bass(t, midi(ch.root + BATTLE_BASS[st]));
+      if (st === 0) pad(t, ch.tri);           // darker pad bed
+      if (BATTLE_LEAD[st] >= 0) arp(t, midi(ch.root + BATTLE_LEAD[st])); // riff stab
+      return;
+    }
+    const ch = PROG[bar];
     if (st % 4 === 0) kick(t);
     if (st === 4 || st === 12) snare(t);
     if (st % 2 === 1) hat(t, st % 4 === 3 ? 0.12 : 0.07);

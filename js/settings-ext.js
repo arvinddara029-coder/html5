@@ -104,41 +104,8 @@
       show();
       el.addEventListener("input", () => { S.set(key, parseFloat(el.value)); show(); });
     }
-    S.initDiagnostics();
     S.apply();
   };
 
-  /* ---- Diagnostics / Error Center ---- */
-  S.initDiagnostics = function () {
-    const box = $("diag-list");
-    if (!box) return;
-    const render = () => {
-      const recs = (NR.diag.records || []).slice().reverse();
-      box.replaceChildren(...recs.slice(0, 40).map((r) => {
-        const el = document.createElement("div");
-        el.className = "diag-row diag-" + (r.type || "info").toLowerCase();
-        const time = String(r.t || "").slice(11, 19);
-        el.innerHTML = `<span class="d-t">${time}</span><span class="d-type">${r.type}</span>` +
-          `<span class="d-msg"></span><span class="d-ctx">${r.scene || ""}${r.mode && r.mode !== "-" ? " · " + r.mode : ""} · sdk ${r.sdk || "-"}</span>`;
-        el.querySelector(".d-msg").textContent = r.msg;
-        return el;
-      }));
-      if (!recs.length) {
-        const e = document.createElement("div");
-        e.className = "diag-row";
-        e.textContent = "No errors recorded. Structured events appear here (last 120 kept).";
-        box.append(e);
-      }
-      const clearBtn = $("btn-diag-clear"), copyBtn = $("btn-diag-copy"), expBtn = $("btn-diag-export");
-      if (clearBtn) clearBtn.onclick = () => { NR.diag.clear(); render(); NR.hub.notify("Diagnostics cleared."); };
-      if (copyBtn) copyBtn.onclick = () => NR.diag.copyAll();
-      if (expBtn) expBtn.onclick = () => NR.diag.downloadJSON();
-    };
-    render();
-    const panel = $("scr-set");
-    if (panel && typeof MutationObserver === "function") {
-      // refresh the log whenever settings opens
-      new MutationObserver(render).observe(panel, { attributes: true, attributeFilter: ["class"] });
-    }
-  };
+;
 })();

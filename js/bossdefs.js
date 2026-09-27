@@ -116,7 +116,8 @@
       this.hp -= dmg;
       this.flash = 0.1;
       this.stunned = Math.min(this.stunned || 0, 0.12); // bosses resist stun
-      F && NR.fx.sparks(this.x, this.y - this.h / 2, crit ? 12 : 6, crit ? "yellow" : "white");
+      // hit sparks respect the player's damage-effects setting
+      if (NR.profile?.damageEffects !== false && NR.fx?.sparks) NR.fx.sparks(this.x, this.y - this.h / 2, crit ? 12 : 6, crit ? "yellow" : "white");
       if (this.hp <= 0 && before > 0) { this.dieAsBoss(G); return true; }
       return false;
     }

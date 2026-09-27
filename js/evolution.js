@@ -3,6 +3,7 @@
   const E = NR.evolution = {}, P = NR.profile;
   const read = () => { try { return JSON.parse(NR.store.getItem('nr_evolution_v1')) || {}; } catch (_) { return {}; } };
   const saved = read();
+  // restore purchased unlocks (profile wins if both exist)
   E.hash = text => { let h = 2166136261; for (const c of text) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
   E.seed = Number.isInteger(saved.seed) ? saved.seed >>> 0 : Math.floor(Math.random() * 4294967296);
   E.levels = Array.from({length: NR.adventure.chapters.length}, (_, i) => Math.max(1, Math.min(100000, Math.floor(Number(saved.levels?.[i]) || 1))));
@@ -20,15 +21,33 @@
     ['phoenix','Phoenix Heart','Greater healing and brief protection',12,24,35,'phoenix'],
     ['execution','Radiant Judgment','Heavy damage to the closest target',15,18,30,'execute'],
   ].map(([id,name,desc,level,cd,cost,effect])=>({id,name,desc,level,cd,cost,effect}));
-  E.slots = Array.isArray(saved.slots) ? [...new Set(saved.slots)].filter(id=>E.spells.some(s=>s.id===id && s.level<=P.level)).slice(0,10) : ['ember'];
+  /* Spell access: every spell opens FREE at its player level, and impatient
+     players can buy early access with coins (P.spellUnlocks[id]). Both paths
+     count as unlocked; nothing is ever permanently locked. */
+  if (!P.spellUnlocks || typeof P.spellUnlocks !== 'object') P.spellUnlocks = {};
+  if (saved.unlocks && typeof saved.unlocks === 'object') for (const k of Object.keys(saved.unlocks)) if (saved.unlocks[k] === true) P.spellUnlocks[k] = true;
+  E.spellPrice = s => Math.max(0, (s.level || 1) * 150);
+  E.isUnlocked = s => (P.level || 1) >= (s.level || 1) || P.spellUnlocks[s.id] === true;
+  E.buySpell = id => {
+    const s = E.spells.find(x=>x.id===id);
+    if (!s || E.isUnlocked(s)) return false;
+    const price = E.spellPrice(s);
+    if (!NR.economy || !NR.economy.spend(price, 0)) { NR.hub?.notify(`Need ${price} coins for ${s.name}.`); return false; }
+    P.spellUnlocks[id] = true;
+    NR.saveProfile(); E.save();
+    NR.hub?.notify(`${s.name} unlocked! Equipped into your loadout.`);
+    if (!E.slots.includes(id) && E.slots.length < 10) E.slots.push(id);
+    return true;
+  };
+  E.slots = Array.isArray(saved.slots) ? [...new Set(saved.slots)].filter(id=>E.spells.some(s=>s.id===id && E.isUnlocked(s))).slice(0,10) : ['ember'];
   E.relic = typeof saved.relic==='string'?saved.relic:'';
   E.hero = typeof saved.hero==='string' ? saved.hero : '';
   E.companion = typeof saved.companion==='string' ? saved.companion : '';
   E.layout = saved.layout && typeof saved.layout === 'object' ? saved.layout : {};
-  E.save = () => NR.store.setItem('nr_evolution_v1', JSON.stringify({seed:E.seed,levels:E.levels,slots:E.slots,layout:E.layout,hero:E.hero,companion:E.companion,relic:E.relic}));
+  E.save = () => NR.store.setItem('nr_evolution_v1', JSON.stringify({seed:E.seed,levels:E.levels,slots:E.slots,layout:E.layout,hero:E.hero,companion:E.companion,relic:E.relic,unlocks:P.spellUnlocks}));
   E.equip = id => {
     if (E.slots.includes(id)) E.slots = E.slots.filter(x=>x!==id);
-    else if (E.slots.length < 10 && E.spells.some(s=>s.id===id && s.level<=P.level)) E.slots.push(id);
+    else if (E.slots.length < 10 && E.spells.some(s=>s.id===id && E.isUnlocked(s))) E.slots.push(id);
     E.save(); E.renderBar?.();
   };
   const traits = [
@@ -75,7 +94,7 @@
   E.spellCooldown=s=>s.cd*Math.max(.6,1-Math.floor((P.level-1)/5)*.04)*(E.magic?.cooldown||1);
   E.cast = id => {
     const G=NR.game,p=G.player,s=E.spells.find(s=>s.id===id);
-    if (!s || G.state!=='playing' || p.dead || !E.slots.includes(id) || P.level<s.level || (E.cooldowns?.[id]||0)>0 || p.energy<E.spellCost(s)) return false;
+    if (!s || G.state!=='playing' || p.dead || !E.slots.includes(id) || !E.isUnlocked(s) || (E.cooldowns?.[id]||0)>0 || p.energy<E.spellCost(s)) return false;
     p.energy-=E.spellCost(s); E.cooldowns[id]=E.spellCooldown(s);
     const power=(1+(P.level-1)*.05)*(E.magic?.damage||1);
     if (s.effect==='heal' || s.effect==='phoenix') p.heal(32*power);

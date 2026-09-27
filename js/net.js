@@ -454,6 +454,14 @@
       if (m) m.kills = (m.kills || 0) + 1;
       roomChanged();
     }
+    // party wave-best sharing → live wave-clear leaderboard
+    if (ev.a === "best" && N.room) {
+      const m = N.room.members.find((x) => x.id === from);
+      if (m) {
+        m.best = { wave: Math.max(0, Math.min(5000, ev.wave | 0)), score: Math.max(0, Math.min(5e7, ev.score | 0)) };
+        roomChanged();
+      }
+    }
   }
 
   /* Called from the game loop while playing online. */

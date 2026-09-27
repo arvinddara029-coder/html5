@@ -23,6 +23,7 @@
 
   /* ================= lifecycle ================= */
   G.toMenu = function () {
+    NR.audio?.setMusicMode && NR.audio.setMusicMode("menu"); // back to the menu track
     G.state = "menu";
     G.online = false; G.pvp = false;
     NR.crazy?.gameplayStop();
@@ -98,6 +99,7 @@
       NR.net.transport && NR.net.transport.broadcast({ k: "room-state", room: NR.net.room });
     }
     NR.crazy?.gameplayStart();
+    NR.audio?.setMusicMode && NR.audio.setMusicMode("battle"); // combat track
     G.cam.x = U.clamp(G.player.x - NR.view.w / 2,0,Math.max(0,W.W-NR.view.w));
     NR.expeditionUI?.syncRun();
     NR.audio.play("wave");
@@ -125,6 +127,7 @@
     } else if (G.state === "pause") {
       G.state = "playing";
       NR.crazy?.gameplayStart();
+    NR.audio?.setMusicMode && NR.audio.setMusicMode("battle"); // combat track
       NR.ui.hideAll();
     }
   };
@@ -290,6 +293,7 @@
   G.closeUpgrade = function () {
     G.state = "playing";
     NR.crazy?.gameplayStart();
+    NR.audio?.setMusicMode && NR.audio.setMusicMode("battle"); // combat track
     G.startT = G.mode === "adventure" ? 0 : 1.6;
     NR.adventure.checkpointAfterUpgrade(G);
   };
@@ -620,6 +624,7 @@
   };
 
   G.finishRun = function (victory = false) {
+    NR.audio?.setMusicMode && NR.audio.setMusicMode("menu"); // results screen: menu track
     if(G.finished)return;
     G.finished=true;G.state=victory?'victory':'over';
     NR.crazy?.gameplayStop();
