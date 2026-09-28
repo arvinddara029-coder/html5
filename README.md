@@ -8,7 +8,7 @@ A **fully static, single-player HTML5 action game**: a three-chapter side-scroll
 
 - **WAVE CLIMB** (waves + climb merged, endless): clear the floor's wave → pick an upgrade → the laser gate opens → run forward and climb (stairs / zigzag / lift / bridge) to the portal checkpoint. Reaching the portal locks that floor in as the new ground — you can never fall back below it. Early waves are **one enemy family each** (crawlers → slimes → soldiers → drones → boss → gunners → wraiths …), later waves mix 2–3 families that get **stronger, not more numerous** (max 8 alive). Boss every 5th floor. Floors vary in width and route.
 - **SURVIVAL RUN** (endless side-scroller): pits, lifts, platforms and enemy squads ahead; campfire checkpoints every 4 chunks (respawn + upgrade); guardian boss every 5th camp. Falling in a pit costs 25% HP and respawns you at the last campfire.
-- **Online:** custom rooms with a code (Free Fire style) **and ⚡ Quick Play** automatic matchmaking in the chosen mode (Wave Climb co-op, Survival Run co-op, 1v1, 2v2, 4v4, random). Co-op is host-authoritative (waves, floors, checkpoints, enemy hp + 8 Hz enemy positions); enemies chase the nearest hero; downed players respawn while a partner survives. PvP: first to 5 eliminations, no friendly fire in teams. Errors are handled (offline, no WebRTC, broker unreachable, room full/started, host disconnect → run continues offline). PeerJS is bundled in `assets/vendor/` (CDN only as fallback).
+- **Online:** custom rooms with a code (Free Fire style) **and ⚡ Quick Play** automatic matchmaking in the chosen mode (Wave Climb co-op, Survival Run co-op, 1v1, 2v2, 4v4, random). Co-op is host-authoritative (waves, floors, checkpoints, enemy hp + 8 Hz enemy positions); enemies chase the nearest hero; downed players respawn while a partner survives. PvP: first to 5 eliminations, no friendly fire in teams. Errors are handled (offline, no WebRTC, broker unreachable, room full/started, host disconnect → run continues offline). Creating a room generates a **copyable CrazyGames SDK invite link** (with a `#join=CODE` fallback), and Quick Play shows a **centered matchmaking overlay that never stops until an opponent is found** — then both players drop straight into a loading page and the match. PeerJS is bundled in `assets/vendor/` (CDN only as fallback).
 - **Sound fixed:** all effects are `assets/super` WAVs, fetched once, decoded in parallel whenever the audio context appears (the old race left many sounds undecoded and fell back to beeps), synth fallback only for genuinely missing samples (not on throttling), variants + pitch jitter, voice stealing, and a music scheduler that no longer stutters after frame stalls. The old HTMLAudio `.ogg` path was removed.
 - **Cleanup:** removed 451 junk/editor files from `assets/super` (`.DS_Store`, `.psd`, `.ase/.aseprite`, `.blend1`, `.zip`, `png~`, `.gfi`) and the unused Kenney `.ogg` files.
 
@@ -18,7 +18,7 @@ A **fully static, single-player HTML5 action game**: a three-chapter side-scroll
 - **Kunai:** tap `R` to throw a 22-base-damage blade, scaled by operator/passive damage. Three charges; one regenerates every 3 seconds, with a 0.28-second throw cooldown. Gentle forward-target aim assist, swept collision and solid-platform obstruction. Reflected bolts deal 32 damage. Pausing freezes ability timers.
 - **Distinct routes:** Outskirts has staggered transit platforms; Overgrowth adds ascending terraces and vertical lifts; Zero Reactor uses separated gantries and horizontal shuttles. Hazard placements and shard routes differ by chapter.
 - **Breakable salvage:** six wooden **LOOT** crates per chapter. Melee and kunai break them, awarding 50 score and a health or energy pickup. Destroyed crates remain destroyed when restoring the next saved relay checkpoint; unbroken crates reset to full durability on retry.
-- **Portable JSON backups:** export/import from Settings, with validation, a replacement confirmation and explicit handling of blocked browser storage.
+- **Portable JSON backups (API):** the validated export/import envelope stays in `js/save-transfer.js`; the Settings backup panel was removed in this build — progress lives in browser storage (or CrazyGames cloud save when signed in).
 - **Three new achievements**, a parry pose/guard arc, counter highlight, ranged trails, new synthesized combat sounds and seven visible combat actions on mobile.
 
 ## Play without a server
@@ -123,13 +123,11 @@ Cooldowns follow simulation time and freeze when paused. Chrono Field does not s
 - Camera look-ahead, afterimages, hit-stop, combat slow motion, damage numbers and boss telegraphs.
 - Sentry turrets with aiming warnings; armored Sentinels with frontal resistance and wind-up shockwaves.
 
-## Back up or move your save
+## Save data & backups
 
-1. From the mission hub, open **Settings → Export Backup**. Keep the downloaded `neon-ronin-backup.json` somewhere safe.
-2. On another browser/device, open the same game and choose **Import Backup**. Select the JSON file locally; nothing is uploaded.
-3. Review the callsign, record count and checkpoint summary. Choose **Replace My Save** to apply it, or **Cancel** to keep the existing save. Export the current save first if you want to keep both.
-
-Backups include profile preferences, music/SFX switches and volumes, chapter unlocks, top-20 records, achievements, high score and the **last saved relay checkpoint**—not unsaved live-run progress. Invalid, oversized (over 256 KB), unknown-version or structurally unsafe files are rejected before save data is changed. Import is only available when no run is active. If storage writes are blocked, imported progress works in the current session and a warning tells you to retain your backup; do not rely on a reload preserving it.
+- Progress is stored **locally in your browser** — no account, no upload. On CrazyGames, signed-in players also get the platform's **cloud save** through the SDK.
+- The old **Settings → Export/Import Backup** panel was removed in this build; the validated JSON backup API still exists in `js/save-transfer.js` (used by the test suite) and the Privacy Policy at [`privacy.html`](privacy.html) explains exactly what is stored.
+- Backups (when produced via the API) include profile preferences, audio switches and volumes, chapter unlocks, top-20 records, achievements, high score and the last saved relay checkpoint—not unsaved live-run progress. Invalid, oversized (over 256 KB), unknown-version or structurally unsafe files are rejected before save data is changed.
 
 Checkpoint format 1 from the previous Expedition Edition remains readable. Its missing new combat counters and destroyed-crate list start empty. JSON backup format 1 is a new separate envelope, not an old raw localStorage export. Backups are editable local files, not encrypted cloud saves or anti-cheat records.
 
@@ -167,7 +165,7 @@ The browser suite defaults to opening `index.html` directly via **`file://`**, w
 BASE_URL=http://localhost:8080 npm run test:browser
 ```
 
-Current regression suite: **29 engine tests + 123 browser checks**. Coverage includes timed/directional parry, counters, projectile reflection and swept collision, crate persistence, backup download/import/cancel/reload and malformed-file rejection, checkpoint restoration after reload, all chapter encounter/relay/extraction transitions, the final boss and campaign ending, operator and power selection, local records, survival mode, direct-file loading, zero API/CDN requests, mobile multi-touch, touch cancellation and button overlap. Campaign progression tests manipulate entity state to exercise the complete flow efficiently; they are not a substitute for extended human balance/playtesting. Screenshots are written to ignored `test-results/`.
+Current regression suite: **29 engine tests + 123 browser checks**. Coverage includes timed/directional parry, counters, projectile reflection and swept collision, crate persistence, backup export/validate/apply with malformed-file rejection, checkpoint restoration after reload, all chapter encounter/relay/extraction transitions, the final boss and campaign ending, operator and power selection, local records, survival mode, direct-file loading, zero API/CDN requests, mobile multi-touch, touch cancellation and button overlap. Campaign progression tests manipulate entity state to exercise the complete flow efficiently; they are not a substitute for extended human balance/playtesting. Screenshots are written to ignored `test-results/`.
 
 ## Project map
 
@@ -176,7 +174,7 @@ index.html                  Mission hub, screens, menus, controls
 css/                        Self-hosted fonts and responsive UI styles
 js/profile.js               Local preferences + six power definitions
 js/progression.js           Local records, achievements, checkpoint validation
-js/save-transfer.js         Validated portable JSON backups and import UI
+js/save-transfer.js         Validated portable JSON backup API (Settings UI removed)
 js/combat.js                Parry, counters, kunai and swept collision
 js/characters.js            Operator definitions and mechanical stats
 js/adventure.js             Chapters, encounters, relays, hazards, props, extraction
@@ -198,4 +196,4 @@ tests/                      Engine and browser regression suites
 
 ### Scope
 
-This is an expanded **2D single-player browser game**, not an open-world or AAA production. There is no multiplayer, cloud sync, online ranking, account system or anti-cheat. The three chapters share the relay/encounter objective structure but have different platform patterns, lift motion, hazards, shards, scenery and encounter compositions. Clearing browser/site storage removes local progress unless you have exported a backup. No game implementation can honestly be guaranteed “perfect”; browser coverage and gameplay tests are included, while long-run balance and device-specific performance still benefit from human playtesting.
+This is an expanded **2D single-player browser game**, not an open-world or AAA production. There is no multiplayer, cloud sync, online ranking, account system or anti-cheat. The three chapters share the relay/encounter objective structure but have different platform patterns, lift motion, hazards, shards, scenery and encounter compositions. Clearing browser/site storage removes local progress (unless CrazyGames cloud save is active). No game implementation can honestly be guaranteed “perfect”; browser coverage and gameplay tests are included, while long-run balance and device-specific performance still benefit from human playtesting.

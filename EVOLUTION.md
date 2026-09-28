@@ -41,7 +41,7 @@ The game streams only current-district art. Later levels rotate through availabl
 
 ### Important scope distinction
 
-`assets/super-coverage.json` has a status for **every original file**. **1,686 files have runtime mappings**. Runtime-mapped means reachable through the renderer/content selection, not that every possible scene has been visually QA'd.
+The `coverage` map inside `js/super-content.js` carries a status for every indexed super file (the standalone `assets/super-coverage.json` was removed in the repo slim-down to 1,398 files). Runtime-mapped means reachable through the renderer/content selection, not that every possible scene has been visually QA'd.
 
 Remaining statuses are explicit: 288 reference previews, 256 documentation/metadata files, 188 source/alternate exports, 53 alternate sheet layouts, 18 unadapted material variants and 8 Blender project/backup sources. The remaining alternate layouts/material variants have **not all been individually adapted**. No arbitrary filename matching is used to claim them as playable.
 
@@ -67,7 +67,7 @@ Portable backups now preserve currency, owned equipment, all six chapter unlocks
 
 ## Credits
 
-Original licenses/readmes are retained. In-game credits include Legacy Collection, GandalfHardcore, Anokolisa and the Mario's Madness model contributors **FunkyBunny, DarksArtworks, Sharkman**, with thanks to Marco Antonio and the mod team. Retain these attributions if distributing the derived guardian sprites.
+Original licenses/readmes are retained. The old in-game credits screen was removed in this build; attributions for Legacy Collection, GandalfHardcore, Anokolisa and the Mario's Madness model contributors **FunkyBunny, DarksArtworks, Sharkman** (thanks to Marco Antonio and the mod team) remain in the pack license/readme files. Retain these attributions if distributing derived sprites.
 
 ---
 
