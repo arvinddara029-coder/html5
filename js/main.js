@@ -104,8 +104,9 @@
       "GandalfHardcore Emojis and Icons/GandalfHardcore Emojis and Icons/Quest marker.png",
       "GandalfHardcore Emojis and Icons/GandalfHardcore Emojis and Icons/GandalfHardcore Emoji.png",
       "GandalfHardcFREE NPC/GandalfHardcore Goddess NPC.png", // Luna, the lobby guide
-      // combat-manual demo strips + grand-lobby event art + pet wardrobe
-      "idle/sprite sheets/idle.png", "walk/sprite sheets/walk.png", "walk/sprite sheets/from idle.png",
+      // combat-manual demo strips (soldier idle/sprint) + event art + pet wardrobe
+      "Tiny RPG Character Asset Pack 01 v2.0 -Free Soldier&Orc/Characters(100x100 split)/Soldier/Soldier/Soldier_Idle.png",
+      "Tiny RPG Character Asset Pack 01 v2.0 -Free Soldier&Orc/Characters(100x100 split)/Soldier/Soldier/Soldier_Walk.png",
       "GandalfHardcore Warrior.png",
       "GandalfHardcore Pet companion/GandalfHardcore doggy hat.png",
       "GandalfHardcore Pet companion/GandalfHardcore doggy backpack.png",

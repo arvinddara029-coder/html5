@@ -143,7 +143,7 @@ Checkpoint format 1 from the previous Expedition Edition remains readable. Its m
 - **AI-generated paintings:** hero, city, daylight, garden and reactor backgrounds. These are not represented as Kenney assets.
 - **Local fonts:** Barlow Condensed, DM Sans, Orbitron and Rajdhani, with their SIL Open Font License notices.
 
-See [`assets/kenney/ATTRIBUTION.md`](assets/kenney/ATTRIBUTION.md) for original source pages and the mirrors used to retrieve the assets. Original license files are included. Settings → **Asset credits & licenses** also explains the sources.
+See [`assets/kenney/ATTRIBUTION.md`](assets/kenney/ATTRIBUTION.md) for original source pages and the mirrors used to retrieve the assets. Original license/readme files ship alongside every pack, and the privacy policy lives in [`privacy.html`](privacy.html).
 
 ## Tests
 

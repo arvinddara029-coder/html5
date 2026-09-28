@@ -103,17 +103,30 @@
       });
   }
 
-  /* Every game entry point goes through here: show the loading page only when
-     something is still missing, open the game only after 100% of the run's
-     assets are decoded. Returns a promise; the start itself is synchronous
-     once loading completes (keeps wave-resume and state patching intact). */
+  /* Every game entry point goes through here: a full loading page ALWAYS
+     opens before the match, fills with REAL asset progress, and the game
+     only opens at 100%. When everything is already cached the bar completes
+     immediately (short minimum display so the page still reads as intentional). */
   L.startGame = function (title, options) {
-    if (!L.missingGamePaths().length) {
+    const start = () => {
       try { NR.game.start(options); }
       catch (e) { NR.reportError ? NR.reportError("Game start failed", e) : console.error(e); }
-      return Promise.resolve();
+    };
+    const missing = L.missingGamePaths();
+    if (!missing.length) {
+      NR.crazy && NR.crazy.loadingStart && NR.crazy.loadingStart();
+      L.show(title || "LOADING GAME", 1);
+      L.progress(1, "READY");
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          start();
+          L.hide();
+          NR.crazy && NR.crazy.loadingStop && NR.crazy.loadingStop();
+          resolve();
+        }, 480);
+      });
     }
-    return loadMissing(title, () => NR.game.start(options));
+    return loadMissing(title, start);
   };
 
   /* Same, but for flows that run their own start logic (saved-wave resume). */

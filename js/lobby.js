@@ -597,12 +597,13 @@
 
   /* ================= init ================= */
   /* ================= COMBAT MANUAL demo strips =================
-     The elf-archer packs (idle/walk) + Warrior sheet act out the controls
-     live inside the HOW screen. */
+     Soldier idle/sprint sheets + the Warrior sheet act out the controls
+     live inside the HOW screen (all three sheets ship with the repo). */
   const HOW_STRIPS = [
-    { id: "how-idle", path: "idle/sprite sheets/idle.png", fw: 46, fh: 55, frames: 10, cols: 10, fps: 8, scale: 2.1,
-      pre: { path: "walk/sprite sheets/from idle.png", fw: 45, fh: 58, frames: 2, cols: 2 } }, // settle-in transition
-    { id: "how-walk", path: "walk/sprite sheets/walk.png", fw: 45, fh: 58, frames: 24, cols: 4, fps: 14, scale: 2.0, flip: true },
+    { id: "how-idle", path: "Tiny RPG Character Asset Pack 01 v2.0 -Free Soldier&Orc/Characters(100x100 split)/Soldier/Soldier/Soldier_Idle.png",
+      fw: 100, fh: 100, frames: 6, cols: 6, fps: 6, scale: 1.15 },
+    { id: "how-walk", path: "Tiny RPG Character Asset Pack 01 v2.0 -Free Soldier&Orc/Characters(100x100 split)/Soldier/Soldier/Soldier_Walk.png",
+      fw: 100, fh: 100, frames: 8, cols: 8, fps: 12, scale: 1.15, flip: true },
     { id: "how-combo", path: "GandalfHardcore Warrior.png", fw: 80, fh: 64, frames: 8, cols: 10, fps: 9, scale: 1.9, row: 9 },
   ];
   let howT = 0, howLast = 0;

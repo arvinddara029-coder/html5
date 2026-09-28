@@ -461,10 +461,7 @@
 .victory-panel .menu-btns {
   width: 100%;
 }
-#btn-credits {
-  margin-top: 14px;
-  width: 100%;
-}
+
 /* Progress, local interaction and tutorial are separate from the combat buttons. */
 #adventure-hud {
   display: none;
