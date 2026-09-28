@@ -8,8 +8,8 @@
     wave: 0, combo: 0, comboT: 0, time: 0,
     enemies: [], bolts: [], shots: [], shockwaves: [], pickups: [], spawnQueue: [],
     bossActive: false, bossRef: null,
-    pvp: false, online: false, levelDef: null, sukunaUsed: false,
-    surviveT: 0, surviveBatchT: 0, surviveBossN: 0, netSeq: 0, netWave: 0,
+    levelDef: null, sukunaUsed: false,
+    surviveT: 0, surviveBatchT: 0, surviveBossN: 0,
     enemyHpMul: 1, enemySpdMul: 1, enemyDmgMul: 1,
     stats: { kills: 0, maxCombo: 0, storms: 0, parries: 0, kunaiHits: 0, salvaged: 0 },
     timeScale: 1, slowT: 0, hitStopT: 0,
@@ -25,7 +25,6 @@
   G.toMenu = function () {
     NR.audio?.setMusicMode && NR.audio.setMusicMode("menu"); // back to the menu track
     G.state = "menu";
-    G.online = false; G.pvp = false;
     NR.crazy?.gameplayStop();
     I.reset();
     G.enemies.length = 0; G.bolts.length = 0; G.shots.length = 0; G.shockwaves.length = 0;
@@ -76,7 +75,6 @@
     G.runName = NR.profile.name;
     G.chronoT = 0; G.finished = false;
     G.sukunaUsed = false;             // SukunaSlice: once per run, reset here
-    G.netSeq = 0; G.netWave = 0;
     G.enemies.length = 0; G.bolts.length = 0; G.shots.length = 0; G.shockwaves.length = 0;
     G.pickups.length = 0; G.spawnQueue.length = 0; G.corpses.length = 0; F.reset();
     G.score = 0; G.combo = 0; G.comboT = 0; G.time = 0; G.wave = 0;
@@ -95,10 +93,6 @@
     NR.superRuntime?.prepare();
     G.levelDef = NR.levelsys ? NR.levelsys.levelDef(G.chapter||0, NR.levelsys.currentLevel()) : null;
     if (G.mode !== "adventure" && !NR.modes?.active && G.levelDef) NR.levelsys.banner(G.levelDef);
-    if (G.online && NR.net.mode === "host") {
-      // share the deterministic seed so guests simulate the same district
-      NR.net.transport && NR.net.transport.broadcast({ k: "room-state", room: NR.net.room });
-    }
     NR.crazy?.gameplayStart();
     NR.audio?.setMusicMode && NR.audio.setMusicMode("battle"); // combat track
     G.cam.x = U.clamp(G.player.x - NR.view.w / 2,0,Math.max(0,W.W-NR.view.w));
@@ -169,9 +163,6 @@
 
   function startWave(n) {
     G.wave = n;
-    G.netWave = n;
-    NR.waveResume?.save();
-    NR.net.hostBroadcastWave(n);
     G.waveDamageTaken = false;
     const dmul = NR.levelsys && G.levelDef ? NR.levelsys.enemyMuls(G.levelDef, n) : null;
     G.enemyHpMul = (dmul ? dmul.hp : 1 + (n - 1) * 0.07) * (G.difficulty === "casual" ? .75 : G.difficulty === "hard" ? 1.35 : 1);
@@ -197,9 +188,6 @@
     for (let i = 0; i < (comp.apparitions || 0); i++) q.push({ type: "apparition", t: (delay += U.rand(0.5, 1)) });
     if(n>=3 && !comp.boss) q.push({type:"sentry",t:(delay+=.8)});
     if(n>=4 && !comp.boss) q.push({type:"sentinel",t:(delay+=.8)});
-    // host shares the (deterministic) queue with guests
-    NR.net.hostBroadcastSpawns(q.map((s) => ({ type: s.type, t: s.t, netId: "e" + (++G.netSeq) })));
-    for (const s of q) s.netId = s.netId || "e" + (++G.netSeq);
     if (comp.boss) {
       G.bossActive = true;
       const bx = G.player.x > W.W / 2 ? W.W * 0.28 : W.W * 0.72;
@@ -209,7 +197,6 @@
         : { skin: "mech", name: "SHOGUN-9" };
       const boss = NR.bossDefs ? NR.bossDefs.spawn(def, bx, G.enemyHpMul, Math.ceil(n / 5)) : new NR.Boss(bx, W.groundY, G.enemyHpMul, Math.ceil(n / 5), "mech");
       boss.spawnT = 0;
-      boss.netId = "boss" + n;
       G.enemies.push(boss);
       G.bossRef = boss;
       G.banner("⚠ " + (boss.bossName || "SHOGUN-9") + " ⚠", "WAVE " + n + " — eliminate the war machine", "#ff2d95");
@@ -264,7 +251,6 @@
       e = new NR.Wraith(U.clamp(px + side * U.rand(300, 500), 100, W.W - 100), W.groundY - 200, mul);
     }
     if (hintX !== null && type !== "crawler") e.x = U.clamp(hintX + U.rand(-40, 40), 60, W.W - 60);
-    if (qi && qi.netId) e.netId = qi.netId;
     F.teleport(e.x, e.y - e.h / 2,
       type === "crawler" ? "red" : type === "drone" ? "cyan" : type === "slime" ? "blue" : type === "soldier" ? "orange" : type === "warlock" ? "purple" : type === "rival" ? "white" : type === "gunner" ? "yellow" : type === "striker" ? "orange" : type === "blade" ? "cyan" : type === "brute" ? "red" : type === "apparition" ? "purple" : "purple");
     // elite roll — staged by level, never in the first levels
@@ -322,13 +308,6 @@
       if (Math.abs(ey - py) > 95 + e.h / 2) continue;
       const crit = U.chance(p.critCh);
       const dmg = A.dmg * p.dmgMul * abMul * (p.overdriveT > 0 ? 2 : 1) * (crit ? 2 : 1) * (counter ? 1.75 : 1);
-      // online guest: the host owns enemy hp — report the hit, don't apply it
-      if (NR.net.mode === "guest" && e.netId) {
-        NR.net.guestHitEnemy(e.netId, dmg, p.facing * A.kb, -A.kb * 0.35);
-        F.slash(p.x + p.facing * 55, p.y - 52, p.facing, 0, A.rng * 0.7);
-        hitAny = true;
-        continue;
-      }
       const beforeHp=e.hp;
       e.hurt(dmg, p.facing * A.kb, -A.kb * 0.35, crit, G);
       if(e.hp>=beforeHp)continue;
@@ -336,17 +315,6 @@
       p.addEnergy(6.5);
       if (p.lifesteal > 0) p.heal(dmg * p.lifesteal);
       hitAny = true;
-    }
-    // PvP: strike any remote hero standing in the arc
-    if (G.pvp) {
-      for (const r of NR.net.remote.values()) {
-        const dx = r.x - p.x;
-        if (Math.sign(dx) !== p.facing || Math.abs(dx) > A.rng) continue;
-        if (Math.abs(r.y - p.y) > 110) continue;
-        NR.net.sendEvent({ a: "hit-player", dmg: A.dmg * p.dmgMul * abMul });
-        F.slash(r.x, r.y - 50, p.facing, 1, 130);
-        hitAny = true;
-      }
     }
     NR.adventure.strikeProps(p,A,G);
     if (hitAny) {
@@ -376,7 +344,6 @@
 
   G.hurtPlayer = function (dmg, dir, src) {
     const p = G.player;
-    if (p && p.isProxy) { NR.modes.proxyHurt(p, dmg, dir); return; }
     if (NR.modes && !NR.modes.allowHurt(G, src)) return;
     if (p.dead || p.iframes > 0 || p.dashT > 0 || p.stormT > 0 || p.shieldT > 0) return;
     if (NR.combat.tryParry(G,dir,src)) return;
@@ -430,8 +397,6 @@
     // drops
     if (U.chance(0.09)) G.pickups.push(new NR.Pickup(e.x, e.y - 20, "heart"));
     else if (U.chance(0.15)) G.pickups.push(new NR.Pickup(e.x, e.y - 20, "energy"));
-    if (NR.net.mode === "host" && e.netId)
-      NR.net.transport && NR.net.transport.broadcast({ k: "enemy-hp", id: e.netId, hp: 0, dead: true });
   };
 
   G.onBossKilled = function (b) {
@@ -449,8 +414,6 @@
     for (let i = 0; i < 3; i++) G.pickups.push(new NR.Pickup(b.x + U.rand(-80, 80), b.y - 60, i === 0 ? "heart" : "energy"));
     // clear remaining adds spectacularly
     for (const e of G.enemies) if (!e.dead) { F.burst(e.x, e.y - e.h / 2, { n: 18, col: "orange", spd: 400, life: 0.6 }); e.dead = true; }
-    if (NR.net.mode === "host" && b.netId)
-      NR.net.transport && NR.net.transport.broadcast({ k: "enemy-hp", id: b.netId, hp: 0, dead: true });
   };
 
   G.addScore = function (n, x, y, big) {
@@ -552,7 +515,7 @@
               : { skin: "mech", name: "SHOGUN-9" };
             const bx = p.x > W.W / 2 ? W.W * 0.28 : W.W * 0.72;
             const boss = NR.bossDefs ? NR.bossDefs.spawn(bdef, bx, G.enemyHpMul, G.surviveBossN) : new NR.Boss(bx, W.groundY, G.enemyHpMul, G.surviveBossN, "mech");
-            boss.spawnT = 0; boss.netId = "boss" + G.surviveBossN;
+            boss.spawnT = 0;
             G.enemies.push(boss); G.bossRef = boss; G.bossActive = true;
             G.banner("⚠ " + (boss.bossName || "BOSS") + " ⚠", U.fmtTime(G.surviveT) + " — survive the war machine", "#ff2d95");
             NR.audio.play("bossIntro");
@@ -565,14 +528,6 @@
         G.pickups.push(new NR.Pickup(U.rand(200, W.W - 200), W.groundY - 200, U.chance(0.5) ? "heart" : "energy"));
     }
 
-    // online host: keep the boss health bar honest for guests (2Hz)
-    if (NR.net.mode === "host" && G.bossActive && G.bossRef && G.bossRef.netId) {
-      G._bossSyncT = (G._bossSyncT || 0) - rd;
-      if (G._bossSyncT <= 0) {
-        G._bossSyncT = 0.5;
-        NR.net.transport && NR.net.transport.broadcast({ k: "enemy-hp", id: G.bossRef.netId, hp: Math.max(0, Math.round(G.bossRef.hp)), dead: false });
-      }
-    }
 
     // spawn queue
     for (let i = G.spawnQueue.length - 1; i >= 0; i--) {
@@ -592,9 +547,7 @@
     p.update(dt, G);
     for (let i = G.enemies.length - 1; i >= 0; i--) {
       const e = G.enemies[i];
-      const tgt = NR.modes?.active ? NR.modes.targetFor(e, G) : null;
-      if (tgt) { G.player = tgt; try { e.update(dt * (G.chronoT>0 ? 0.35 : 1), G); } finally { G.player = p; } }
-      else e.update(dt * (G.chronoT>0 ? 0.35 : 1), G);
+      e.update(dt * (G.chronoT>0 ? 0.35 : 1), G);
       // player contact damage
       if (!e.dead && e.spawnT <= 0 && !p.dead && e.touchCd <= 0) {
         const overlapX = Math.abs(e.x - p.x) < (e.w + p.w) / 2 - 6;
@@ -606,7 +559,6 @@
       }
       if (e.dead) G.enemies.splice(i, 1);
     }
-    NR.modes?.guestCorrect?.(dt, G);
     NR.spriteRender.updateCorpses(G, dt);
     for (let i = G.bolts.length - 1; i >= 0; i--) { G.bolts[i].update(dt * (G.chronoT>0 ? 0.35 : 1), G); if (G.bolts[i].dead) G.bolts.splice(i, 1); }
     for(let i=G.shots.length-1;i>=0;i--){G.shots[i].update(dt,G);if(G.shots[i].dead)G.shots.splice(i,1);}
@@ -659,7 +611,6 @@
       const totalGems = gems;
       gems = Math.max(0,gems-ledger.gems);
       G.rewardLedger = {...Object.fromEntries(Object.entries(totals).map(([k,v])=>[k,Math.max(v,ledger[k]||0)])),gems:Math.max(totalGems,ledger.gems),liveXp:Math.max(G.liveXp||0,ledger.liveXp||0)};
-      NR.waveResume?.markPaid();
       if (gems > 0) NR.economy.addGems(gems);
       G.lastReward = { ...reward, gems };
       NR.progress.check(G);
@@ -669,15 +620,6 @@
     if(G.mode==='survival')NR.profile.bestWave=Math.max(NR.profile.bestWave||0,G.wave);
     if(G.mode==='survive')NR.profile.bestSurvive=Math.max(NR.profile.bestSurvive||0,Math.floor(G.surviveT));
     NR.profile.runs++;NR.saveProfile();NR.progress.record(G,victory);
-    // validated online leaderboard submission (plausibility + rate limits)
-    if (G.online) {
-      NR.net.submitLeaderboard({
-        wave: G.mode === "survive" ? Math.floor(G.surviveT / 60) : G.wave,
-        score: G.score,
-        time: Math.round(G.time),
-        mode: G.mode,
-      });
-    }
     if(victory)NR.expeditionUI.showVictory(G);
     else NR.ui.showGameOver(G,newHigh);
     // midgame ad only on the results screen — never during combat

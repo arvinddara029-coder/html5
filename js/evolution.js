@@ -88,7 +88,6 @@
   E.rewardKill = () => {
     const G=NR.game;G.liveXp=(G.liveXp||0)+12;
     if(G.replayKills>0)G.replayKills--;else NR.economy.applyXp(12,'Enemy defeated');
-    NR.waveResume?.markPaid();
   };
   E.spellCost=s=>Math.ceil(s.cost*(E.magic?.cost||1));
   E.spellCooldown=s=>s.cd*Math.max(.6,1-Math.floor((P.level-1)/5)*.04)*(E.magic?.cooldown||1);

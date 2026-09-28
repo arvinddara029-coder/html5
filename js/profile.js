@@ -68,14 +68,13 @@
       savedAt: 0,
       cosmeticOverride: {},        // which slots the player explicitly customized (Vault fix)
       settings: {},                // fps/quality/vfx/shadows/hud-scale/damage-text...
-      onlineBest: {},              // best validated online results per mode
     },
     saved && typeof saved === "object" ? saved : {},
   );
   const P = NR.profile;
   if (!P.settings || typeof P.settings !== "object") P.settings = {};
   if (!P.cosmeticOverride || typeof P.cosmeticOverride !== "object") P.cosmeticOverride = {};
-  if (!P.onlineBest || typeof P.onlineBest !== "object") P.onlineBest = {};
+  delete P.onlineBest;
   /* legacy character id → new hero key */
   const HERO_MIGRATION = { ronin: "kaito", titan: "onyx" };
   if (HERO_MIGRATION[P.character]) P.character = HERO_MIGRATION[P.character];
@@ -115,8 +114,8 @@
   if (!/^[a-zA-Z0-9_]{3,16}$/.test(P.name)) P.name = "RONIN_01";
   /* modes: adventure (campaign) · survival (WAVE FIGHT) · survive (SURVIVE) */
   if (P.mode === "wavefight") P.mode = "survival";
-  /* climb (WAVE CLIMB: waves + climbing) · run (SURVIVAL RUN: endless side-scroll) · pvp (online arena) */
-  if (!["adventure", "survival", "survive", "climb", "run", "pvp"].includes(P.mode)) P.mode = "adventure";
+  /* climb (WAVE CLIMB: waves + climbing) · run (SURVIVAL RUN: endless side-scroll) · quest (campaign platformer level) */
+  if (!["adventure", "survival", "survive", "climb", "run", "quest"].includes(P.mode)) P.mode = "adventure";
   const ROSTER = (NR.characters || []).map((c) => c.id);
   if (!ROSTER.length || !ROSTER.includes(P.character)) P.character = ROSTER[0] || "ronin";
   const LAST_CHAPTER = Math.max(0, ((NR.adventure && NR.adventure.chapters.length) || NR.campaignChapterCount || 3) - 1);

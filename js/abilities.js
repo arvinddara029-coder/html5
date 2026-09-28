@@ -108,7 +108,6 @@
     const run = IMPL[id];
     try { run && run(p, G, d, p.abState[id]); }
     catch (e) { NR.diag?.game(`ability ${id} failed: ${e.message}`); }
-    NR.net?.sendEvent?.({ a: "ability", id });
     return true;
   };
 

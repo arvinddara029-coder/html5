@@ -98,7 +98,6 @@
     }
     search.oninput=()=>{query=search.value;page=0;draw();};dialog.append(search,pager,results);draw();
   }
-  $('resume-wave').onclick=()=>{NR.waveResume.resume();};
   // super roster + asset archive are reachable from the Vault / debug tools
   NR.vault.openSuperRoster=()=>{
     open('SUPER ROSTER · HEROES & COMPANIONS');

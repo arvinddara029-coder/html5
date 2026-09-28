@@ -547,25 +547,6 @@
     ));
     L.refreshWallet();
   };
-  /* AUTO-RESUME: if a saved wave-boundary checkpoint exists, offer it front
-     and center — the player never hunts through menus to get their run back. */
-  L.refreshResumeBanner = function () {
-    const banner = $("resume-banner");
-    if (!banner || !NR.waveResume) return;
-    const c = NR.waveResume.get();
-    if (!c || c.wave < 1) { banner.hidden = true; return; }
-    banner.hidden = false;
-    const note = $("resume-run-note");
-    if (note) note.textContent = `WAVE ${c.wave} · ${c.character.toUpperCase()} · SCORE ${Math.round(c.score).toLocaleString("en-US")}`;
-    const btn = $("resume-run-btn");
-    if (btn && !btn.dataset.wired) {
-      btn.dataset.wired = "1";
-      btn.addEventListener("click", () => {
-        NR.audio.play("uiConfirm");
-        NR.loader.wrap("RESUMING SAVED RUN", Promise.resolve(NR.waveResume.resume()));
-      });
-    }
-  };
 
   /* refresh the lobby hero stage after Vault changes (used by vault.js) */
   L.refreshHeroStage = function () {
@@ -693,7 +674,6 @@
     if ($("lb-play")) $("lb-play").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-play"); });
     if ($("lb-map")) $("lb-map").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-map"); });
     if ($("lb-heroes")) $("lb-heroes").addEventListener("click", () => { NR.audio.play("ui"); NR.vault.openVault("hero"); });
-    if ($("lb-online")) $("lb-online").addEventListener("click", () => { NR.audio.play("uiConfirm"); NR.social.openOnline(); });
     if ($("lb-vault")) $("lb-vault").addEventListener("click", () => { NR.audio.play("ui"); NR.vault.openVault(); });
     if ($("lb-shop")) $("lb-shop").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-shop"); });
     if ($("lb-settings")) $("lb-settings").addEventListener("click", () => { NR.audio.play("ui"); NR.ui.show("set"); });
@@ -713,19 +693,15 @@
         if (mode === "climb" || mode === "wavefight") { P.mode = "climb"; NR.saveProfile(); startRun(); }
         else if (mode === "run" || mode === "survive") { P.mode = "run"; NR.saveProfile(); startRun(); }
         else if (mode === "campaign") openModal("modal-deploy");
-        else if (mode === "online") NR.social.openOnline();
       }));
     const startRun = () => {
-      NR.game.online = false; NR.game.pvp = false;
       NR.loader.wrap("ENTERING " + (P.mode === "run" ? "SURVIVAL RUN" : "WAVE CLIMB"),
         Promise.resolve(NR.game.start()));
     };
 
-    // social hub + vault + codex (hero select / enemy roster) live inside the lobby
-    NR.social?.init();
+    // vault + codex (hero select / enemy roster) live inside the lobby
     NR.vault?.init();
     NR.codex?.init();
-    L.refreshResumeBanner();
 
     // deploy controls
     document.querySelectorAll("#deploy-modes .deploy-mode").forEach((b) =>

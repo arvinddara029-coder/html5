@@ -90,8 +90,6 @@
     NR.ui.setLoading(0.05);
     NR.crazy.loadingStart();
     // invite-link routing: an invited player skips straight into the room
-    const inviteRoom = NR.crazy.getInviteParam("room");
-    if (inviteRoom) NR.diag.info("started from invite link, room=" + inviteRoom);
     // staged loading: lobby art + the hero's equipped layers first, everything else streams in
     const lookPaths = NR.assets.layerPaths(NR.profile.appearance);
     const lobbyPaths = [
@@ -126,14 +124,6 @@
           G.toMenu();
           NR.crazy.loadingStop();
           NR.settings?.apply?.();
-          NR.cloudSync?.pull?.();
-          // invited players land directly in the room that invited them
-          if (inviteRoom) {
-            NR.hub.notify("Joining your friend's room…");
-            NR.net.joinRoom(inviteRoom).then((room) => { if (room) NR.social.openOnline(); });
-          } else if (NR.crazy.isInstantMultiplayer()) {
-            NR.social.openOnline();
-          }
           if (location.hash === "#auto") smokeTest();
         }, 250);
       });
@@ -180,7 +170,6 @@
       if (G.state !== "loading") G.update(dt, rd);
       if (G.state === "menu") NR.world.update(rd, NR.view); // ambient life behind menu
       NR.audio.muted = !NR.audio.sfxOn && !NR.audio.musicOn;
-      NR.net.tick(rd);
       NR.input.postUpdate();
       NR.hub.update(now);
       render();
@@ -211,8 +200,6 @@
       NR.spriteRender.drawCorpses(ctx, G);
       for (const e of G.enemies) e.draw(ctx);
       for (const w of G.shockwaves) w.draw(ctx);
-      // remote online heroes (interpolated)
-      for (const r of NR.net.remote.values()) r.draw(ctx);
       if (!G.player.dead || G.deathT > 1.1) G.player.draw(ctx);
       for (const b of G.bolts) b.draw(ctx);
       for (const b of G.shots) b.draw(ctx);

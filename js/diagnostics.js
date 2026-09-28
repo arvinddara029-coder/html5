@@ -147,15 +147,14 @@
     if (!enabled || !panel) return;
     if (now - panelTimer < 250) return;
     panelTimer = now;
-    const m = D.metrics, G = NR.game, net = NR.net;
+    const m = D.metrics, G = NR.game;
     const lines = [
       `FPS ${m.fps.toFixed(0)} · ${m.frameMs.toFixed(1)}ms`,
       `enemies ${m.enemies} · bolts ${m.bolts} · parts ${m.particles} · fx ${m.effects} · pooled ${m.pooled}`,
       `state ${G ? G.state : "-"} · mode ${G && G.mode || "-"} · wave ${G && G.wave || 0} · level ${G && G.level || 1} · world ${(G && G.chapter || 0) + 1}`,
       `hero ${NR.heroes ? (NR.heroes.current()?.name || "-") : "-"} · seed ${NR.levelsys ? NR.levelsys.seedInfo() : "-"}`,
-      `sdk ${D.sdkStatus}${NR.crazy && NR.crazy.user ? " · " + NR.crazy.user.username : ""}`,
-      net && net.room ? `room ${net.room.code || "-"} · peers ${net.peerCount()} · ping ${net.ping() || "-"}ms · ${net.updateRate() || "-"}hz` : "room none",
-      `errors ${D.counts.ERROR || 0} · sdk ${D.counts.SDK || 0} · net ${D.counts.NETWORK || 0}`,
+      `sdk ${D.sdkStatus}`,
+      `errors ${D.counts.ERROR || 0} · sdk ${D.counts.SDK || 0}`,
     ];
     panel.textContent = lines.join("\n");
   };

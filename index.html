@@ -73,11 +73,6 @@
               <span class="nb-icon"><svg class="ico" aria-hidden="true"><use href="#i-swords"/></svg></span>
               <span>HEROES<small>12 signature fighters · pick your kit</small></span>
             </button>
-            <button class="nav-btn online" id="lb-online">
-              <span class="nb-icon"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg></span>
-              <span>ONLINE PLAY<small>1v1 · 2v2 · 4v4 · co-op · invites</small></span>
-              <i class="live-dot" aria-hidden="true"></i>
-            </button>
             <button class="nav-btn" id="lb-vault">
               <span class="nb-icon"><svg class="ico" aria-hidden="true"><use href="#i-bag"/></svg></span>
               <span>VAULT<small>Skins · hair · armor · pets</small></span>
@@ -104,42 +99,7 @@
           <div class="hero-hint">TAP YOUR HERO TO SALUTE</div>
         </div>
 
-        <div class="resume-banner" id="resume-banner" hidden>
-          <button class="gold-btn" id="resume-run-btn">▶ RESUME SAVED RUN<small id="resume-run-note"></small></button>
-        </div>
-        <!-- right: social hub + events (players/friends appear HERE, not on a separate screen) -->
         <div class="lobby-right">
-          <div class="wood-panel social-panel" id="social-panel">
-            <div class="events-title"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg> PLAYER &amp; PARTY</div>
-            <div id="social-identity" class="social-identity">
-              <div class="si-avatar"></div>
-              <div class="si-mid"><b class="si-name">RONIN_01</b><span class="si-state">GUEST · LOCAL SAVE</span></div>
-              <span class="si-online">OFFLINE READY</span>
-            </div>
-            <div id="social-room">
-              <div class="sr-create">
-                <button class="gold-btn" id="sr-open-online">🌐 ONLINE ROOMS<small>DUO · 1v1 · 2v2 · 4v4</small></button>
-              </div>
-              <div class="sr-lobby" hidden>
-                <div class="sr-head"><b>ROOM <span class="sr-code">—</span></b><span class="sr-mode">—</span></div>
-                <div class="sr-members"></div>
-                <div class="sr-actions">
-                  <button class="ghost-btn" id="sr-invite">🔗 COPY INVITE LINK</button>
-                  <button class="ghost-btn" id="sr-ready">SET READY</button>
-                  <button class="gold-btn" id="sr-start">START MATCH</button>
-                  <button class="ghost-btn" id="sr-leave">LEAVE</button>
-                </div>
-                <div class="sr-voice">
-                  <button class="ghost-btn" id="voice-btn">🎤 VOICE OFF</button>
-                  <button class="ghost-btn" id="voice-ptt" hidden>HOLD TO TALK [V]</button>
-                </div>
-                <div class="chat-box" id="chat-box">
-                  <div class="chat-log" id="chat-log" aria-live="polite"></div>
-                  <div class="chat-row"><input id="chat-input" maxlength="160" placeholder="Message your party… (Enter)" aria-label="Chat message"/><button class="gold-btn" id="chat-send">SEND</button></div>
-                </div>
-              </div>
-            </div>
-          </div>
           <div class="wood-panel events-panel">
             <div class="events-title"><svg class="ico" aria-hidden="true"><use href="#i-bolt"/></svg> UPCOMING EVENTS &amp; NEWS</div>
             <div id="event-list" aria-live="polite"></div>
@@ -217,7 +177,6 @@
         </div>
         <div class="play-secondary">
           <button data-pmode="campaign"><svg class="ico" aria-hidden="true"><use href="#i-map"/></svg> CAMPAIGN · WORLDS</button>
-          <button data-pmode="online"><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg> ONLINE · WITH FRIENDS</button>
         </div>
         </div>
       </div>
@@ -255,42 +214,6 @@
               <div class="creator-tabs" id="vault-tabs"></div>
               <div class="vault-body" id="vault-body"></div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ============ ONLINE ROOMS modal ============ -->
-      <div class="lobby-modal wide" id="modal-online" role="dialog" aria-label="Online rooms">
-        <div class="wood-panel">
-          <div class="lm-head"><h2>ONLINE — PLAY WITH FRIENDS</h2><button class="lm-close" data-close="modal-online" aria-label="Close">✕</button></div>
-          <div class="lm-label">01 · MODE</div>
-          <div class="online-modes" id="online-modes">
-            <button class="om-card" data-omode="climb"><span>WAVE CLIMB</span><small>co-op · up to 4</small></button>
-            <button class="om-card" data-omode="run"><span>SURVIVAL RUN</span><small>co-op · up to 4</small></button>
-            <button class="om-card" data-omode="duel"><span>1v1</span><small>head-to-head duel</small></button>
-            <button class="om-card" data-omode="team2"><span>2v2</span><small>team clash</small></button>
-            <button class="om-card" data-omode="team4"><span>4v4</span><small>team war</small></button>
-            <button class="om-card random" data-omode="random"><span>RANDOM</span><small>any mode</small></button>
-          </div>
-          <div class="online-quick">
-            <div class="lm-label">⚡ QUICK PLAY — automatic matchmaking in the selected mode</div>
-            <div class="oj-row">
-              <button class="gold-btn" id="ol-quick">⚡ QUICK PLAY</button>
-              <button class="ghost-btn" id="ol-quick-cancel" hidden>CANCEL</button>
-              <button class="ghost-btn" id="qp-solo" hidden>START NOW</button>
-            </div>
-            <p class="deploy-note" id="qp-status">Pick a mode above and press Quick Play — you'll be matched with other players automatically.</p>
-          </div>
-          <div class="online-join">
-            <div class="lm-label" id="ol-join-label">02 · CUSTOM ROOM — CREATE OR JOIN WITH A CODE</div>
-            <div class="oj-row">
-              <button class="gold-btn" id="ol-create">CREATE ROOM</button>
-              <input id="ol-code" maxlength="6" placeholder="ROOM CODE" aria-label="Room code"/>
-              <button class="gold-btn" id="ol-join">JOIN</button>
-            </div>
-            <p class="deploy-note">Rooms run over direct WebRTC connections. Invite links use your CrazyGames account when available; friends can also join with the code.</p>
-            <div class="lm-label" style="margin-top:14px">03 · WAVE-CLEAR LEADERBOARD</div>
-            <div class="ol-leaderboard" id="ol-leaderboard"></div>
           </div>
         </div>
       </div>
@@ -357,7 +280,6 @@
 
   <section class="screen" id="scr-operators"><div class="panel wide-panel operators-panel"><div class="panel-kicker">THREE WAYS TO BREAK THE PROTOCOL</div><h2 class="panel-title">CHOOSE YOUR OPERATOR</h2><p class="panel-intro">Different armor. Different instincts. Every operator is ready from day one.</p><div id="operator-options"></div><button class="btn btn-primary" id="btn-operators-back">CONFIRM OPERATOR →</button></div></section>
   <section class="screen" id="scr-victory"><div class="panel victory-panel"><div class="panel-kicker">SIGNAL RESTORED</div><div class="victory-seal">✓</div><h2 class="panel-title" id="victory-title">CHAPTER COMPLETE</h2><p class="panel-intro" id="victory-story"></p><div class="victory-stats" id="victory-stats"></div><div class="menu-btns"><button class="btn btn-primary" id="btn-next-chapter">NEXT CHAPTER →</button><button class="btn" id="next-world-level">NEXT LEVEL · SAME WORLD →</button><button class="btn" id="btn-victory-menu">MISSION CONTROL</button></div></div></section>
-  <section class="screen" id="scr-credits"><div class="panel wide-panel"><div class="panel-kicker">BUILT WITH OPEN GAME ASSETS</div><h2 class="panel-title">ASSET CREDITS</h2><div class="credits-body"><h3>Kenney · Creative Commons Zero</h3><p>Platformer Pack Industrial: a 112-sprite atlas used for relays, consoles, supply crates, terrain details, signs, gates and hazards.</p><p>Digital Audio: 8 imported effects for checkpoints, pickups, enemy shots, gates, achievements and completion.</p><a href="assets/kenney/ATTRIBUTION.md" target="_blank" rel="noopener">Read asset sources & license details ↗</a><h3>GandalfHardcore packs · free character pixel art</h3><p>Character Asset Pack (body layers), 58x Hair, 39x Hats, Masks, Arm/Back layers, 35x Hand Items, 7x & 43x Clothing, Special skins, character effects — everything the Hero Forge and the in-game hero is built from. Pet companion (doggy/fox/wisp + wardrobe), Slime Enemy pack (blue/green/red variants), Goddess NPC (Luna the guide), Warrior sheet and the Emojis & Icons pack also ship with thanks.</p><h3>Sprite Pack 7 · free pixel-art fighters</h3><p>Diego (gunner), Holly (striker) and Gordon (blade) patrol the later chapters and late survival waves.</p><h3>Tiny RPG Character Asset Pack · free soldier & orc</h3><p>Orc crawler and armoured soldier/archer sprite sheets across the Demo / v1.02 / v1.03 / 01 v2.0 releases.</p><h3>EVil Wizard 2 & FREE Samurai 2D Pixel Art</h3><p>The hovering warlock caster and the masterless duelist rival — including their full attack kits.</p><h3>PBR texture library · CC0-style tiles</h3><p>Brick, Metal, Stone, Tile, Wood, Plaster and Elements tile sets rotated across the three world districts.</p><h3>Super expansion · Legacy Collection &amp; Anokolisa</h3><p>Legacy Collection (Gothicvania, TinyRPG, Warped, Misc and Explosions/Magic) supplies new actors, spell effects, backgrounds and terrain. Anokolisa’s High Forest and Debug Map contribute character/mob animation, trees and tiles. Original license and source documents remain in assets/super.</p><h3>Mario’s Madness model contributors</h3><p>FunkyBunny, DarksArtworks and Sharkman; thanks to Marco Antonio and the Mario’s Madness team. Eleven supplied FBX exports were rendered into four-angle guardian sprites. These are hovering statue-style enemies, not fully animated 3D characters. Original materials and model projects remain available with the pack README.</p><h3>Original project artwork</h3><p>Operator portraits are original SVGs. Hero, city, garden and reactor background paintings are AI-generated. Effects and procedural scenery are drawn in code.</p><h3>Typography & music</h3><p>Barlow Condensed, DM Sans, Orbitron and Rajdhani are bundled locally under their SIL Open Font Licenses. The soundtrack and remaining combat sounds are synthesized with Web Audio.</p></div><button class="btn btn-primary" id="btn-credits-back">BACK TO SETTINGS</button></div></section>
 
   <!-- HOW TO PLAY -->
   <section class="screen" id="scr-how">
@@ -400,7 +322,7 @@
   <section class="screen" id="scr-set">
     <div class="panel">
       <h2 class="panel-title">SYSTEM SETTINGS</h2>
-      <div class="set-row"><button class="btn" id="edit-hud">CUSTOM HUD</button><button class="btn" id="resume-wave">RESUME SAVED WAVE</button></div>
+      <div class="set-row"><button class="btn" id="edit-hud">CUSTOM HUD</button></div>
       <h3 class="set-heading">PERFORMANCE</h3>
       <div class="set-row"><p>FPS TARGET</p><div class="seg small" id="set-fps"></div></div>
       <div class="set-row"><p>QUALITY</p><div class="seg small" id="set-quality"></div></div>
@@ -421,8 +343,6 @@
       <div class="set-row"><p>SOUND FX</p><button class="btn toggle" id="tgl-sfx">ON</button></div>
       <div class="set-row volume-row"><label for="music-volume">MUSIC VOLUME</label><input type="range" id="music-volume" min="0" max="100" value="50"/></div>
       <div class="set-row volume-row"><label for="sfx-volume">EFFECTS VOLUME</label><input type="range" id="sfx-volume" min="0" max="100" value="70"/></div>
-      <div class="save-transfer"><h3>TAKE YOUR PROGRESS WITH YOU</h3><p>Backup includes currency, owned equipment, Vault, HUD, world levels, records, achievements, last relay and saved survival wave. No account or upload. Unsaved run progress is not included.</p><div class="save-buttons"><button class="btn" id="btn-export-save">EXPORT BACKUP</button><button class="btn" id="btn-import-save">IMPORT BACKUP</button></div><input id="save-file" type="file" accept=".json,application/json" hidden/><p id="save-status" role="status" aria-live="polite">JSON backups · up to 256 KB · import replaces the local save.</p><div id="save-confirm" hidden><button class="btn" id="btn-cancel-import">CANCEL</button><button class="btn btn-primary" id="btn-confirm-import">REPLACE MY SAVE</button></div></div>
-      <button class="btn" id="btn-credits">ASSET CREDITS & LICENSES</button>
       <p class="setting-help storage-note">Everything is stored in this browser. Clearing site data removes your progress. No backend, tracking or network account.</p>
       <button class="btn btn-primary" id="btn-set-back">← BACK</button>
     </div>
@@ -507,7 +427,6 @@
 <script src="js/characters.js"></script>
 <script src="js/heroes.js"></script>
 <script src="js/profile.js"></script>
-<script src="js/cloudsave.js"></script>
 <script src="js/diagnostics.js"></script>
 <script src="js/crazy.js"></script>
 <script src="js/pool.js"></script>
@@ -535,11 +454,8 @@
 <script src="js/ui.js"></script>
 <script src="js/game.js"></script>
 <script src="js/modes.js"></script>
-<script src="js/save-transfer.js"></script>
 <script src="js/expedition-ui.js"></script>
 <script src="js/hub.js"></script>
-<script src="js/net.js"></script>
-<script src="js/social.js"></script>
 <script src="js/vault.js"></script>
 <script src="js/codex.js"></script>
 <script src="js/lobby.js"></script>
@@ -550,7 +466,6 @@
 <script src="js/bossdefs.js"></script>
 <script src="js/item-powers.js"></script>
 <script src="js/evolution-save.js"></script>
-<script src="js/wave-resume.js"></script>
 <script src="js/evolution-ui.js"></script>
 <script src="js/loader.js"></script>
 <script src="js/settings-ext.js"></script>

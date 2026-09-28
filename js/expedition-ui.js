@@ -32,8 +32,6 @@
       NR.game.start({ chapter: P.chapter });
     });
     on("btn-victory-menu", () => NR.game.toMenu());
-    on("btn-credits", () => NR.ui.show("credits"));
-    on("btn-credits-back", () => NR.ui.show("set"));
     on("interaction-prompt", () => {
       if (NR.game.state === "playing") NR.input.pressed.interact = true;
     });
@@ -56,7 +54,6 @@
         NR.saveProfile();
       });
     }
-    if (NR.saveTransfer && NR.saveTransfer.init) NR.saveTransfer.init();
     X.refresh();
   };
   X.refresh = function () {
