@@ -124,10 +124,13 @@
                 <div class="sr-head"><b>ROOM <span class="sr-code">—</span></b><span class="sr-mode">—</span></div>
                 <div class="sr-members"></div>
                 <div class="sr-actions">
-                  <button class="ghost-btn" id="sr-invite">🔗 COPY INVITE LINK</button>
                   <button class="ghost-btn" id="sr-ready">SET READY</button>
                   <button class="gold-btn" id="sr-start">START MATCH</button>
                   <button class="ghost-btn" id="sr-leave">LEAVE</button>
+                </div>
+                <div class="sr-invite-row" hidden>
+                  <input id="sr-invite-link" readonly spellcheck="false" placeholder="Creating invite link…" aria-label="Room invite link"/>
+                  <button class="ghost-btn" id="sr-invite-copy">📋 COPY</button>
                 </div>
                 <div class="sr-voice">
                   <button class="ghost-btn" id="voice-btn">🎤 VOICE OFF</button>
@@ -276,8 +279,6 @@
             <div class="lm-label">⚡ QUICK PLAY — automatic matchmaking in the selected mode</div>
             <div class="oj-row">
               <button class="gold-btn" id="ol-quick">⚡ QUICK PLAY</button>
-              <button class="ghost-btn" id="ol-quick-cancel" hidden>CANCEL</button>
-              <button class="ghost-btn" id="qp-solo" hidden>START NOW</button>
             </div>
             <p class="deploy-note" id="qp-status">Pick a mode above and press Quick Play — you'll be matched with other players automatically.</p>
           </div>
@@ -357,7 +358,6 @@
 
   <section class="screen" id="scr-operators"><div class="panel wide-panel operators-panel"><div class="panel-kicker">THREE WAYS TO BREAK THE PROTOCOL</div><h2 class="panel-title">CHOOSE YOUR OPERATOR</h2><p class="panel-intro">Different armor. Different instincts. Every operator is ready from day one.</p><div id="operator-options"></div><button class="btn btn-primary" id="btn-operators-back">CONFIRM OPERATOR →</button></div></section>
   <section class="screen" id="scr-victory"><div class="panel victory-panel"><div class="panel-kicker">SIGNAL RESTORED</div><div class="victory-seal">✓</div><h2 class="panel-title" id="victory-title">CHAPTER COMPLETE</h2><p class="panel-intro" id="victory-story"></p><div class="victory-stats" id="victory-stats"></div><div class="menu-btns"><button class="btn btn-primary" id="btn-next-chapter">NEXT CHAPTER →</button><button class="btn" id="next-world-level">NEXT LEVEL · SAME WORLD →</button><button class="btn" id="btn-victory-menu">MISSION CONTROL</button></div></div></section>
-  <section class="screen" id="scr-credits"><div class="panel wide-panel"><div class="panel-kicker">BUILT WITH OPEN GAME ASSETS</div><h2 class="panel-title">ASSET CREDITS</h2><div class="credits-body"><h3>Kenney · Creative Commons Zero</h3><p>Platformer Pack Industrial: a 112-sprite atlas used for relays, consoles, supply crates, terrain details, signs, gates and hazards.</p><p>Digital Audio: 8 imported effects for checkpoints, pickups, enemy shots, gates, achievements and completion.</p><a href="assets/kenney/ATTRIBUTION.md" target="_blank" rel="noopener">Read asset sources & license details ↗</a><h3>GandalfHardcore packs · free character pixel art</h3><p>Character Asset Pack (body layers), 58x Hair, 39x Hats, Masks, Arm/Back layers, 35x Hand Items, 7x & 43x Clothing, Special skins, character effects — everything the Hero Forge and the in-game hero is built from. Pet companion (doggy/fox/wisp + wardrobe), Slime Enemy pack (blue/green/red variants), Goddess NPC (Luna the guide), Warrior sheet and the Emojis & Icons pack also ship with thanks.</p><h3>Sprite Pack 7 · free pixel-art fighters</h3><p>Diego (gunner), Holly (striker) and Gordon (blade) patrol the later chapters and late survival waves.</p><h3>Tiny RPG Character Asset Pack · free soldier & orc</h3><p>Orc crawler and armoured soldier/archer sprite sheets across the Demo / v1.02 / v1.03 / 01 v2.0 releases.</p><h3>EVil Wizard 2 & FREE Samurai 2D Pixel Art</h3><p>The hovering warlock caster and the masterless duelist rival — including their full attack kits.</p><h3>PBR texture library · CC0-style tiles</h3><p>Brick, Metal, Stone, Tile, Wood, Plaster and Elements tile sets rotated across the three world districts.</p><h3>Super expansion · Legacy Collection &amp; Anokolisa</h3><p>Legacy Collection (Gothicvania, TinyRPG, Warped, Misc and Explosions/Magic) supplies new actors, spell effects, backgrounds and terrain. Anokolisa’s High Forest and Debug Map contribute character/mob animation, trees and tiles. Original license and source documents remain in assets/super.</p><h3>Mario’s Madness model contributors</h3><p>FunkyBunny, DarksArtworks and Sharkman; thanks to Marco Antonio and the Mario’s Madness team. Eleven supplied FBX exports were rendered into four-angle guardian sprites. These are hovering statue-style enemies, not fully animated 3D characters. Original materials and model projects remain available with the pack README.</p><h3>Original project artwork</h3><p>Operator portraits are original SVGs. Hero, city, garden and reactor background paintings are AI-generated. Effects and procedural scenery are drawn in code.</p><h3>Typography & music</h3><p>Barlow Condensed, DM Sans, Orbitron and Rajdhani are bundled locally under their SIL Open Font Licenses. The soundtrack and remaining combat sounds are synthesized with Web Audio.</p></div><button class="btn btn-primary" id="btn-credits-back">BACK TO SETTINGS</button></div></section>
 
   <!-- HOW TO PLAY -->
   <section class="screen" id="scr-how">
@@ -400,7 +400,7 @@
   <section class="screen" id="scr-set">
     <div class="panel">
       <h2 class="panel-title">SYSTEM SETTINGS</h2>
-      <div class="set-row"><button class="btn" id="edit-hud">CUSTOM HUD</button><button class="btn" id="resume-wave">RESUME SAVED WAVE</button></div>
+      <div class="set-row"><button class="btn" id="edit-hud">CUSTOM HUD</button></div>
       <h3 class="set-heading">PERFORMANCE</h3>
       <div class="set-row"><p>FPS TARGET</p><div class="seg small" id="set-fps"></div></div>
       <div class="set-row"><p>QUALITY</p><div class="seg small" id="set-quality"></div></div>
@@ -421,8 +421,7 @@
       <div class="set-row"><p>SOUND FX</p><button class="btn toggle" id="tgl-sfx">ON</button></div>
       <div class="set-row volume-row"><label for="music-volume">MUSIC VOLUME</label><input type="range" id="music-volume" min="0" max="100" value="50"/></div>
       <div class="set-row volume-row"><label for="sfx-volume">EFFECTS VOLUME</label><input type="range" id="sfx-volume" min="0" max="100" value="70"/></div>
-      <div class="save-transfer"><h3>TAKE YOUR PROGRESS WITH YOU</h3><p>Backup includes currency, owned equipment, Vault, HUD, world levels, records, achievements, last relay and saved survival wave. No account or upload. Unsaved run progress is not included.</p><div class="save-buttons"><button class="btn" id="btn-export-save">EXPORT BACKUP</button><button class="btn" id="btn-import-save">IMPORT BACKUP</button></div><input id="save-file" type="file" accept=".json,application/json" hidden/><p id="save-status" role="status" aria-live="polite">JSON backups · up to 256 KB · import replaces the local save.</p><div id="save-confirm" hidden><button class="btn" id="btn-cancel-import">CANCEL</button><button class="btn btn-primary" id="btn-confirm-import">REPLACE MY SAVE</button></div></div>
-      <button class="btn" id="btn-credits">ASSET CREDITS & LICENSES</button>
+      <a class="btn" href="privacy.html" target="_blank" rel="noopener">PRIVACY POLICY</a>
       <p class="setting-help storage-note">Everything is stored in this browser. Clearing site data removes your progress. No backend, tracking or network account.</p>
       <button class="btn btn-primary" id="btn-set-back">← BACK</button>
     </div>
@@ -500,6 +499,17 @@
 
 <div id="errtoast"></div>
 
+<!-- MATCHMAKING OVERLAY (Quick Play) -->
+<div id="mm-overlay" class="mm-overlay" hidden aria-live="polite">
+  <div class="mm-card">
+    <div class="mm-ring" aria-hidden="true"><i></i><i></i></div>
+    <h2 class="mm-title">MATCHMAKING</h2>
+    <p class="mm-status" id="mm-status">Searching for players…</p>
+    <p class="mm-elapsed" id="mm-elapsed">0:00</p>
+    <div class="mm-actions"><button class="btn" id="mm-cancel">✕ CANCEL SEARCH</button></div>
+    <p class="mm-note">The search keeps running until an opponent is found.</p>
+  </div>
+</div>
 <script src="js/utils.js"></script>
 <script src="js/assetlib.js"></script>
 <script src="js/super-layers.js"></script>

@@ -16,7 +16,9 @@
    *  All body layers share one 800x448 grid: 10 cols x 7 rows, 80x64.   *
    *  Rows: 0 idle(5) 1 walk(8) 2 run(8) 3 jump(4) 4 fall(4) 5 atk(6) 6 hurt(10)
    * ------------------------------------------------------------------ */
-  const CAP = "GandalfHardcore Character Asset Pack";
+  // The character pack ships once under assets/super (indexed + wired by
+  // super-layers.js); the duplicate top-level copy was removed to slim the repo.
+  const CAP = "super/GandalfHardcore Character Asset Pack";
   const P = {
     skin: (n, g) => ({ id: n, name: n.replace(/^(Male|Female) /, ""), path: `${CAP}/Character skin colors/${n}.png`, g }),
     hairM: (n) => ({ id: n, name: n.replace(/^Male /, ""), path: `GandalfHardcore 58x Hair/28x Male Hair/${n}.png`, g: "m" }),

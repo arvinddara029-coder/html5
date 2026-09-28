@@ -214,6 +214,9 @@
   };
   S.init = function () {
     const $ = (id) => document.getElementById(id);
+    // The settings backup panel was removed from the UI — the export/validate
+    // API stays for tests and internal callers, but there is nothing to wire.
+    if (!$("btn-export-save") || !$("btn-import-save")) return;
     let pending = null,
       selection = 0;
     const status = (text) => {

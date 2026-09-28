@@ -23,17 +23,15 @@
       });
     on("btn-operators-back", () => NR.ui.show("menu"));
     const cont = $("deploy-continue");
-    if (cont) cont.addEventListener("click", () => NR.game.start({ resume: true }));
-    on("btn-retry-checkpoint", () => NR.game.start({ resume: true }));
+    if (cont) cont.addEventListener("click", () => NR.loader.startGame("RESUMING CHECKPOINT", { resume: true }));
+    on("btn-retry-checkpoint", () => NR.loader.startGame("RETRYING CHECKPOINT", { resume: true }));
     on("btn-next-chapter", () => {
       P.mode = "adventure";
       P.chapter = Math.min(NR.adventure.chapters.length - 1, NR.game.chapter + 1);
       NR.saveProfile();
-      NR.game.start({ chapter: P.chapter });
+      NR.loader.startGame("ENTERING NEXT WORLD", { chapter: P.chapter });
     });
     on("btn-victory-menu", () => NR.game.toMenu());
-    on("btn-credits", () => NR.ui.show("credits"));
-    on("btn-credits-back", () => NR.ui.show("set"));
     on("interaction-prompt", () => {
       if (NR.game.state === "playing") NR.input.pressed.interact = true;
     });

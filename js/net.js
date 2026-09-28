@@ -606,20 +606,58 @@
     });
   }
   N.cancelQuick = function () {
-    cancelled = true; N.quick.searching = false;
+    cancelled = true; N.quick.searching = false; N.quick.cancelledByUser = true;
     if (N.room && N.room.quick && !N.room.started) N.leaveRoom(false);
   };
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  /* Guest side: wait until the host actually starts the match. */
+  function waitForStart(ms) {
+    const t0 = Date.now();
+    return new Promise((resolve) => {
+      const iv = setInterval(() => {
+        if (cancelled || !N.transport || !N.room) { clearInterval(iv); resolve(false); return; }
+        if (N.room.started) { clearInterval(iv); resolve(true); return; }
+        if (Date.now() - t0 > ms) { clearInterval(iv); resolve(false); return; }
+      }, 200);
+    });
+  }
+  /* Host side: the search NEVER stops until a real opponent is in the room;
+     the moment one joins the match starts and both players go straight in. */
+  function waitForOpponent() {
+    const t0 = Date.now();
+    return new Promise((resolve) => {
+      const iv = setInterval(() => {
+        if (cancelled || !N.transport || !N.room) { clearInterval(iv); resolve(false); return; }
+        if (N.room.started) { clearInterval(iv); resolve(true); return; }
+        const live = N.room.members.filter((m) => m.connected !== false).length;
+        if (live >= 2) {
+          clearInterval(iv);
+          status("Opponent found — starting the match…", onStatusRef.cb);
+          NR.audio && NR.audio.play && NR.audio.play("matchFound");
+          N._qFullT = 0;
+          N.startMatch();
+          resolve(N.room.started === true);
+          return;
+        }
+        if (Date.now() - t0 > 10 * 60 * 1000) { clearInterval(iv); resolve(false); return; } // safety valve
+      }, 250);
+    });
+  }
+  let onStatusRef = { cb: null };
+  /* Quick Play: loops forever (server slot by slot) until a match starts.
+     Nothing stops the search except the player's own cancel. */
   N.quickPlay = async function (modeId, onStatus) {
     if (N.quick.searching) return null;
     if (N.transport) N.leaveRoom(false);
     const def = N.modes[modeId] ? modeId : "climb";
-    cancelled = false; N.quick.searching = true; N._quiet = true;
+    cancelled = false; N.quick.searching = true; N.quick.cancelledByUser = false; N._quiet = true;
+    onStatusRef.cb = onStatus;
     try {
-      for (let round = 0; round < 2 && !cancelled; round++) {
+      while (!cancelled) {
         for (let slot = 0; slot < SLOTS && !cancelled; slot++) {
           const code = "QP" + VERSION + def.toUpperCase() + slot;
-          status(`Searching ${N.modes[def].label} · server ${slot + 1}/${SLOTS}…`, onStatus);
-          NR.audio?.play("searching");
+          status(`Finding players · ${N.modes[def].label} · server ${slot + 1}/${SLOTS}…`, onStatus);
+          if (slot === 0) NR.audio && NR.audio.play && NR.audio.play("searching");
           // 1) try to join an existing host
           const joined = await N.joinRoom(code);
           if (cancelled) { if (joined) N.leaveRoom(false); break; }
@@ -628,35 +666,39 @@
             if (ok && N.room && !N.room.started) {
               const me = N.room.members.find((m) => m.id === N.myId());
               if (!me || !me.ready) N.setReady(true);
-              status("Match found! Waiting for the host to start…", onStatus);
-              NR.audio?.play("matchFound");
-              return N.room;
+              status("Match found! Getting the arena ready…", onStatus);
+              NR.audio && NR.audio.play && NR.audio.play("matchFound");
+              const started = await waitForStart(120000);
+              if (started) return N.room;
+              if (cancelled) break;
             }
-            if (N.transport) N.leaveRoom(false);   // full / started / no answer → next slot
+            if (N.transport) N.leaveRoom(false); // full / dead / timed out → next slot
             continue;
           }
-          // 2) nobody there → become the host of this slot
+          // 2) nobody there → become the host of this slot and keep waiting
           const room = await N.createRoom(def, code, true);
           if (cancelled) { if (room) N.leaveRoom(false); break; }
           if (room) {
-            status("Room ready — waiting for players… (you can start solo any time)", onStatus);
-            NR.audio?.play("matchFound");
-            return room;
+            status("Waiting for players to join — the search keeps running…", onStatus);
+            NR.audio && NR.audio.play && NR.audio.play("matchFound");
+            const started = await waitForOpponent();
+            if (started) return N.room;
+            if (cancelled) break;
+            if (N.transport) N.leaveRoom(false);
           }
-          // id taken at the same moment → someone else hosts it; the next loop joins
         }
+        if (!cancelled) await sleep(500); // fresh sweep of every slot — never gives up
       }
-      if (!cancelled) {
-        status("No online players reachable. Check your connection or try again.", onStatus);
-        NR.audio?.play("netError");
-      }
+      if (N.transport && N.room && N.room.quick && !N.room.started) N.leaveRoom(false);
+      status("Search cancelled.", onStatus);
       return null;
     } catch (e) {
       status("Quick play failed: " + (e.message || e), onStatus);
-      NR.diag?.net("quickPlay error: " + (e.message || e));
+      NR.diag && NR.diag.net("quickPlay error: " + (e.message || e));
       return null;
     } finally {
       N._quiet = false; N.quick.searching = false;
+      onStatusRef.cb = null;
     }
   };
   /* host: auto-start quick rooms */

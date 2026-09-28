@@ -90,7 +90,10 @@
     NR.ui.setLoading(0.05);
     NR.crazy.loadingStart();
     // invite-link routing: an invited player skips straight into the room
-    const inviteRoom = NR.crazy.getInviteParam("room");
+    // (CrazyGames SDK param first, plain #join=CODE fallback links second)
+    const hashJoin = (location.hash.match(/join=([A-Za-z0-9]+)/) || [])[1];
+    if (hashJoin) { try { history.replaceState(null, "", location.pathname + location.search); } catch (_) {} }
+    const inviteRoom = NR.crazy.getInviteParam("room") || hashJoin;
     if (inviteRoom) NR.diag.info("started from invite link, room=" + inviteRoom);
     // staged loading: lobby art + the hero's equipped layers first, everything else streams in
     const lookPaths = NR.assets.layerPaths(NR.profile.appearance);

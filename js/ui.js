@@ -2,7 +2,7 @@
 (function () {
   const U = NR.util;
   const $ = (id) => document.getElementById(id);
-  const SCREENS = ["load", "menu", "how", "set", "pause", "up", "over", "armory", "records", "operators", "victory", "credits"];
+  const SCREENS = ["load", "menu", "how", "set", "pause", "up", "over", "armory", "records", "operators", "victory"];
   const ui = (NR.ui = {});
 
   /* ---- glow-text cache: shadowBlur is the single most expensive canvas op,
@@ -67,9 +67,9 @@
     click("btn-how-back", () => ui.show(G.state === "pause" ? "pause" : "menu"));
     click("btn-set-back", () => ui.show("menu"));
     click("btn-resume", () => G.togglePause());
-    click("btn-restart-p", () => G.start());
+    click("btn-restart-p", () => NR.loader.startGame("RESTARTING RUN"));
     click("btn-menu-p", () => G.toMenu());
-    click("btn-retry", () => G.start());
+    click("btn-retry", () => NR.loader.startGame("RETRYING RUN"));
     click("btn-menu-o", () => G.toMenu());
 
     // settings toggles

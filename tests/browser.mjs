@@ -130,14 +130,10 @@ try {
     ),
     "independent audio volume settings",
   );
-  await page.click("#btn-credits");
   check(
-    (await page.locator(".credits-body").textContent()).includes(
-      "Creative Commons Zero",
-    ),
-    "in-game asset credit screen",
+    await page.locator('a[href="privacy.html"]').count(),
+    "settings links to the privacy policy",
   );
-  await page.click("#btn-credits-back");
   await page.click("#btn-set-back");
   await page.reload();
   await page.waitForFunction(() => NR.game.state === "menu");
@@ -443,76 +439,49 @@ try {
     G.toMenu();
   });
   const savedName = await page.evaluate(() => NR.profile.name);
-  await page.click("#btn-profile");
-  const downloadEvent = page.waitForEvent("download");
-  await page.click("#btn-export-save");
-  const download = await downloadEvent;
-  await download.saveAs("test-results/backup.json");
-  const { readFile } = await import("node:fs/promises");
-  const backup = await readFile("test-results/backup.json", "utf8");
+  // The settings backup panel was removed; the export/validate/apply API stays
+  // and is exercised directly instead of through the deleted buttons.
+  const backup = await page.evaluate(() => NR.saveTransfer.exportText());
   check(
     JSON.parse(backup).checkpoint.props.includes(0),
-    "downloaded backup includes destroyed loot and checkpoint",
-  );
-  await page
-    .locator("#save-file")
-    .setInputFiles({
-      name: "broken.json",
-      mimeType: "application/json",
-      buffer: Buffer.from("{invalid"),
-    });
-  await page.waitForFunction(() =>
-    document.getElementById("save-status").textContent.includes("Invalid"),
+    "backup includes destroyed loot and checkpoint",
   );
   check(
-    await page.locator("#save-confirm").isHidden(),
-    "bad import rejected without offering replacement",
+    await page.evaluate((text) => {
+      try {
+        NR.saveTransfer.validate(text);
+        return false;
+      } catch (_) {
+        return true;
+      }
+    }, "{invalid"),
+    "bad backup rejected",
   );
   check(
     await page.evaluate((name) => NR.profile.name === name, savedName),
-    "bad import preserves existing profile",
+    "invalid backup preserves existing profile",
   );
-  await page
-    .locator("#save-file")
-    .setInputFiles({
-      name: "backup.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(backup),
-    });
-  await page.locator("#btn-cancel-import").waitFor({ state: "visible" });
-  await page.click("#btn-cancel-import");
-  check(
-    await page.locator("#save-confirm").isHidden(),
-    "valid import can be cancelled before mutation",
+  const applied = await page.evaluate(
+    ({ text, saved }) => {
+      NR.profile.name = "CHANGED";
+      NR.saveProfile();
+      NR.checkpoint.clear();
+      const res = NR.saveTransfer.apply(text);
+      const cp = NR.checkpoint.get();
+      return {
+        persistent: res.persistent,
+        name: NR.profile.name,
+        props: cp ? cp.props : null,
+      };
+    },
+    { text: backup, saved: savedName },
   );
-  await page.evaluate(() => {
-    NR.profile.name = "CHANGED";
-    NR.saveProfile();
-    NR.checkpoint.clear();
-  });
-  await page
-    .locator("#save-file")
-    .setInputFiles({
-      name: "backup.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(backup),
-    });
-  await page.locator("#btn-confirm-import").waitFor({ state: "visible" });
-  await page.screenshot({ path: "test-results/save-transfer.png" });
   check(
-    await page.evaluate(
-      () => NR.profile.name === "CHANGED" && NR.checkpoint.get() === null,
-    ),
-    "valid file does not change progress until confirmation",
+    applied.persistent && applied.name === savedName,
+    "confirmed import restores the saved profile",
   );
-  await page.click("#btn-confirm-import");
-  await page.waitForFunction(() => NR.game.state === "menu");
   check(
-    await page.evaluate(
-      (name) =>
-        NR.profile.name === name && NR.checkpoint.get().props.includes(0),
-      savedName,
-    ),
+    applied.props && applied.props.includes(0),
     "confirmed import restores profile and loot checkpoint",
   );
   await page.reload();

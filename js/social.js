@@ -130,8 +130,7 @@
     }
     const startBtn = $("sr-start");
     if (startBtn) startBtn.style.display = N.mode === "host" ? "" : "none";
-    const inviteBtn = $("sr-invite");
-    if (inviteBtn) inviteBtn.style.display = N.mode === "host" ? "" : "none";
+    S.renderInvite();
     S.renderVoice();
   };
 
@@ -234,7 +233,8 @@
       if (room) {
         NR.audio.play("socialNotify");
         S.renderRoom();
-        NR.hub.notify(`Room ${room.code} ready — invite friends with the link.`);
+        S.prepareInvite(); // CrazyGames SDK invitation link, ready to copy
+        NR.hub.notify(`Room ${room.code} ready — copy the invite link below.`);
       }
     });
     $("ol-join")?.addEventListener("click", async () => {
@@ -243,24 +243,39 @@
       const room = await N.joinRoom(code);
       if (room) S.renderRoom();
     });
-    // QUICK PLAY: automatic matchmaking in the selected mode
-    const qpStatus = (t) => { const el = $("qp-status"); if (el) el.textContent = t; };
+    // QUICK PLAY: a centered matchmaking overlay that NEVER stops until a
+    // real opponent is found — then both players drop straight into the game.
+    const qpStatus = (t) => {
+      const el = $("qp-status"); if (el) el.textContent = t;
+      S.mmStatus(t);
+    };
     $("ol-quick")?.addEventListener("click", async () => {
       NR.audio.play("uiConfirm");
       if (N.quick.searching) return;
       const mode = resolveMode(S.selectedMode || "climb");
-      $("ol-quick").disabled = true; $("ol-quick-cancel").hidden = false;
+      $("modal-online")?.classList.remove("open");
+      S.showMatchmaking();
       const room = await N.quickPlay(mode, qpStatus);
-      $("ol-quick").disabled = false; $("ol-quick-cancel").hidden = true;
-      if (room) { S.renderRoom(); $("qp-solo").hidden = N.mode !== "host"; }
+      // quickPlay only resolves once the match is starting (or on cancel/error)
+      S.hideMatchmaking();
+      if (room) { S.renderRoom(); }
+      else {
+        S.openOnline();
+        qpStatus(N.quick.cancelledByUser ? "Search cancelled — press Quick Play to try again." : "No match yet — press Quick Play to search again.");
+      }
     });
-    $("ol-quick-cancel")?.addEventListener("click", () => { NR.audio.play("uiCancel"); N.cancelQuick(); qpStatus("Search cancelled."); $("qp-solo").hidden = true; });
-    $("qp-solo")?.addEventListener("click", () => { NR.audio.play("uiConfirm"); if (N.mode === "host" && N.room) N.startMatch(); else NR.hub.notify("Only the room host can start."); });
+    $("mm-cancel")?.addEventListener("click", () => {
+      NR.audio.play("uiCancel");
+      N.cancelQuick();
+      S.hideMatchmaking();
+      S.openOnline();
+      const el = $("qp-status"); if (el) el.textContent = "Search cancelled — press Quick Play to try again.";
+    });
     $("sr-leave")?.addEventListener("click", () => { NR.audio.play("uiClick"); N.leaveRoom(); });
     $("sr-open-online")?.addEventListener("click", () => S.openOnline());
     $("sr-ready")?.addEventListener("click", () => { NR.audio.play("uiToggleOn"); N.setReady(!(N.room?.members.find((m) => m.id === N.myId())?.ready)); });
     $("sr-start")?.addEventListener("click", () => { S.startRoomMatch(); });
-    $("sr-invite")?.addEventListener("click", () => S.copyInvite());
+    $("sr-invite-copy")?.addEventListener("click", () => S.copyInvite());
 
     // chat
     $("chat-send")?.addEventListener("click", () => S.sendChat());
@@ -273,12 +288,71 @@
     S.renderRoom();
   };
 
+  /* ---------------- centered matchmaking overlay (Quick Play) ---------------- */
+  let mmTimer = null;
+  S.showMatchmaking = function () {
+    const ov = $("mm-overlay");
+    if (!ov) return;
+    ov.hidden = false;
+    S.mmStatus("Searching for players…");
+    const t0 = Date.now();
+    const el = $("mm-elapsed");
+    if (el) el.textContent = "0:00";
+    clearInterval(mmTimer);
+    mmTimer = setInterval(() => {
+      if (!el || ov.hidden) return;
+      const s = Math.floor((Date.now() - t0) / 1000);
+      el.textContent = Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+    }, 500);
+  };
+  S.hideMatchmaking = function () {
+    const ov = $("mm-overlay");
+    if (ov) ov.hidden = true;
+    clearInterval(mmTimer); mmTimer = null;
+  };
+  S.mmStatus = function (t) { const el = $("mm-status"); if (el && t) el.textContent = t; };
+
+  /* ---------------- room invite link (CrazyGames SDK, copyable) ---------------- */
+  S.inviteText = async function () {
+    const N = NR.net;
+    if (!N.room) return "";
+    let link = null;
+    try {
+      if (NR.crazy && NR.crazy.inviteLink) link = await NR.crazy.inviteLink({ room: N.room.code, mode: N.room.mode });
+    } catch (e) { NR.diag && NR.diag.net && NR.diag.net("inviteLink failed: " + e.message); }
+    return link || `${location.origin}${location.pathname}#join=${N.room.code}`;
+  };
+  /* Called right after CREATE ROOM: the CrazyGames SDK invitation link is
+     generated for the room and shown in a copyable field. */
+  S.prepareInvite = async function () {
+    const N = NR.net;
+    if (!N.room || N.mode !== "host") return;
+    N.inviteLink = await S.inviteText();
+    S.renderInvite();
+  };
+  S.renderInvite = function () {
+    const row = qs(".sr-invite-row");
+    const input = $("sr-invite-link");
+    const N = NR.net;
+    if (!row || !input) return;
+    const host = !!(N.room && N.mode === "host");
+    row.hidden = !host;
+    if (host) {
+      input.value = N.inviteLink || `${location.origin}${location.pathname}#join=${N.room.code}`;
+      if (!N.inviteLink) S.prepareInvite(); // generate in the background
+    }
+  };
   S.copyInvite = async function () {
     const N = NR.net;
     if (!N.room) return;
-    const link = await NR.crazy.inviteLink({ room: N.room.code, mode: N.room.mode });
-    const text = link || `${location.origin}${location.pathname}#join=${N.room.code}`;
-    NR.crazy.copyToClipboard(text);
+    const input = $("sr-invite-link");
+    const text = (input && input.value) || N.inviteLink || (await S.inviteText());
+    if (input) input.value = text;
+    const copied = NR.crazy && NR.crazy.copyToClipboard ? NR.crazy.copyToClipboard(text) : false;
+    if (!copied && navigator.clipboard && navigator.clipboard.writeText) {
+      try { await navigator.clipboard.writeText(text); } catch (_) {}
+    }
+    if (input) { input.focus(); input.select(); }
     NR.hub.notify("Invite link copied — send it to a friend.");
     NR.audio.play("socialNotify");
   };
@@ -294,6 +368,7 @@
   /* called by net when the host starts (both sides) */
   S.onMatchStart = function (room, asGuest) {
     $("modal-online")?.classList.remove("open");
+    S.hideMatchmaking();
     const def = NR.net.modes[room.mode] || NR.net.modes.climb;
     NR.hub.notify("Match starting — " + def.label);
     NR.audio.play("matchFound");
@@ -301,20 +376,17 @@
     NR.profile.mode = def.game || (def.pvp ? "pvp" : "climb");
     $("modal-deploy")?.classList.remove("open");
     $("modal-play")?.classList.remove("open");
-    const go = () => {
-      try {
-        if (NR.game.state !== "menu" && NR.game.state !== "over" && NR.game.state !== "victory") NR.game.toMenu();
-        NR.game.start();
-        NR.game.pvp = !!def.pvp;
-        NR.game.online = true;
-        NR.modes?.start(NR.game);   // re-seed with the room seed now that online is set
-      } catch (e) {
-        NR.diag?.net("match start failed: " + e.message);
-        NR.hub.notify("Could not start the match: " + e.message);
-        NR.game.toMenu();
-      }
-    };
-    NR.loader.wrap("ENTERING " + def.label, Promise.resolve()).then(go, go);
+    try {
+      if (NR.game.state !== "menu" && NR.game.state !== "over" && NR.game.state !== "victory") NR.game.toMenu();
+      NR.game.pvp = !!def.pvp;
+      NR.game.online = true; // set BEFORE start so the room seed re-seeds the run
+      // full-screen loading page: the arena opens only at 100%
+      NR.loader.startGame("ENTERING " + def.label).catch?.(() => {});
+    } catch (e) {
+      NR.diag?.net("match start failed: " + e.message);
+      NR.hub.notify("Could not start the match: " + e.message);
+      NR.game.toMenu();
+    }
   };
 
   /* ---------------- chat with moderation ---------------- */

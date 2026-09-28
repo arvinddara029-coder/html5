@@ -562,7 +562,7 @@
       btn.dataset.wired = "1";
       btn.addEventListener("click", () => {
         NR.audio.play("uiConfirm");
-        NR.loader.wrap("RESUMING SAVED RUN", Promise.resolve(NR.waveResume.resume()));
+        NR.loader.preloadThen(() => NR.waveResume.resume(), "RESUMING SAVED RUN");
       });
     }
   };
@@ -717,8 +717,8 @@
       }));
     const startRun = () => {
       NR.game.online = false; NR.game.pvp = false;
-      NR.loader.wrap("ENTERING " + (P.mode === "run" ? "SURVIVAL RUN" : "WAVE CLIMB"),
-        Promise.resolve(NR.game.start()));
+      // loading page opens first; the run starts only at 100% (no mid-load lag)
+      NR.loader.startGame("ENTERING " + (P.mode === "run" ? "SURVIVAL RUN" : "WAVE CLIMB"));
     };
 
     // social hub + vault + codex (hero select / enemy roster) live inside the lobby
@@ -737,7 +737,7 @@
     if ($("deploy-start")) $("deploy-start").addEventListener("click", () => {
       NR.audio.play("uiConfirm");
       closeModal("modal-deploy");
-      NR.loader.wrap("ENTERING WORLD", Promise.resolve(NR.game.start()));
+      NR.loader.startGame("ENTERING WORLD");
     });
 
     // hero tags

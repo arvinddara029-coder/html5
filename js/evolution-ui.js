@@ -55,7 +55,7 @@
   if ($('open-vault')) $('open-vault').onclick=E.vault;
   if ($('play-vault')) $('play-vault').onclick=()=>{ if (NR.game.state==='playing') E.vault(); else (NR.codex ? NR.codex.openHeroes() : NR.vault.openVault()); };
   $('btn-continue-encounter').onclick=()=>G.continueEncounter();
-  $('next-world-level').onclick=()=>{NR.profile.mode='adventure';NR.profile.chapter=G.chapter;NR.saveProfile();G.start({chapter:G.chapter});};
+  $('next-world-level').onclick=()=>{NR.profile.mode='adventure';NR.profile.chapter=G.chapter;NR.saveProfile();NR.loader.startGame('ENTERING WORLD '+(G.chapter+1),{chapter:G.chapter});};
   $('power-hint').onclick=()=>{
     open('RELAY RESTORED — WHAT CHANGES?');
     const portraits=NR.superContent.portraits,portrait=document.createElement('img');
@@ -98,8 +98,7 @@
     }
     search.oninput=()=>{query=search.value;page=0;draw();};dialog.append(search,pager,results);draw();
   }
-  $('resume-wave').onclick=()=>{NR.waveResume.resume();};
-  // super roster + asset archive are reachable from the Vault / debug tools
+    // super roster + asset archive are reachable from the Vault / debug tools
   NR.vault.openSuperRoster=()=>{
     open('SUPER ROSTER · HEROES & COMPANIONS');
     para('Choose a hero or pet from the new packs. Selection applies to the next run. Every actor uses measured animation frames, not a full contact sheet.');

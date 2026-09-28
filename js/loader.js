@@ -1,12 +1,10 @@
 /* ============ PRODUCTION PASS — loading overlay system ============
    Proper loading screens with REAL progress:
      - boot: the existing load screen, now reporting SDK + asset progress
-     - run start: a short "preparing district" overlay with status text,
-       driven by actual asset preloads (no fake 100%)
-   The old splash presentation (animated guide GIF over the emblem) is
-   removed from the DOM in index.html; this overlay is the replacement:
-   progress bar, rotating status text, subtle animation, never blocks input
-   longer than the work actually takes. */
+     - game start: a full loading page opens BEFORE the match, waits until
+       every asset the run needs is actually decoded, and only then opens
+       the game (kills the "game starts while art is still streaming" lag)
+   Progress is driven by real asset loads — no fake 100%. */
 (function () {
   const L = (NR.loader = {});
   let root = null, fill = null, status = null, label = null;
@@ -28,7 +26,7 @@
       '<div class="rl-title">PREPARING DISTRICT</div>' +
       '<div class="rl-bar"><div class="rl-fill"></div></div>' +
       '<div class="rl-status">LOADING</div>' +
-      '<div class="rl-note">assets stream per district — the full library never loads at once</div>' +
+      '<div class="rl-note">the match opens once every asset is fully loaded</div>' +
       "</div>";
     document.body.append(root);
     fill = root.querySelector(".rl-fill");
@@ -51,10 +49,82 @@
     else status.textContent = STEPS[Math.floor(performance.now() / 700) % STEPS.length];
   };
   L.hide = function () { if (root) root.classList.remove("open"); };
+  L.isOpen = function () { return !!root && root.classList.contains("open"); };
 
-  /* Show the overlay while a real asset preload completes. */
+  /* ---------------- real asset set a run needs before it can open ---------------- */
+  L.gamePaths = function () {
+    const out = [];
+    try {
+      const push = (arr) => { for (const p of arr || []) if (p) out.push(p); };
+      if (NR.assets && NR.assets.layerPaths) push(NR.assets.layerPaths(NR.profile.appearance));
+      if (NR.profile.pet && NR.catalog && NR.catalog.pet) {
+        const po = NR.catalog.pet.find((o) => o.id === NR.profile.pet);
+        if (po) out.push(po.path);
+      }
+      if (NR.sheets)
+        for (const key of Object.keys(NR.sheets))
+          for (const a of Object.keys(NR.sheets[key].anims)) out.push(NR.sheets[key].anims[a].path);
+      if (NR.textures)
+        for (const k of Object.keys(NR.textures)) push(NR.textures[k]);
+      push(["bg_day.jpg", "bg_garden.jpg", "bg_reactor.jpg", "bg_far.jpg", "menu_hero.jpg", "lobby_bg.jpg", "emblem.jpg"]);
+    } catch (e) {
+      NR.diag && NR.diag.warn && NR.diag.warn("gamePaths failed: " + (e && e.message));
+    }
+    return Array.from(new Set(out));
+  };
+  L.missingGamePaths = function () {
+    return L.gamePaths().filter((p) => !NR.assets || !NR.assets.ready(p));
+  };
+
+  /* Load every missing run asset with the loading page open (real progress). */
+  function loadMissing(title, done) {
+    const missing = L.missingGamePaths();
+    if (!missing.length) { done(); return Promise.resolve(); }
+    NR.crazy && NR.crazy.loadingStart && NR.crazy.loadingStart();
+    L.show(title || "LOADING GAME", 0);
+    const lib = NR.assets && NR.assets.load ? NR.assets : NR.util.assets;
+    return lib
+      .load(missing, (k) => L.progress(k))
+      .then(() => {
+        L.progress(1, "READY");
+        try { done(); } catch (e) {
+          NR.reportError ? NR.reportError("Game start failed", e) : console.error(e);
+        }
+        setTimeout(() => {
+          L.hide();
+          NR.crazy && NR.crazy.loadingStop && NR.crazy.loadingStop();
+        }, 160);
+      })
+      .catch((e) => {
+        NR.diag && NR.diag.warn && NR.diag.warn("preload before start failed: " + (e && e.message));
+        try { done(); } catch (_) {}
+        setTimeout(() => L.hide(), 160);
+        NR.crazy && NR.crazy.loadingStop && NR.crazy.loadingStop();
+      });
+  }
+
+  /* Every game entry point goes through here: show the loading page only when
+     something is still missing, open the game only after 100% of the run's
+     assets are decoded. Returns a promise; the start itself is synchronous
+     once loading completes (keeps wave-resume and state patching intact). */
+  L.startGame = function (title, options) {
+    if (!L.missingGamePaths().length) {
+      try { NR.game.start(options); }
+      catch (e) { NR.reportError ? NR.reportError("Game start failed", e) : console.error(e); }
+      return Promise.resolve();
+    }
+    return loadMissing(title, () => NR.game.start(options));
+  };
+
+  /* Same, but for flows that run their own start logic (saved-wave resume). */
+  L.preloadThen = function (fn, title) {
+    if (!L.missingGamePaths().length) return Promise.resolve(fn());
+    return loadMissing(title, () => fn());
+  };
+
+  /* Show the overlay while an arbitrary promise completes (legacy helper). */
   L.wrap = async function (title, pathsPromise) {
-    NR.crazy?.loadingStart();
+    NR.crazy && NR.crazy.loadingStart && NR.crazy.loadingStart();
     L.show(title, 0.08);
     let ticks = 0;
     const iv = setInterval(() => { ticks++; L.progress(Math.min(0.85, 0.08 + ticks * 0.07)); }, 140);
@@ -62,11 +132,11 @@
       await pathsPromise;
       L.progress(1, "READY");
     } catch (e) {
-      NR.diag?.warn("preload during loading failed: " + (e && e.message));
+      NR.diag && NR.diag.warn && NR.diag.warn("preload during loading failed: " + (e && e.message));
     } finally {
       clearInterval(iv);
       setTimeout(() => L.hide(), 180);
-      NR.crazy?.loadingStop();
+      NR.crazy && NR.crazy.loadingStop && NR.crazy.loadingStop();
     }
   };
 })();

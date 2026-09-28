@@ -432,3 +432,29 @@ body.no-shadows .hero-plate, body.no-shadows .lobby-fireflies i { box-shadow: no
 .hs-codex-link { background: none; border: 1px dashed rgba(255,255,255,.22); color: #8fb0e8;
   font: 700 11px Orbitron; letter-spacing: .12em; padding: 8px 16px; border-radius: 5px; cursor: pointer; }
 .hs-codex-link:hover { color: #fff; border-color: rgba(0,255,244,.5); }
+
+/* ---------- room invite link (CrazyGames SDK) ---------- */
+.sr-invite-row { display: flex; gap: 6px; margin-top: 8px; }
+.sr-invite-row input { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 7px;
+  border: 1px solid rgba(0,255,244,.35); background: rgba(6,12,22,.85); color: #9ff;
+  font: 500 11px "DM Sans"; text-overflow: ellipsis; }
+.sr-invite-row .ghost-btn { flex: none; white-space: nowrap; }
+
+/* ---------- centered matchmaking overlay (Quick Play) ---------- */
+.mm-overlay { position: fixed; inset: 0; z-index: 360; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(7,14,26,.93), rgba(3,6,14,.985)); }
+.mm-overlay[hidden] { display: none; }
+.mm-card { width: min(440px, 88vw); text-align: center; padding: 30px 22px 24px; border-radius: 14px;
+  background: rgba(6,13,24,.92); border: 1px solid rgba(0,255,244,.35);
+  box-shadow: 0 0 60px rgba(0,255,244,.12), inset 0 0 40px rgba(0,80,120,.12); }
+.mm-title { font: 800 30px "Barlow Condensed"; letter-spacing: .16em; color: #fff; margin: 14px 0 4px; }
+.mm-status { font: 700 11.5px Orbitron; letter-spacing: .1em; color: #00fff4; min-height: 30px;
+  line-height: 1.5; margin: 6px auto 2px; max-width: 340px; animation: rlPulse 1.6s infinite; }
+.mm-elapsed { font: 800 20px Orbitron; color: #ffd36e; letter-spacing: .12em; margin: 6px 0 14px; }
+.mm-note { font: 500 10.5px "DM Sans"; color: #557084; margin-top: 12px; }
+.mm-actions { display: flex; justify-content: center; gap: 8px; }
+.mm-ring { position: relative; width: 74px; height: 74px; margin: 0 auto; }
+.mm-ring i { position: absolute; inset: 0; border-radius: 50%; border: 3px solid transparent;
+  border-top-color: #00fff4; animation: mmSpin 1s linear infinite; }
+.mm-ring i + i { inset: 10px; border-top-color: #ff5f8a; animation-duration: 1.5s; animation-direction: reverse; }
+@keyframes mmSpin { to { transform: rotate(360deg); } }
