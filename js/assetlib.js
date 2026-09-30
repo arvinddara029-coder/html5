@@ -402,7 +402,10 @@
         const p = new Promise((done) => {
           A.state[path] = "loading";
           const img = new Image();
-          img.onload = () => { A.images[path] = img; A.state[path] = "ready"; A.version++; done(); };
+          // Decode OFF the main thread during load so gameplay never pays the
+          // decode cost (the in-world hitching/lag came from lazy decoding).
+          const settle = () => { A.images[path] = img; A.state[path] = "ready"; A.version++; done(); };
+          img.onload = () => { if (img.decode) img.decode().then(settle, settle); else settle(); };
           img.onerror = () => { A.state[path] = "error"; A.version++; done(); };
           img.src = enc("assets/" + path);
         }).then(() => { delete A.inflight[path]; });

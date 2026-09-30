@@ -29,7 +29,7 @@
       P.mode = "adventure";
       P.chapter = Math.min(NR.adventure.chapters.length - 1, NR.game.chapter + 1);
       NR.saveProfile();
-      NR.game.start({ chapter: P.chapter });
+      NR.loader.enter("ENTERING WORLD " + (P.chapter + 1), () => NR.game.start({ chapter: P.chapter }));
     });
     on("btn-victory-menu", () => NR.game.toMenu());
     on("interaction-prompt", () => {

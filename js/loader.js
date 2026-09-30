@@ -52,6 +52,59 @@
   };
   L.hide = function () { if (root) root.classList.remove("open"); };
 
+  /* Every asset the next run can possibly draw: world art + terrain textures,
+     the equipped hero's layers, ALL enemy/boss sheets, mode props and (for the
+     run mode) the guardian sprites. Loading these up-front is what makes the
+     world hitch-free — nothing decodes mid-fight. */
+  function requiredPaths() {
+    const out = new Set();
+    const add = (p) => { if (p) out.add(p); };
+    // layered jungle world + every terrain texture family
+    ["bg_jungle.jpg", "jungle_layer_far.png", "jungle_layer_near.png", "grass_strip.png",
+     "bg_day.jpg", "bg_far.jpg", "bg_garden.jpg", "bg_reactor.jpg",
+     "kenney/platformIndustrial_sheet.png"].forEach(add);
+    const T = NR.textures || {};
+    for (const k of Object.keys(T)) for (const t of T[k]) add(t);
+    // equipped hero layers
+    if (NR.assets && NR.assets.layerPaths) for (const p of NR.assets.layerPaths(NR.profile.appearance)) add(p);
+    // every enemy + boss sheet (all families appear across waves)
+    for (const sk of Object.keys(NR.sheets || {})) {
+      const an = (NR.sheets[sk] || {}).anims || {};
+      for (const a of Object.keys(an)) add(an[a].path);
+    }
+    // climb/run props (portal + campfire checkpoints)
+    add("super/GandalfHardcore FREE Platformer Assets/Animated Sprites/GandalfHardcore Portal sheet.png");
+    add("super/GandalfHardcore FREE Platformer Assets/Animated Sprites/Campfire sheet.png");
+    // guardians for the endless run
+    if (NR.superContent && NR.superContent.actors)
+      for (const act of NR.superContent.actors)
+        if (act.role === "guardian" && act.clips)
+          for (const cl of act.clips) for (const f of cl.frames || []) { add(f.path); (f.alternates || []).forEach(add); }
+    // skip anything already decoded
+    return [...out].filter((p) => NR.assets && !NR.assets.ready(p));
+  }
+
+  /* Gate world-entry on a REAL preload: show the overlay, load+decode every
+     required asset with live progress, THEN build the world and lift the veil.
+     `startFn` runs only once the art is decoded, so there is no entry hitch. */
+  L.enter = async function (title, startFn) {
+    NR.crazy?.loadingStart();
+    L.show(title, 0.05);
+    let k = 0.05;
+    const iv = setInterval(() => { k = Math.min(k + 0.02, 0.9); L.progress(k); }, 120);
+    try {
+      await NR.assets.load(requiredPaths(), (p) => { k = 0.05 + p * 0.9; L.progress(k); });
+      L.progress(1, "READY");
+      startFn(); // world is built with decoded art — no mid-fight decode lag
+    } catch (e) {
+      NR.diag?.warn("enter-world preload failed: " + (e && e.message));
+      startFn();
+    } finally {
+      clearInterval(iv);
+      setTimeout(() => { L.hide(); NR.crazy?.loadingStop(); }, 150);
+    }
+  };
+
   /* Show the overlay while a real asset preload completes. */
   L.wrap = async function (title, pathsPromise) {
     NR.crazy?.loadingStart();

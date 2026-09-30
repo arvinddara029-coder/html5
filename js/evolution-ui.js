@@ -55,7 +55,7 @@
   if ($('open-vault')) $('open-vault').onclick=E.vault;
   if ($('play-vault')) $('play-vault').onclick=()=>{ if (NR.game.state==='playing') E.vault(); else (NR.codex ? NR.codex.openHeroes() : NR.vault.openVault()); };
   $('btn-continue-encounter').onclick=()=>G.continueEncounter();
-  $('next-world-level').onclick=()=>{NR.profile.mode='adventure';NR.profile.chapter=G.chapter;NR.saveProfile();G.start({chapter:G.chapter});};
+  $('next-world-level').onclick=()=>{NR.profile.mode='adventure';NR.profile.chapter=G.chapter;NR.saveProfile();NR.loader.enter('NEXT LEVEL · WORLD '+(G.chapter+1),()=>G.start({chapter:G.chapter}));};
   $('power-hint').onclick=()=>{
     open('RELAY RESTORED — WHAT CHANGES?');
     const portraits=NR.superContent.portraits,portrait=document.createElement('img');

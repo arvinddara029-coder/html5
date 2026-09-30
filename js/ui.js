@@ -67,9 +67,9 @@
     click("btn-how-back", () => ui.show(G.state === "pause" ? "pause" : "menu"));
     click("btn-set-back", () => ui.show("menu"));
     click("btn-resume", () => G.togglePause());
-    click("btn-restart-p", () => G.start());
+    click("btn-restart-p", () => NR.loader.enter("RESTARTING", () => G.start()));
     click("btn-menu-p", () => G.toMenu());
-    click("btn-retry", () => G.start());
+    click("btn-retry", () => NR.loader.enter("RETRYING", () => G.start()));
     click("btn-menu-o", () => G.toMenu());
 
     // settings toggles
