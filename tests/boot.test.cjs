@@ -531,7 +531,7 @@ test("every UI entry point survives missing DOM nodes (strict DOM, like a browse
   NR.lobby.init();
   NR.ui.refreshHigh();
   NR.ui.syncAudio?.();
-  for (const scr of ["menu", "how", "set", "records", "armory", "operators", "credits", "pause"])
+  for (const scr of ["menu", "how", "set", "records", "armory", "operators", "pause"])
     NR.ui.show(scr);
   NR.hub.setWorld("night");
   NR.hub.setWorld("day");
@@ -557,7 +557,6 @@ test("every UI entry point survives missing DOM nodes (strict DOM, like a browse
   NR.expeditionUI.showVictory?.(NR.game);
   NR.ui.toggleMute();
   NR.ui.toggleMute();
-  NR.saveTransfer?.init?.();
   NR.hub.update(9999);
   assert.ok(true, "no UI path threw");
 });
@@ -827,30 +826,6 @@ test('live level-up immediately strengthens current player and unlocks abilities
   assert.equal(NR.profile.level,2);assert.equal(G.player.maxHp,hp+4);assert.ok(G.player.dmgMul>dmg);
   NR.evolution.equip('frost');assert.ok(NR.evolution.slots.includes('frost'));
 });
-test('portable backup preserves purchases, all six chapters, hero, relic, HUD and vault',()=>{
-  const {NR}=engine();NR.profile.coins=1000;
-  assert.equal(NR.economy.buy('skin','Male Skin3'),true);
-  NR.profile.unlocked=5;NR.profile.chapter=5;NR.profile.character='vex';
-  NR.evolution.hero=NR.superContent.actors.find(a=>a.role==='hero').id;
-  NR.evolution.relic=NR.superContent.relics[0].id;
-  NR.evolution.layout.jump=[.2,.4];NR.game.toMenu();
-  const text=NR.saveTransfer.exportText();const b=NR.saveTransfer.validate(text);
-  assert.equal(b.profile.owned['skin:Male Skin3'],1);
-  assert.equal(b.profile.chapter,5);assert.equal(b.profile.character,'vex');
-  NR.evolution.hero='';NR.evolution.layout={};NR.saveTransfer.apply(text);
-  assert.equal(NR.evolution.hero,b.evolution.hero);assert.equal(NR.evolution.layout.jump[0],.2);
-  const malformed=JSON.parse(text);malformed.evolution.slots=Array(11).fill('ember');
-  assert.throws(()=>NR.saveTransfer.apply(JSON.stringify(malformed)));
-});
-test('saved survival wave resumes with upgrades, without repeated XP or coin payouts',()=>{
-  const {NR}=engine(),G=NR.game;NR.profile.mode='survival';G.start();G.wave=4;G.player.dmgMul*=2;
-  NR.waveResume.save();const damage=G.player.dmgMul;
-  G.stats.kills=1;NR.evolution.rewardKill();G.score=120;G.player.dead=true;G.finishRun(false);
-  const coins=NR.profile.coins,xp=NR.profile.xp;
-  G.toMenu();assert.equal(NR.waveResume.resume(),true);assert.equal(G.wave,3);assert.equal(G.player.dmgMul,damage);
-  G.wave=4;G.stats.kills=1;NR.evolution.rewardKill();G.score=120;G.player.dead=true;G.finishRun(false);
-  assert.equal(NR.profile.xp,xp);assert.equal(NR.profile.coins,coins);
-});
 test('all original super files have explicit coverage status and all eleven FBX exports have guardian sprites',()=>{
   const {NR}=engine();const coverage=NR.superContent.coverage;
   for(const p of NR.superManifest)assert.ok(coverage[p],p);
@@ -1039,29 +1014,74 @@ test("enemy codex preloads boss sheets + super actors and stays defensive", () =
   assert.ok(preloaded.some((p) => /boss|mech|orc/i.test(String(p))), "boss sheet paths preloaded for lobby previews");
 });
 
-test("online wave leaderboard ranks runs and lobby wires ONLINE PLAY", () => {
+test("fortune draw costs coins, grants one prize, and never double-grants", () => {
   const E = engine();
   const { NR } = E;
-  NR.records = [
-    { name: "AAA", mode: "survival", wave: 12, score: 40000 },
-    { name: "BBB", mode: "survive", wave: 20, score: 90000 },
-    { name: "CCC", mode: "survival", wave: 5, score: 12000 },
-  ];
-  NR.social.renderLeaderboard();
-  const box = E.dom.document.getElementById("ol-leaderboard");
-  assert.ok(box.children.length >= 3, "leaderboard rows render from the run archive");
-  const waves = [...box.children].map((c) => (String(c.innerHTML).match(/WAVE (\d+)/) || [])[1] | 0);
-  assert.ok(waves[0] === 20, "highest wave ranks first (got " + waves[0] + ")");
-  assert.deepEqual(waves.slice(0, 3), [20, 12, 5], "rows sorted by waves reached");
-  // nav swap: ONLINE PLAY replaces ENEMIES, codex stays reachable from hero select
+  const F = NR.economy.fortune;
+  assert.ok(F && F.COST > 0, "draw has a clear cost");
+  // odds table: every prize weighted, sums to a real distribution
+  assert.ok(F.TABLE.length >= 8, "prize table is populated");
+  for (const e of F.TABLE) assert.ok(e.w > 0 && e.label, "each prize has weight + label");
+  const total = F.totalWeight();
+  assert.ok(Math.abs(F.TABLE.reduce((s, e) => s + e.w, 0) - total) < 1e-9);
+  // Pin the table to a single non-coin prize so wallet arithmetic is exact
+  // (some real prizes are coin payouts; those are covered by the odds table
+  // above, not by the wallet assertions).
+  const realTable = F.TABLE; const realTotal = F.totalWeight;
+  F.TABLE = [{ w: 1, id: "g5", label: "5 GEMS", grant: () => { NR.economy.addGems(5); return "💎 +5 gems"; } }];
+  F.totalWeight = () => 1;
+  // paid draw deducts exactly the cost and returns a prize descriptor
+  NR.profile.coins = F.COST + 100;
+  const coinsBefore = NR.profile.coins;
+  const r = F.draw();
+  assert.ok(r && r.label && r.msg, "draw resolves to a labelled prize");
+  assert.equal(NR.profile.coins, coinsBefore - F.COST, "cost deducted once");
+  assert.equal(NR.profile.draws.total, 1, "draw counted once");
+  // busy guard: an immediate second draw is rejected (no double-grant)
+  assert.equal(F.draw(), null, "rapid second draw blocked while busy");
+  assert.equal(NR.profile.draws.total, 1, "busy draw never counted");
+  // too poor to draw: wallet untouched, no prize
+  F.busy = false;
+  NR.profile.coins = F.COST - 1;
+  assert.equal(F.draw(), null, "cannot draw below cost");
+  assert.equal(NR.profile.coins, F.COST - 1, "failed draw keeps wallet intact");
+  // free draw (rewarded-ad reward) never touches the wallet
+  const c = NR.profile.coins;
+  const fr = F.freeDraw();
+  assert.ok(fr && fr.free, "free draw granted via ad callback path");
+  assert.equal(NR.profile.coins, c, "free draw deducts nothing");
+  F.busy = false;
+  F.TABLE = realTable; F.totalWeight = realTotal;
+  // shop renders the draw panel with the odds visible to the player
+  NR.lobby.init();
+  NR.lobby.renderShop();
+  const host = E.dom.document.getElementById("fortune-host");
+  assert.ok(host && host.children.length >= 1, "draw panel mounted in shop");
+  // gather every text node under the panel (stub DOM keeps textContent/innerHTML)
+  let text = "";
+  (function walk(n) {
+    text += " " + (n.textContent || "") + " " + (n.innerHTML || "");
+    for (const c of n.children || []) walk(c);
+  })(host);
+  assert.ok(text.includes("FORTUNE DRAW"), "draw panel labelled");
+  assert.ok(text.includes("%"), "odds displayed in the shop");
+  assert.ok(text.includes(String(F.COST)), "cost shown in the shop");
+});
+
+test("online play is fully removed and the net layer is an inert offline stub", () => {
+  const E = engine();
+  const { NR } = E;
   const html = require("node:fs").readFileSync("index.html", "utf8");
-  assert.ok(html.includes('id="lb-online"'), "ONLINE PLAY nav button present");
-  assert.ok(!html.includes('id="lb-enemies"'), "ENEMIES nav button removed");
-  assert.ok(html.includes('id="hs-codex-link"'), "enemy codex linked from hero select footer");
-  // random quick-match resolves to a real mode id
-  assert.ok(html.includes('data-omode="random"'), "RANDOM quick-match card present");
-  const modes = NR.net.modes;
-  for (const id of ["duo", "duel", "team2", "team4"]) assert.ok(modes[id], "mode still defined: " + id);
+  for (const gone of ["lb-online", "modal-online", "scr-credits", "btn-credits", "resume-wave", "save-transfer", "cloudsave", "social-panel"])
+    assert.ok(!html.includes('id="' + gone + '"'), "removed UI id still present: " + gone);
+  assert.equal(NR.net.mode, "offline", "net layer reports offline");
+  assert.equal(NR.net.connected, false);
+  assert.equal(NR.net.myId(), "local");
+  assert.equal(NR.net.ping(), 0);
+  assert.deepEqual([...NR.net.remote.keys()], [], "no remote peers in single-player");
+  // lifecycle calls are inert no-ops
+  NR.net.tick(); NR.net.sendEvent("anything"); NR.net.hostBroadcastWave?.(1); NR.net.onNet?.(() => {});
+  NR.net.joinRoom("x").then((r) => assert.equal(r, null));
 });
 
 test("settings no longer surface the player-facing error log", () => {

@@ -21,6 +21,14 @@
   G.comboWindow = () => 4.2 + (G.player.furyBonus || 0);
   G.mult = () => Math.min(1 + G.combo * 0.12, 6);
 
+  /* return every pooled projectile to its free-list before wiping the arrays,
+     so restart loops recycle instead of allocating fresh objects */
+  function releaseProjectiles() {
+    for (const b of G.bolts) NR.Bolt?.release?.(b);
+    for (const s of G.shots) NR.Kunai?.release?.(s);
+    for (const r of G.shockwaves) NR.ShockRing?.release?.(r);
+  }
+
   /* ================= lifecycle ================= */
   G.toMenu = function () {
     NR.audio?.setMusicMode && NR.audio.setMusicMode("menu"); // back to the menu track
@@ -28,6 +36,7 @@
     G.online = false; G.pvp = false;
     NR.crazy?.gameplayStop();
     I.reset();
+    releaseProjectiles();
     G.enemies.length = 0; G.bolts.length = 0; G.shots.length = 0; G.shockwaves.length = 0;
     G.pickups.length = 0; G.spawnQueue.length = 0; G.corpses.length = 0;
     F.reset();
@@ -77,6 +86,7 @@
     G.chronoT = 0; G.finished = false;
     G.sukunaUsed = false;             // SukunaSlice: once per run, reset here
     G.netSeq = 0; G.netWave = 0;
+    releaseProjectiles();
     G.enemies.length = 0; G.bolts.length = 0; G.shots.length = 0; G.shockwaves.length = 0;
     G.pickups.length = 0; G.spawnQueue.length = 0; G.corpses.length = 0; F.reset();
     G.score = 0; G.combo = 0; G.comboT = 0; G.time = 0; G.wave = 0;
@@ -95,10 +105,6 @@
     NR.superRuntime?.prepare();
     G.levelDef = NR.levelsys ? NR.levelsys.levelDef(G.chapter||0, NR.levelsys.currentLevel()) : null;
     if (G.mode !== "adventure" && !NR.modes?.active && G.levelDef) NR.levelsys.banner(G.levelDef);
-    if (G.online && NR.net.mode === "host") {
-      // share the deterministic seed so guests simulate the same district
-      NR.net.transport && NR.net.transport.broadcast({ k: "room-state", room: NR.net.room });
-    }
     NR.crazy?.gameplayStart();
     NR.audio?.setMusicMode && NR.audio.setMusicMode("battle"); // combat track
     G.cam.x = U.clamp(G.player.x - NR.view.w / 2,0,Math.max(0,W.W-NR.view.w));
@@ -115,6 +121,8 @@
     if (NR.modes?.active) NR.modes.respawnPoint(p);
     p.vx = p.vy = 0; p.iframes = 3; p.dashCharges = p.dashMax;
     p.computePose(); G.deathT=0; G.overShown=false; G.finished=false; G.rewarded=false;
+    for (const b of G.bolts) NR.Bolt?.release?.(b);
+    for (const r of G.shockwaves) NR.ShockRing?.release?.(r);
     G.bolts.length=0; G.shockwaves.length=0; G.clearT=0; G.upgradeT=0;
     G.state="playing"; G.timeScale=1; G.hitStopT=0; G.slowT=0;
     NR.input.reset(); NR.ui.hideAll();
@@ -170,8 +178,6 @@
   function startWave(n) {
     G.wave = n;
     G.netWave = n;
-    NR.waveResume?.save();
-    NR.net.hostBroadcastWave(n);
     G.waveDamageTaken = false;
     const dmul = NR.levelsys && G.levelDef ? NR.levelsys.enemyMuls(G.levelDef, n) : null;
     G.enemyHpMul = (dmul ? dmul.hp : 1 + (n - 1) * 0.07) * (G.difficulty === "casual" ? .75 : G.difficulty === "hard" ? 1.35 : 1);
@@ -197,8 +203,6 @@
     for (let i = 0; i < (comp.apparitions || 0); i++) q.push({ type: "apparition", t: (delay += U.rand(0.5, 1)) });
     if(n>=3 && !comp.boss) q.push({type:"sentry",t:(delay+=.8)});
     if(n>=4 && !comp.boss) q.push({type:"sentinel",t:(delay+=.8)});
-    // host shares the (deterministic) queue with guests
-    NR.net.hostBroadcastSpawns(q.map((s) => ({ type: s.type, t: s.t, netId: "e" + (++G.netSeq) })));
     for (const s of q) s.netId = s.netId || "e" + (++G.netSeq);
     if (comp.boss) {
       G.bossActive = true;
@@ -322,13 +326,6 @@
       if (Math.abs(ey - py) > 95 + e.h / 2) continue;
       const crit = U.chance(p.critCh);
       const dmg = A.dmg * p.dmgMul * abMul * (p.overdriveT > 0 ? 2 : 1) * (crit ? 2 : 1) * (counter ? 1.75 : 1);
-      // online guest: the host owns enemy hp — report the hit, don't apply it
-      if (NR.net.mode === "guest" && e.netId) {
-        NR.net.guestHitEnemy(e.netId, dmg, p.facing * A.kb, -A.kb * 0.35);
-        F.slash(p.x + p.facing * 55, p.y - 52, p.facing, 0, A.rng * 0.7);
-        hitAny = true;
-        continue;
-      }
       const beforeHp=e.hp;
       e.hurt(dmg, p.facing * A.kb, -A.kb * 0.35, crit, G);
       if(e.hp>=beforeHp)continue;
@@ -336,17 +333,6 @@
       p.addEnergy(6.5);
       if (p.lifesteal > 0) p.heal(dmg * p.lifesteal);
       hitAny = true;
-    }
-    // PvP: strike any remote hero standing in the arc
-    if (G.pvp) {
-      for (const r of NR.net.remote.values()) {
-        const dx = r.x - p.x;
-        if (Math.sign(dx) !== p.facing || Math.abs(dx) > A.rng) continue;
-        if (Math.abs(r.y - p.y) > 110) continue;
-        NR.net.sendEvent({ a: "hit-player", dmg: A.dmg * p.dmgMul * abMul });
-        F.slash(r.x, r.y - 50, p.facing, 1, 130);
-        hitAny = true;
-      }
     }
     NR.adventure.strikeProps(p,A,G);
     if (hitAny) {
@@ -376,8 +362,6 @@
 
   G.hurtPlayer = function (dmg, dir, src) {
     const p = G.player;
-    if (p && p.isProxy) { NR.modes.proxyHurt(p, dmg, dir); return; }
-    if (NR.modes && !NR.modes.allowHurt(G, src)) return;
     if (p.dead || p.iframes > 0 || p.dashT > 0 || p.stormT > 0 || p.shieldT > 0) return;
     if (NR.combat.tryParry(G,dir,src)) return;
     dmg *= (G.difficulty === "casual" ? .6 : G.difficulty === "hard" ? 1.4 : 1)
@@ -430,8 +414,6 @@
     // drops
     if (U.chance(0.09)) G.pickups.push(new NR.Pickup(e.x, e.y - 20, "heart"));
     else if (U.chance(0.15)) G.pickups.push(new NR.Pickup(e.x, e.y - 20, "energy"));
-    if (NR.net.mode === "host" && e.netId)
-      NR.net.transport && NR.net.transport.broadcast({ k: "enemy-hp", id: e.netId, hp: 0, dead: true });
   };
 
   G.onBossKilled = function (b) {
@@ -449,8 +431,6 @@
     for (let i = 0; i < 3; i++) G.pickups.push(new NR.Pickup(b.x + U.rand(-80, 80), b.y - 60, i === 0 ? "heart" : "energy"));
     // clear remaining adds spectacularly
     for (const e of G.enemies) if (!e.dead) { F.burst(e.x, e.y - e.h / 2, { n: 18, col: "orange", spd: 400, life: 0.6 }); e.dead = true; }
-    if (NR.net.mode === "host" && b.netId)
-      NR.net.transport && NR.net.transport.broadcast({ k: "enemy-hp", id: b.netId, hp: 0, dead: true });
   };
 
   G.addScore = function (n, x, y, big) {
@@ -565,15 +545,6 @@
         G.pickups.push(new NR.Pickup(U.rand(200, W.W - 200), W.groundY - 200, U.chance(0.5) ? "heart" : "energy"));
     }
 
-    // online host: keep the boss health bar honest for guests (2Hz)
-    if (NR.net.mode === "host" && G.bossActive && G.bossRef && G.bossRef.netId) {
-      G._bossSyncT = (G._bossSyncT || 0) - rd;
-      if (G._bossSyncT <= 0) {
-        G._bossSyncT = 0.5;
-        NR.net.transport && NR.net.transport.broadcast({ k: "enemy-hp", id: G.bossRef.netId, hp: Math.max(0, Math.round(G.bossRef.hp)), dead: false });
-      }
-    }
-
     // spawn queue
     for (let i = G.spawnQueue.length - 1; i >= 0; i--) {
       const q = G.spawnQueue[i];
@@ -592,9 +563,7 @@
     p.update(dt, G);
     for (let i = G.enemies.length - 1; i >= 0; i--) {
       const e = G.enemies[i];
-      const tgt = NR.modes?.active ? NR.modes.targetFor(e, G) : null;
-      if (tgt) { G.player = tgt; try { e.update(dt * (G.chronoT>0 ? 0.35 : 1), G); } finally { G.player = p; } }
-      else e.update(dt * (G.chronoT>0 ? 0.35 : 1), G);
+      e.update(dt * (G.chronoT>0 ? 0.35 : 1), G);
       // player contact damage
       if (!e.dead && e.spawnT <= 0 && !p.dead && e.touchCd <= 0) {
         const overlapX = Math.abs(e.x - p.x) < (e.w + p.w) / 2 - 6;
@@ -606,11 +575,21 @@
       }
       if (e.dead) G.enemies.splice(i, 1);
     }
-    NR.modes?.guestCorrect?.(dt, G);
     NR.spriteRender.updateCorpses(G, dt);
-    for (let i = G.bolts.length - 1; i >= 0; i--) { G.bolts[i].update(dt * (G.chronoT>0 ? 0.35 : 1), G); if (G.bolts[i].dead) G.bolts.splice(i, 1); }
-    for(let i=G.shots.length-1;i>=0;i--){G.shots[i].update(dt,G);if(G.shots[i].dead)G.shots.splice(i,1);}
-    for (let i = G.shockwaves.length - 1; i >= 0; i--) { G.shockwaves[i].update(dt, G); if (G.shockwaves[i].dead) G.shockwaves.splice(i, 1); }
+    // projectile loops: O(1) swap-pop removal + pool release (no splice, no GC churn)
+    const bscale = dt * (G.chronoT > 0 ? 0.35 : 1);
+    for (let i = G.bolts.length - 1; i >= 0; i--) {
+      const b = G.bolts[i]; b.update(bscale, G);
+      if (b.dead) { NR.Bolt.release(b); G.bolts[i] = G.bolts[G.bolts.length - 1]; G.bolts.pop(); }
+    }
+    for (let i = G.shots.length - 1; i >= 0; i--) {
+      const s = G.shots[i]; s.update(dt, G);
+      if (s.dead) { NR.Kunai.release(s); G.shots[i] = G.shots[G.shots.length - 1]; G.shots.pop(); }
+    }
+    for (let i = G.shockwaves.length - 1; i >= 0; i--) {
+      const r = G.shockwaves[i]; r.update(dt, G);
+      if (r.dead) { NR.ShockRing.release(r); G.shockwaves[i] = G.shockwaves[G.shockwaves.length - 1]; G.shockwaves.pop(); }
+    }
     for (let i = G.pickups.length - 1; i >= 0; i--) { G.pickups[i].update(dt, G); if (G.pickups[i].dead) G.pickups.splice(i, 1); }
     F.update(dt);
     W.update(rd, NR.view);
@@ -659,7 +638,6 @@
       const totalGems = gems;
       gems = Math.max(0,gems-ledger.gems);
       G.rewardLedger = {...Object.fromEntries(Object.entries(totals).map(([k,v])=>[k,Math.max(v,ledger[k]||0)])),gems:Math.max(totalGems,ledger.gems),liveXp:Math.max(G.liveXp||0,ledger.liveXp||0)};
-      NR.waveResume?.markPaid();
       if (gems > 0) NR.economy.addGems(gems);
       G.lastReward = { ...reward, gems };
       NR.progress.check(G);
@@ -669,19 +647,12 @@
     if(G.mode==='survival')NR.profile.bestWave=Math.max(NR.profile.bestWave||0,G.wave);
     if(G.mode==='survive')NR.profile.bestSurvive=Math.max(NR.profile.bestSurvive||0,Math.floor(G.surviveT));
     NR.profile.runs++;NR.saveProfile();NR.progress.record(G,victory);
-    // validated online leaderboard submission (plausibility + rate limits)
-    if (G.online) {
-      NR.net.submitLeaderboard({
-        wave: G.mode === "survive" ? Math.floor(G.surviveT / 60) : G.wave,
-        score: G.score,
-        time: Math.round(G.time),
-        mode: G.mode,
-      });
-    }
     if(victory)NR.expeditionUI.showVictory(G);
     else NR.ui.showGameOver(G,newHigh);
-    // midgame ad only on the results screen — never during combat
+    // interstitial ads ONLY on results screens (never during combat), and
+    // only when the SDK's own spacing rules allow it
     if (!victory && G.wave >= 3) NR.crazy?.showMidgame("run-end");
+    if (victory) NR.crazy?.showMidgame("victory");
     document.getElementById('run-save').textContent=NR.store.persistent?'Record saved on this device. No server or account needed.':'Storage is blocked. This record lasts only while this tab stays open.';
     NR.expeditionUI.refresh();
   };

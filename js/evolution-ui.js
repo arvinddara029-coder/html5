@@ -1,4 +1,4 @@
-/* Accessible, lazy-rendered vault, asset archive and draggable HUD editor. */
+/* Accessible vault dialogs and draggable HUD editor. */
 (function () {
   const E=NR.evolution,G=NR.game,$=id=>document.getElementById(id);
   const button=(text,fn)=>{const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=text;b.onclick=fn;return b;};
@@ -63,7 +63,7 @@
     para('Restore all 3 relays and defeat all 4 patrols to open extraction. Stand beside a relay, then press F or tap its prompt.');
     para('A restored relay grants 30 XP, heals 20 HP, refills dash and kunai, resets your tactical cooldown, and awards an upgrade choice. Arcane Amplifier, Efficient Channel and Timeweave upgrade Vault magic. Read each upgrade card: the chosen power changes your current run immediately. After choosing, your health, powers and cleared objectives are saved at that relay.');
     para('Level-up XP unlocks more Vault spells at levels 2–10, 12 and 15. Equip up to ten; use number keys or touch buttons. Energy and cooldowns are shown on each spell.');
-    para('Defeated? Continue Same Wave / Encounter revives you where you fell with 3 seconds of protection. It does not pay the same rewards twice. After closing the tab, use Resume Saved Wave in Settings to restart your saved survival wave, or Continue for your adventure relay.');
+    para('Defeated? Continue Same Wave / Encounter revives you where you fell with 3 seconds of protection. It does not pay the same rewards twice. Adventure progress is restored from your last relay checkpoint.');
     para(`World ${G.chapter+1 || 1} · Level ${E.levels[G.chapter]||1}. Next Level on victory generates a new route in the same world; Next Chapter travels to another world.`);
   };
   // Bounded percentage coordinates survive phone rotation and desktop resizing.
@@ -82,46 +82,5 @@
   for(const event of ['pointerup','pointercancel'])document.addEventListener(event,e=>{if(!editing)return;if(drag){e.preventDefault();e.stopImmediatePropagation();drag=null;}},true);
   document.addEventListener('click',e=>{if(editing && e.target.closest('#touch,#ability-bar')){e.preventDefault();e.stopImmediatePropagation();}},true);
   window.addEventListener('resize',applyLayout);
-  // Paginated archive indexes every file, including source formats. No 2,000-image preload.
-  let page=0,query='';
-  function archive(){open('SUPER ASSET LIBRARY');
-    para(`${NR.superManifest.length} files indexed · ${E.assetReplacements} matching gameplay sprite references replaced. ${NR.superContent.actors.length} actors, ${NR.superContent.backgrounds.length} backgrounds, ${NR.superContent.terrain.length} tilesets and ${NR.superContent.effects.length} spell sequences wired. FBX exports are rendered guardians; remaining source/layout variants are identified per file below.`);
-    const search=document.createElement('input');search.placeholder='Search heroes, enemies, maps, packs…';search.value=query;search.setAttribute('aria-label','Search asset library');
-    const results=document.createElement('div');results.className='evo-grid';const pager=document.createElement('div');
-    function draw(){const files=NR.superManifest.filter(p=>p.toLowerCase().includes(query.toLowerCase()));page=Math.min(page,Math.max(0,Math.ceil(files.length/24)-1));results.replaceChildren();
-      for(const path of files.slice(page*24,page*24+24)){const card=document.createElement('article'),url='assets/'+path.split('/').map(encodeURIComponent).join('/');
-        if(/\.(png|jpg|gif)$/i.test(path)){const img=document.createElement('img');img.src=url;img.loading='lazy';img.alt=path.split('/').pop();card.append(img);}
-        para(NR.superContent.coverage[path]||'indexed',card);
-        const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.textContent=path.replace('super/','');card.append(a);results.append(card);
-      }
-      pager.replaceChildren(button('← PREVIOUS',()=>{page=Math.max(0,page-1);draw();}),document.createTextNode(` ${page+1} / ${Math.max(1,Math.ceil(files.length/24))} · ${files.length} files `),button('NEXT →',()=>{page++;draw();}));
-    }
-    search.oninput=()=>{query=search.value;page=0;draw();};dialog.append(search,pager,results);draw();
-  }
-  $('resume-wave').onclick=()=>{NR.waveResume.resume();};
-  // super roster + asset archive are reachable from the Vault / debug tools
-  NR.vault.openSuperRoster=()=>{
-    open('SUPER ROSTER · HEROES & COMPANIONS');
-    para('Choose a hero or pet from the new packs. Selection applies to the next run. Every actor uses measured animation frames, not a full contact sheet.');
-    dialog.append(button('DEFAULT HERO',()=>{E.hero='';E.save();}),button('NO SUPER PET',()=>{E.companion='';E.save();}));
-    const grid=document.createElement('div');grid.className='evo-grid';dialog.append(grid);
-    for(const actor of NR.superContent.actors.filter(a=>['hero','pet'].includes(a.role))){
-      const card=document.createElement('article'),h=document.createElement('h3');h.textContent=actor.name;card.append(h);
-      const clip=NR.superRuntime.clip(actor,'idle'),frame=clip.frames[0];
-      const canvas=document.createElement('canvas');canvas.width=200;canvas.height=110;card.append(canvas);
-      NR.assets.load([...new Set(clip.frames.map(f=>f.path))]).then(()=>NR.superRuntime.drawActor(canvas.getContext('2d'),actor,'idle',0,100,105,90,1,1));
-      para(actor.role==='hero'?`Hero signature: +${E.signature('hero',actor.id).targets*3} HP, +${(E.signature('hero',actor.id).damage/5).toFixed(1)}% strike multiplier`:E.describe('pet',actor.id),card);
-      card.append(button('SELECT '+actor.role.toUpperCase(),()=>{if(actor.role==='hero')E.hero=actor.id;else E.companion=actor.id;E.save();NR.hub.notify(actor.name+' selected for next run.');}));grid.append(card);
-    }
-    dialog.append(button('UNEQUIP RELIC',()=>{E.relic='';E.save();NR.hub.notify('Relic unequipped.');}));
-    for(const relic of NR.superContent.relics){
-      const card=document.createElement('article'),img=document.createElement('img');img.src='assets/'+relic.path.split('/').map(encodeURIComponent).join('/');img.alt=relic.name;card.append(img);
-      para(relic.name+' · '+E.describe('weapon',relic.id),card);
-      const select=button(NR.profile.level<relic.level?'UNLOCK LEVEL '+relic.level:'EQUIP RELIC',()=>{E.relic=relic.id;E.save();NR.hub.notify(relic.name+' selected for next run.');});select.disabled=NR.profile.level<relic.level;card.append(select);grid.append(card);
-    }
-  };
-  if ($('super-roster')) $('super-roster').onclick=()=>NR.vault.openSuperRoster();
-  if ($('open-super')) $('open-super').onclick=archive;
-  NR.vault.openArchive=archive;
   E.renderBar();bar.hidden=true;
 })();

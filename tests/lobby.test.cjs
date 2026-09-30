@@ -196,12 +196,11 @@ function lobbyEnv(seed = {}) {
   for (const el of registry) el.parentElement = el.parentElement || PARENT;
   vm.createContext(context);
   const mods = [
-    "utils", "assetlib", "characters", "heroes", "profile", "cloudsave", "diagnostics",
-    "crazy", "pool", "vfx", "economy", "progression", "save-transfer",
+    "utils", "assetlib", "characters", "heroes", "profile", "diagnostics",
+    "crazy", "pool", "vfx", "economy", "progression",
     "character", "atlas", "input", "audio", "audiomap", "sprites", "spriterender",
     "particles", "world", "projectiles", "combat", "player", "abilities", "enemies",
-    "expedition-enemies", "adventure", "levelsys", "bossdefs", "net", "upgrades", "ui", "game", "hub",
-    "social", "vault", "expedition-ui", "lobby", "loader", "settings-ext",
+    "expedition-enemies", "adventure", "levelsys", "bossdefs", "net", "upgrades", "ui", "game", "hub", "vault", "expedition-ui", "lobby", "loader", "settings-ext",
   ];
   for (const name of mods)
     vm.runInContext(

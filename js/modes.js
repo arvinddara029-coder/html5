@@ -1,4 +1,4 @@
-/* ============ GAME MODES v4 — WAVE CLIMB · SURVIVAL RUN · PVP ARENA ============
+/* ============ GAME MODES — WAVE CLIMB · SURVIVAL RUN (single-player) ============
    WAVE CLIMB (mode "climb") — waves + climb-up merged, endless:
      · every floor is an arena with a laser gate on the right
      · clear the wave → pick an upgrade → the gate opens
@@ -13,17 +13,13 @@
      · chunks with pits, platforms, moving lifts and enemy squads ahead
      · campfire checkpoints every 4 chunks (respawn point + upgrade)
      · a boss arena every 5th checkpoint
-   PVP (mode "pvp") — online arena: 1v1 / 2v2 / 4v4, first to 5 kills.
 
    Coordinates stay bounded forever: at every checkpoint the world is
    re-based (everything shifts by the same offset, camera included), so
-   endless play never reaches huge numbers. Online positions are sent in
-   ABSOLUTE coordinates (local + origin) so peers stay aligned.
+   endless play never reaches huge numbers.
 
-   Multiplayer (co-op climb / run): the host is authoritative for waves,
-   floors, checkpoints, enemy spawns, enemy hp and enemy positions (8Hz
-   snapshots). Host-side enemies target the NEAREST hero (remote heroes
-   get proxy bodies); damage to a guest is sent to that guest. */
+   The previous online co-op / PvP synchronization was removed — this file
+   is now pure single-player gameplay. */
 (function () {
   const U = NR.util, W = NR.world;
   const MD = (NR.modes = { active: false, kind: null, floor: 0, originX: 0, originY: 0 });
@@ -43,11 +39,6 @@
     };
   }
   MD.rng = rng;
-  const net = () => NR.net || {};
-  const isOnline = (G) => !!(G && G.online && net().connected);
-  const isAuth = (G) => !isOnline(G) || net().mode !== "guest";
-  const send = (msg) => { try { net().connected && net().transport && net().transport.send(msg); } catch (e) { NR.diag?.net("mode send failed: " + e.message); } };
-  const playerCount = (G) => 1 + (isOnline(G) ? [...net().remote.values()].length : 0);
 
   /* ================= wave roster ================= */
   const ROSTER = ["crawler", "slime", "soldier", "drone", "BOSS",
@@ -74,9 +65,8 @@
   };
   MD.statMul = function (n, players, difficulty) {
     const d = difficulty === "casual" ? 0.75 : difficulty === "hard" ? 1.35 : 1;
-    const extra = 1 + 0.35 * (Math.max(1, players || 1) - 1);
     return {
-      hp: (1 + 0.14 * (n - 1)) * d * extra,
+      hp: (1 + 0.14 * (n - 1)) * d,
       spd: (1 + Math.min(0.45, 0.025 * (n - 1))) * (difficulty === "casual" ? 0.85 : difficulty === "hard" ? 1.15 : 1),
       dmg: 1 + 0.06 * (n - 1),
       elite: n > 10 ? Math.min(0.35, (n - 10) * 0.03) : 0,
@@ -148,20 +138,17 @@
   };
 
   /* ================= start / reset ================= */
-  MD.seedFor = function (G) {
-    const s = isOnline(G) && net().room && net().room.seed;
-    return (s || ((Math.random() * 4294967296) >>> 0)) >>> 0;
-  };
+  MD.seedFor = function () { return ((Math.random() * 4294967296) >>> 0) >>> 0; };
 
   MD.start = function (G) {
     MD.kind = G.mode;
-    MD.active = G.mode === "climb" || G.mode === "run" || G.mode === "pvp";
+    MD.active = G.mode === "climb" || G.mode === "run";
     W.originX = W.originY = 0; MD.originX = MD.originY = 0;
     W.pits = [];
     if (!MD.active) return;
     MD.seed = MD.seedFor(G);
     MD.t = 0; MD.floor = 0; MD.state = "countdown"; MD.stateT = 1.4;
-    MD.snapT = 0; MD.reviveT = 0; MD.proxies = new Map(); MD.pvpScore = {}; MD.pvpOver = false;
+    MD.reviveT = 0;
     MD.cpIndex = 0; MD.chunks = []; MD.cpX = 200; MD.bossLock = null;
     G.maxAlive = MAX_ALIVE;
     NR.assets?.preload?.([PORTAL, CAMPFIRE]);
@@ -178,31 +165,9 @@
       p.x = 200;
       G.banner("SURVIVAL RUN", "keep moving forward · campfires save you", "#ffd36e");
       MD.state = "run";
-    } else {
-      W.W = 2560;
-      W.platforms = [
-        { x: 340, y: 700, w: 360, h: 22 }, { x: 1860, y: 700, w: 360, h: 22 },
-        { x: 1060, y: 545, w: 440, h: 22 }, { x: 585, y: 415, w: 300, h: 22 }, { x: 1675, y: 415, w: 300, h: 22 },
-      ];
-      const idx = myIndex();
-      p.x = idx % 2 ? 2200 : 360;
-      MD.state = "pvp";
-      G.banner("PVP ARENA", "first to 5 eliminations", "#ff6b8a");
     }
     p.y = GY; p.prevBottom = GY; p.computePose?.();
     MD.cpX = p.x;
-  };
-
-  function myIndex() {
-    const R = net().room; if (!R) return 0;
-    const i = R.members.findIndex((m) => m.id === net().myId());
-    return Math.max(0, i);
-  }
-  MD.teamOf = function (id) {
-    const R = net().room; if (!R) return 0;
-    const i = R.members.findIndex((m) => m.id === id);
-    if (R.mode === "duel") return i;              // everyone for themselves
-    return i % 2;
   };
 
   /* ---------- climb helpers ---------- */
@@ -254,7 +219,6 @@
     for (const arr of [G.enemies, G.pickups, G.bolts, G.shots, G.shockwaves, G.corpses || []]) for (const e of arr) shiftObj(e, sx, sy);
     for (const arr of [NR.fx.parts, NR.fx.texts, NR.fx.slashes]) for (const e of arr) shiftObj(e, sx, sy);
     for (const g of NR.fx.ghosts || []) shiftObj(g.pose, sx, sy);
-    for (const r of net().remote ? net().remote.values() : []) { r.x += sx; r.y += sy; r.tx += sx; r.ty += sy; }
     G.cam.x += sx; G.cam.y += sy;
     W.originX -= sx; W.originY -= sy;
     MD.originX = W.originX; MD.originY = W.originY;
@@ -264,61 +228,55 @@
   MD.toLocal = (x, y) => [x - (W.originX || 0), y - (W.originY || 0)];
 
   /* ================= waves (climb) ================= */
-  function beginWave(G, n, fromNet, q) {
+  function beginWave(G, n) {
     G.wave = n; G.netWave = n; G.waveDamageTaken = false;
-    const players = playerCount(G);
-    const m = MD.statMul(n, players, G.difficulty);
+    const m = MD.statMul(n, 1, G.difficulty);
     G.enemyHpMul = m.hp; G.enemySpdMul = m.spd; G.enemyDmgMul = m.dmg; MD.eliteChance = m.elite;
-    const comp = MD.waveComp(n, players, MD.seed);
-    let queue = q;
-    if (!queue) {
-      queue = []; let d = 0.5;
-      for (let i = 0; i < comp.count; i++) queue.push({ type: comp.types[i % comp.types.length], t: (d += U.rand(0.45, 0.9)), netId: "e" + (++G.netSeq) });
-    }
-    for (const s of queue) G.spawnQueue.push({ type: s.type, t: s.t, netId: s.netId, x: s.x != null ? MD.toLocal(s.x, 0)[0] : undefined });
+    const comp = MD.waveComp(n, 1, MD.seed);
+    const queue = []; let d = 0.5;
+    for (let i = 0; i < comp.count; i++) queue.push({ type: comp.types[i % comp.types.length], t: (d += U.rand(0.45, 0.9)), netId: "e" + (++G.netSeq) });
+    for (const s of queue) G.spawnQueue.push({ type: s.type, t: s.t, netId: s.netId });
     if (comp.boss) spawnBoss(G, n, W.W * 0.7);
     else G.banner("FLOOR " + (MD.floor + 1) + " · WAVE " + n, comp.types.map((t) => t.toUpperCase()).join(" + "), "#00fff4");
     NR.audio.play("wave");
     MD.state = "fight";
-    if (!fromNet && isOnline(G) && net().mode === "host") send({ k: "md", e: "wave", n, floor: MD.floor, q: queue });
   }
   function spawnBoss(G, n, x) {
     const m = Math.ceil(n / 5);
     const def = NR.bossDefs ? NR.bossDefs.forMilestone(G.chapter || 0, NR.levelsys ? NR.levelsys.currentLevel() : 1, m) : { skin: "mech", name: "SHOGUN-9" };
-    const boss = NR.bossDefs ? NR.bossDefs.spawn(def, x, G.enemyHpMul * (1 + 0.3 * (playerCount(G) - 1)), m) : new NR.Boss(x, W.groundY, G.enemyHpMul, m, "mech");
+    const boss = NR.bossDefs ? NR.bossDefs.spawn(def, x, G.enemyHpMul, m) : new NR.Boss(x, W.groundY, G.enemyHpMul, m, "mech");
     boss.spawnT = 0; boss.netId = "boss" + n;
     G.enemies.push(boss); G.bossRef = boss; G.bossActive = true;
     G.banner("⚠ " + (boss.bossName || "BOSS") + " ⚠", "FLOOR " + (MD.floor + 1) + " guardian", "#ff2d95");
     NR.audio.play("bossIntro"); G.shake(0.5);
   }
-  function openGate(G, fromNet) {
+  function openGate(G) {
     if (MD.gateOpen) return;
     MD.gateOpen = true; MD.state = "climb";
     W.W = MD.fl.LX + MD.fl.landing.w;
     NR.audio.play("gateOpen");
     G.banner("GATE OPEN", "go forward and climb to the portal ↑", "#b4e784");
-    if (!fromNet && isOnline(G) && net().mode === "host") send({ k: "md", e: "clear", floor: MD.floor });
   }
-  function nextFloor(G, fromNet) {
+  function nextFloor(G) {
     const fl = MD.fl;
-    // everyone is brought up: nobody can fall back below a reached floor
+    // the whole world is brought up: nobody can fall back below a reached floor
     MD.shiftWorld(G, -fl.LX, FH);
     MD.floor++;
     MD.fl = MD.buildFloor(MD.floor, MD.seed);
     applyFloor(G);
     const p = G.player;
-    // players who lagged behind (still below) are lifted onto the new floor
+    // a player who lagged behind (still below) is lifted onto the new floor
     if (p.y > GY + 10 || p.x > MD.fl.AW - 40) { p.x = 160 + Math.random() * 80; p.y = GY; p.vy = 0; p.prevBottom = GY; }
-    for (const r of net().remote ? net().remote.values() : []) if (r.y > GY + 10) { r.x = r.tx = 220; r.y = r.ty = GY; }
     MD.cpX = 200;
     NR.audio.play("floorUp");
     G.banner("FLOOR " + (MD.floor + 1), "checkpoint locked — you can't fall below", "#ffe14d");
     G.addScore(300 + MD.floor * 50, p.x, p.y - 120, true);
-    if (!fromNet && isOnline(G) && net().mode === "host") send({ k: "md", e: "floor", floor: MD.floor });
+    // floor clear is a natural break — a spaced interstitial may play here
+    NR.crazy?.showMidgame?.("floor-checkpoint");
   }
 
   /* ================= run checkpoint ================= */
-  function reachCampfire(G, c, fromNet) {
+  function reachCampfire(G, c) {
     if (c.reached) return;
     c.reached = true;
     MD.cpIndex = c.k / 4;
@@ -335,16 +293,15 @@
     MD.cpX = 300;
     const p = G.player;
     if (p.x < 200) { p.x = 300; p.y = GY; p.vy = 0; p.prevBottom = GY; }
-    if (c.boss && isAuth(G)) {
+    if (c.boss) {
       const n = MD.cpIndex;                 // boss number grows
-      const m = MD.statMul(n * 2, playerCount(G), G.difficulty);
+      const m = MD.statMul(n * 2, 1, G.difficulty);
       G.enemyHpMul = m.hp; G.enemyDmgMul = m.dmg;
       MD.bossLock = 300 + 1500;             // arena lock until the boss falls
       spawnBoss(G, n * 5, 1300);
     }
     rebuildRun();
     if (!c.boss) { G.upgradeT = Math.max(G.upgradeT || 0, 0.6); }
-    if (!fromNet && isOnline(G) && net().mode === "host") send({ k: "md", e: "cp", ck: c.k });
   }
 
   /* ================= per-frame update ================= */
@@ -366,19 +323,10 @@
 
     if (MD.kind === "climb") updateClimb(dt, G);
     else if (MD.kind === "run") updateRun(dt, G);
-    else updatePvp(dt, G);
-
-    if (isOnline(G)) netTick(dt, G);
   };
 
   function updateClimb(dt, G) {
     const p = G.player, fl = MD.fl;
-    if (!isAuth(G)) {
-      // guests follow the host's wave/gate/floor messages; they may still
-      // report reaching the portal
-      if (MD.gateOpen && !p.dead && touchingPortal(p)) { if (!MD._reachSent || MD.t - MD._reachSent > 1) { MD._reachSent = MD.t; send({ k: "md", e: "reach" }); } }
-      return;
-    }
     if (MD.state === "countdown") {
       MD.stateT -= dt;
       if (MD.stateT <= 0) beginWave(G, MD.floor + 1);
@@ -402,26 +350,19 @@
 
   function updateRun(dt, G) {
     const p = G.player;
-    // stream chunks ahead
+    // stream chunks ahead (bounded: old chunks are dropped at checkpoints)
     while (MD.chunks.length && MD.chunks[MD.chunks.length - 1].x < p.x + 3200) { addChunk(); rebuildRun(); }
     if (MD.bossLock != null && !G.bossActive) { MD.bossLock = null; rebuildRun(); G.upgradeT = Math.max(G.upgradeT || 0, 0.8); }
-    if (!isAuth(G)) {
-      for (const c of MD.chunks) if (c.cp && !c.reached && Math.abs(p.x - (c.x + 700)) < 60 && (!MD._reachSent || MD.t - MD._reachSent > 1)) { MD._reachSent = MD.t; send({ k: "md", e: "reach", ck: c.k }); }
-      return;
-    }
     for (const c of MD.chunks) {
       if (c.squad && !c.spawned && p.x > c.x - 700) {
         c.spawned = true;
-        const m = MD.statMul(c.squad.tier, playerCount(G), G.difficulty);
+        const m = MD.statMul(c.squad.tier, 1, G.difficulty);
         G.enemyHpMul = m.hp; G.enemySpdMul = m.spd; G.enemyDmgMul = m.dmg; MD.eliteChance = m.elite;
-        const q = [];
         let d = 0.1;
         for (let i = 0; i < c.squad.count; i++) {
           const lx = c.x + 250 + i * (900 / c.squad.count);
-          q.push({ type: c.squad.types[i % c.squad.types.length], t: (d += 0.25), netId: "e" + (++G.netSeq), x: MD.toAbs(lx, 0)[0] });
+          G.spawnQueue.push({ type: c.squad.types[i % c.squad.types.length], t: (d += 0.25), netId: "e" + (++G.netSeq), x: lx });
         }
-        for (const s of q) G.spawnQueue.push({ type: s.type, t: s.t, netId: s.netId, x: MD.toLocal(s.x, 0)[0] });
-        if (isOnline(G)) send({ k: "md", e: "squad", q, tier: c.squad.tier });
       }
       if (c.cp && !c.reached && p.x > c.x + 700 && !p.dead) reachCampfire(G, c);
     }
@@ -440,62 +381,9 @@
     if (p.hp <= 0) { p.hp = 0; p.dead = true; G.deathT = 1.2; NR.audio.play("pdie"); }
   }
 
-  /* ================= PVP ================= */
-  function updatePvp(dt, G) {
-    const p = G.player;
-    if (MD.pvpRespawn > 0) {
-      MD.pvpRespawn -= dt;
-      if (MD.pvpRespawn <= 0) {
-        p.dead = false; p.hp = p.maxHp; p.iframes = 2;
-        p.x = Math.random() < 0.5 ? 360 : 2200; p.y = GY; p.vx = p.vy = 0; p.prevBottom = GY;
-        G.overShown = false; G.deathT = 0;
-        NR.audio.play("revive");
-      }
-    }
-  }
-  MD.pvpKillTarget = 5;
-  function pvpScoreAdd(id) {
-    const key = String(MD.teamOf(id));
-    MD.pvpScore[key] = (MD.pvpScore[key] || 0) + 1;
-    return MD.pvpScore[key];
-  }
-  function pvpCheckWin(G) {
-    if (MD.pvpOver) return;
-    for (const [team, s] of Object.entries(MD.pvpScore)) {
-      if (s >= MD.pvpKillTarget) {
-        MD.pvpOver = true;
-        const mine = String(MD.teamOf(net().myId())) === team;
-        G.banner(mine ? "VICTORY" : "DEFEAT", mine ? "your side wins the arena" : "the enemy side wins", mine ? "#ffe14d" : "#ff5f7a");
-        NR.audio.play(mine ? "pvpWin" : "pvpLose");
-        setTimeout(() => { if (G.state === "playing" || G.state === "over") { G.player.dead = true; G.finishRun(mine); } }, 2600);
-      }
-    }
-  }
-
   /* ================= death / respawn hooks ================= */
   /* returns true when the mode handled the death (no game-over screen) */
-  MD.onDeath = function (G) {
-    if (!MD.active) return false;
-    if (MD.kind === "pvp") {
-      if (!MD.deathSent) {
-        MD.deathSent = true;
-        const by = G._lastHitBy || null;
-        send({ k: "md", e: "pvp-dead", id: net().myId(), by });
-        if (by) { pvpScoreAdd(by); pvpCheckWin(G); }
-      }
-      if (!MD.pvpOver) { MD.pvpRespawn = 3; setTimeout(() => { MD.deathSent = false; }, 100); G.overShown = true; }
-      return !MD.pvpOver;
-    }
-    // co-op: if a teammate is still alive, respawn after 6 seconds
-    if (isOnline(G)) {
-      const alive = [...net().remote.values()].some((r) => r.hp > 0 && performance.now() - r.lastMsg < 5000);
-      if (alive) {
-        if (!MD.reviveT) { MD.reviveT = 6; G.banner("DOWN!", "your partner fights on — respawn in 6s", "#ff9f6e"); }
-        return true;
-      }
-    }
-    return false;
-  };
+  MD.onDeath = function () { return false; };
   MD.tickRevive = function (dt, G) {
     if (!MD.reviveT) return;
     MD.reviveT -= dt;
@@ -515,131 +403,8 @@
     p.y = GY; p.vx = p.vy = 0; p.prevBottom = GY;
   };
 
-  /* ================= enemy targeting (host) =================
-     Remote heroes get a proxy Player so enemy AI can chase the NEAREST hero. */
-  MD.targetFor = function (e, G) {
-    if (!isOnline(G) || net().mode !== "host" || MD.kind === "pvp") return null;
-    const p = G.player;
-    let best = p.dead ? 1e9 : Math.abs(e.x - p.x) + Math.abs(e.y - p.y) * 0.5, tgt = null;
-    for (const r of net().remote.values()) {
-      if (r.hp <= 0) continue;
-      const d = Math.abs(e.x - r.x) + Math.abs(e.y - r.y) * 0.5;
-      if (d < best) { best = d; tgt = r; }
-    }
-    if (!tgt) return null;
-    let px = MD.proxies.get(tgt.id);
-    if (!px) {
-      try { px = new NR.Player(); } catch (_) { return null; }
-      px.isProxy = true; px.remoteId = tgt.id;
-      MD.proxies.set(tgt.id, px);
-    }
-    px.x = tgt.x; px.y = tgt.y; px.prevBottom = tgt.y; px.facing = tgt.facing || 1;
-    px.hp = tgt.hp; px.maxHp = tgt.maxHp || 100; px.dead = tgt.hp <= 0; px.onGround = true;
-    return px;
-  };
-  MD.proxyHurt = function (px, dmg, dir) {
-    if (px.iframes > 0) return;
-    px.iframes = 0.8;
-    send({ k: "md", e: "dmg", to: px.remoteId, dmg: Math.round(dmg), dir: dir || 1 });
-  };
-  MD.tickProxies = function (dt, G) {
-    if (!MD.proxies) return;
-    for (const px of MD.proxies.values()) {
-      px.iframes = Math.max(0, (px.iframes || 0) - dt);
-      if (px.dead) continue;
-      // contact + bolt damage against remote heroes
-      for (const e of G.enemies) {
-        if (e.dead || e.spawnT > 0 || (e.touchCdR || 0) > 0) { e.touchCdR = Math.max(0, (e.touchCdR || 0) - dt / Math.max(1, MD.proxies.size)); continue; }
-        if (Math.abs(e.x - px.x) < (e.w + 40) / 2 && Math.abs(e.y - e.h / 2 - (px.y - 45)) < (e.h + 90) / 2) {
-          MD.proxyHurt(px, e.dmg * (e.boss ? 1 : G.enemyDmgMul), Math.sign(px.x - e.x) || 1); e.touchCdR = 0.6;
-        }
-      }
-      for (const b of G.bolts) {
-        if (b.dead) continue;
-        if (Math.abs(b.x - px.x) < 30 && b.y > px.y - 95 && b.y < px.y) { b.dead = true; MD.proxyHurt(px, b.dmg || 10, Math.sign(b.vx) || 1); }
-      }
-    }
-  };
-
-  /* ================= networking ================= */
-  function netTick(dt, G) {
-    MD.tickProxies(dt, G);
-    if (net().mode !== "host" || MD.kind === "pvp") return;
-    MD.snapT -= dt;
-    if (MD.snapT > 0) return;
-    MD.snapT = 0.125;                     // 8Hz enemy snapshots
-    const l = [];
-    for (const e of G.enemies) {
-      if (e.dead || !e.netId) continue;
-      const [ax, ay] = MD.toAbs(e.x, e.y);
-      l.push([e.netId, ax, ay, Math.round(e.hp), e.facing > 0 ? 1 : -1]);
-      if (l.length >= 12) break;
-    }
-    if (l.length) send({ k: "es", l });
-  }
-
-  MD.onNet = function (from, msg) {
-    const G = NR.game;
-    if (!G || !MD.active) return;
-    if (msg.k === "es") {
-      if (net().mode !== "guest") return;
-      for (const [id, ax, ay, hp, f] of msg.l || []) {
-        const e = G.enemies.find((x) => x.netId === id);
-        if (!e) continue;
-        const [lx, ly] = MD.toLocal(ax, ay);
-        e._netX = lx; e._netY = ly;
-        if (Math.abs(e.x - lx) > 400) { e.x = lx; e.y = ly; }
-        if (typeof hp === "number" && hp < e.hp) e.hp = hp;
-        e.facing = f;
-      }
-      return;
-    }
-    if (msg.k !== "md") return;
-    const auth = isAuth(G);
-    switch (msg.e) {
-      case "wave": if (!auth) { if (MD.kind === "climb" && msg.floor > MD.floor) while (MD.floor < msg.floor) nextFloor(G, true); beginWave(G, msg.n, true, msg.q); } break;
-      case "clear": if (!auth && MD.kind === "climb") { G.waveCleared?.(); openGate(G, true); } break;
-      case "floor": if (!auth && MD.kind === "climb") { if (!MD.gateOpen) openGate(G, true); while (MD.floor < msg.floor) nextFloor(G, true); } break;
-      case "reach": // guest reached a checkpoint first → host advances everybody
-        if (net().mode === "host") {
-          if (MD.kind === "climb" && MD.state === "climb") nextFloor(G);
-          else if (MD.kind === "run") { const c = MD.chunks.find((x) => x.k === msg.ck); if (c) reachCampfire(G, c); }
-        }
-        break;
-      case "cp": if (!auth && MD.kind === "run") { let c = MD.chunks.find((x) => x.k === msg.ck); while (!c && MD.chunks.length < 400 && MD.chunks[MD.chunks.length - 1].k < msg.ck) { addChunk(); c = MD.chunks.find((x) => x.k === msg.ck); } if (c) reachCampfire(G, c, true); } break;
-      case "squad":
-        if (!auth) for (const s of msg.q || []) G.spawnQueue.push({ type: s.type, t: s.t, netId: s.netId, x: MD.toLocal(s.x, 0)[0] });
-        break;
-      case "dmg":
-        if (msg.to === net().myId() && !G.player.dead) G.hurtPlayer(Math.min(200, Math.max(0, msg.dmg | 0)), msg.dir || 1, "net");
-        break;
-      case "pvp-dead":
-        if (MD.kind === "pvp" && msg.by) {
-          const n = pvpScoreAdd(msg.by);
-          if (msg.by === net().myId()) { NR.audio.play("pvpKill"); G.banner("ELIMINATION", n + " / " + MD.pvpKillTarget, "#ffe14d"); G.stats.kills++; }
-          pvpCheckWin(G);
-        }
-        break;
-    }
-  };
-
-  /* guests: smoothly pull puppet enemies toward the host's positions */
-  MD.guestCorrect = function (dt, G) {
-    if (!isOnline(G) || net().mode !== "guest") return;
-    const k = Math.min(1, dt * 8);
-    for (const e of G.enemies) {
-      if (e._netX == null) continue;
-      e.x += (e._netX - e.x) * k;
-      e.y += (e._netY - e.y) * k;
-    }
-  };
-
-  /* guests ignore local enemy damage — the host sends authoritative hits */
-  MD.allowHurt = function (G, src) {
-    if (!MD.active || !isOnline(G) || MD.kind === "pvp") return true;
-    if (net().mode !== "guest") return true;
-    return src === "net" || src === "pit";
-  };
+  /* solo play: enemies always chase the local player */
+  MD.targetFor = function () { return null; };
 
   /* ================= drawing ================= */
   function drawSheet(ctx, path, frame, cols, fw, fh, row, x, y, w, h) {
@@ -717,22 +482,11 @@
     let line = "";
     if (MD.kind === "climb") line = `FLOOR ${MD.floor + 1} · WAVE ${G.wave || MD.floor + 1}` + (MD.gateOpen ? "  ·  CLIMB TO THE PORTAL ↑" : G.bossActive ? "  ·  BOSS" : `  ·  ENEMIES ${G.enemies.length + G.spawnQueue.length}`);
     else if (MD.kind === "run") line = `DISTANCE ${G.runDist || 0}m · CHECKPOINT ${MD.cpIndex}` + (G.bossActive ? "  ·  GUARDIAN" : "");
-    else {
-      const me = String(MD.teamOf(net().myId()));
-      const parts = Object.entries(MD.pvpScore).map(([t, s]) => (t === me ? "YOU " : "RIVAL ") + s);
-      line = "PVP · FIRST TO " + MD.pvpKillTarget + "  ·  " + (parts.join("  ") || "0 : 0");
-    }
     const tw = ctx.measureText(line).width + 28;
     ctx.fillStyle = "rgba(4,8,20,0.62)";
     ctx.fillRect(w / 2 - tw / 2, 58, tw, 28);
     ctx.fillStyle = "#dff6ff"; ctx.fillText(line, w / 2, 78);
     if (MD.reviveT > 0) { ctx.font = "900 30px Rajdhani"; ctx.fillStyle = "#ffb37a"; ctx.fillText("RESPAWN IN " + Math.ceil(MD.reviveT), w / 2, h / 2); }
-    if (MD.pvpRespawn > 0) { ctx.font = "900 30px Rajdhani"; ctx.fillStyle = "#ff8aa0"; ctx.fillText("RESPAWN IN " + Math.ceil(MD.pvpRespawn), w / 2, h / 2); }
-    if (isOnline(G)) {
-      ctx.font = "700 13px Rajdhani"; ctx.textAlign = "right";
-      ctx.fillStyle = net().ping() > 250 ? "#ff8a8a" : "#9ff5c8";
-      ctx.fillText(`ONLINE · ${playerCount(G)}P · ${net().ping() || "--"}ms`, w - 16, h - 14);
-    }
     ctx.restore();
   };
 })();

@@ -1,26 +1,26 @@
-/* ============ PRODUCTION PASS — CrazyGamesService (SDK v3) ============
-   Centralized CrazyGames integration. One place, one responsibility:
+/* ============ CrazyGames SDK — ADS + platform lifecycle ONLY ============
+   One place, one responsibility:
      - SDK script load + init (with timeout, never blocks the game)
      - environment detection (local / crazygames / disabled)
-     - user detection (guest vs CrazyGames account, username + avatar)
-     - cloud save mirror via the SDK data module (logged-in users)
      - loading events (loadingStart / loadingStop)
      - gameplay events (gameplayStart / gameplayStop) — brackets active play
-     - ads (midgame at breaks, rewarded opt-in) with anti-duplication,
-       audio muting and gameplay pause during the ad
-     - room metadata + invite links (updateRoom / leftRoom / inviteLink /
-       getInviteParam) for the multiplayer flow
+     - happytime — a platform signal on genuinely positive moments
+     - interstitial ("midgame") ads at SAFE breaks only: results screens,
+       victory, major checkpoint moments — NEVER during combat, spaced by
+       a hard minimum gap and the platform's own rules
+     - rewarded ads: explicit opt-in; the reward is granted exactly once
+       and ONLY from the adFinished callback; failures grant nothing and
+       never break the game
    Every call is wrapped: SDK failures log to Diagnostics and fall back to
    local behavior. The game must run perfectly with the SDK absent.
-   Only documented v3 APIs are used. */
+   Only documented v3 APIs are used. Multiplayer room/invite helpers and
+   cloud-save mirroring were REMOVED — this is a single-player game. */
 (function () {
   const SDK_URL = "https://sdk.crazygames.com/crazygames-sdk-v3.js";
   const C = (NR.crazy = {
     sdk: null,            // window.CrazyGames.SDK once initialized
     available: false,     // SDK initialized successfully
     environment: "local", // local | crazygames | disabled
-    user: null,           // {username, profilePictureUrl} or null (guest)
-    userAvailable: false, // platform account system reachable
     adBusy: false,        // an ad request is in flight
     lastMidgame: 0,       // timestamp of the last midgame ad
     MIDGAME_GAP: 180,     // seconds — platform enforces spacing too
@@ -39,6 +39,12 @@
     });
   }
 
+  function errText(e) {
+    if (!e) return "unknown";
+    if (e.code && e.message) return `code=${e.code} ${e.message}`;
+    return e.message || String(e);
+  }
+
   /* ---------- initialization ---------- */
   C.init = async function () {
     try {
@@ -55,7 +61,6 @@
       C.environment = String(SDK.environment || "local");
       NR.diag.sdkStatus = "ok:" + C.environment;
       diag(`SDK initialized (environment=${C.environment})`);
-      C.detectUser().catch(() => {});
       return true;
     } catch (e) {
       C.available = false;
@@ -66,49 +71,6 @@
     }
   };
 
-  /* ---------- user / account ---------- */
-  C.detectUser = async function () {
-    if (!C.available || !C.sdk.user) return null;
-    try {
-      C.userAvailable = !!C.sdk.user.isUserAccountAvailable;
-      if (!C.userAvailable) { C.user = null; diag("No CrazyGames account available (guest)"); return null; }
-      const u = await C.sdk.user.getUser();
-      if (u && u.username) {
-        C.user = { username: u.username, profilePictureUrl: u.profilePictureUrl || "" };
-        diag(`CrazyGames user: ${u.username}`);
-        NR.social?.onCrazyUser?.(C.user);
-      } else {
-        C.user = null;
-        diag("CrazyGames account available but user not logged in");
-      }
-    } catch (e) {
-      C.user = null;
-      diag(`getUser failed: ${errText(e)}`);
-    }
-    return C.user;
-  };
-
-  function errText(e) {
-    if (!e) return "unknown";
-    if (e.code && e.message) return `code=${e.code} ${e.message}`;
-    return e.message || String(e);
-  }
-
-  /* ---------- cloud save (data module, localStorage-shaped) ---------- */
-  C.cloudGet = function (key) {
-    try {
-      if (C.available && C.sdk.data && C.user) return C.sdk.data.getItem(key);
-    } catch (e) { diag(`cloudGet(${key}) failed: ${errText(e)}`); }
-    return null;
-  };
-  C.cloudSet = function (key, value) {
-    try {
-      if (C.available && C.sdk.data && C.user) { C.sdk.data.setItem(key, value); return true; }
-    } catch (e) { diag(`cloudSet(${key}) failed: ${errText(e)}`); }
-    return false;
-  };
-  C.cloudAvailable = () => !!(C.available && C.user);
-
   /* ---------- loading / gameplay lifecycle ---------- */
   C.loadingStart = function () { try { C.available && C.sdk.game.loadingStart(); } catch (e) { diag("loadingStart failed: " + errText(e)); } };
   C.loadingStop = function () { try { C.available && C.sdk.game.loadingStop(); } catch (e) { diag("loadingStop failed: " + errText(e)); } };
@@ -117,7 +79,8 @@
   C.happytime = function () { try { C.available && C.sdk.game.happytime(); } catch (e) { diag("happytime failed: " + errText(e)); } };
 
   /* ---------- ads ----------
-     midgame: only at natural breaks (never during combat), spaced ≥3min.
+     midgame (interstitial): only at natural breaks, never during combat,
+     spaced ≥3 minutes, and skipped entirely while another ad is running.
      rewarded: explicit opt-in; reward granted exactly once, only on
      adFinished; adError / unfilled grants nothing and never breaks play. */
   C.canMidgame = function () {
@@ -135,7 +98,7 @@
     const wasMuted = NR.audio ? (NR.audio.sfxOn || NR.audio.musicOn) : true;
     const G = NR.game;
     const wasPlaying = G && G.state === "playing";
-    let rewardGranted = false; // anti-duplication guard
+    let settled = false; // anti-duplication guard: exactly one callback fires
     try {
       C.sdk.ad.requestAd(type, {
         adStarted: () => {
@@ -149,13 +112,13 @@
           if (type === "midgame") C.lastMidgame = Date.now() / 1000;
           if (NR.audio) NR.audio.muteAll(false, wasMuted);
           diag(`ad ${type} finished`);
-          if (!rewardGranted) { rewardGranted = true; callbacks && callbacks.onFinished && callbacks.onFinished(); }
+          if (!settled) { settled = true; callbacks && callbacks.onFinished && callbacks.onFinished(); }
         },
         adError: (error) => {
           C.adBusy = false;
           if (NR.audio) NR.audio.muteAll(false, wasMuted);
           diag(`ad ${type} error: ${errText(error)}`);
-          if (!rewardGranted) { rewardGranted = true; callbacks && callbacks.onError && callbacks.onError(error); }
+          if (!settled) { settled = true; callbacks && callbacks.onError && callbacks.onError(error); }
         },
       });
       return true;
@@ -163,7 +126,7 @@
       C.adBusy = false;
       if (NR.audio) NR.audio.muteAll(false, wasMuted);
       diag(`requestAd(${type}) threw: ${errText(e)}`);
-      callbacks && callbacks.onError && callbacks.onError(e);
+      if (!settled) { settled = true; callbacks && callbacks.onError && callbacks.onError(e); }
       return false;
     }
   }
@@ -172,7 +135,7 @@
     if (!C.canMidgame()) return false;
     diag(`midgame ad requested (${placement || "break"})`);
     return runAd("midgame", {
-      onFinished: () => NR.hub?.notify(""),
+      onFinished: () => {},
       onError: () => NR.hub?.notify("Ad unavailable — continuing."),
     });
   };
@@ -184,57 +147,5 @@
       onError: () => NR.hub?.notify("Ad not completed — no reward granted."),
       unavailable: () => NR.hub?.notify("Ads are not available here."),
     });
-  };
-
-  /* ---------- rooms / invites (metadata only — not a game-state server) ---------- */
-  C.updateRoom = function (roomId, isJoinable, inviteParams) {
-    try {
-      if (!C.available || !C.sdk.game || !C.sdk.game.updateRoom) return false;
-      C.sdk.game.updateRoom({ roomId, isJoinable: !!isJoinable, inviteParams: inviteParams || {} });
-      diag(`updateRoom roomId=${roomId} joinable=${!!isJoinable}`);
-      return true;
-    } catch (e) { diag("updateRoom failed: " + errText(e)); return false; }
-  };
-  C.leftRoom = function () {
-    try { C.available && C.sdk.game.leftRoom && C.sdk.game.leftRoom(); } catch (e) { diag("leftRoom failed: " + errText(e)); }
-  };
-  C.inviteLink = async function (params) {
-    try {
-      if (!C.available || !C.sdk.game || !C.sdk.game.inviteLink) return null;
-      const link = await C.sdk.game.inviteLink(params);
-      diag("invite link generated");
-      return link;
-    } catch (e) { diag("inviteLink failed: " + errText(e)); return null; }
-  };
-  C.getInviteParam = function (name) {
-    try {
-      if (C.available && C.sdk.game && C.sdk.game.getInviteParam) return C.sdk.game.getInviteParam(name);
-    } catch (e) { diag("getInviteParam failed: " + errText(e)); }
-    return null;
-  };
-  C.inviteParams = function () {
-    try {
-      if (C.available && C.sdk.game && C.sdk.game.inviteParams) return C.sdk.game.inviteParams;
-    } catch (_) {}
-    return null;
-  };
-  C.isInstantMultiplayer = function () {
-    try { return !!(C.available && C.sdk.game && C.sdk.game.isInstantMultiplayer); }
-    catch (_) { return false; }
-  };
-  /* platform chat preference — read defensively, never assumed */
-  C.chatDisabled = function () {
-    try {
-      if (C.available && C.sdk.user && typeof C.sdk.user.isChatDisabled === "boolean")
-        return C.sdk.user.isChatDisabled;
-    } catch (_) {}
-    return false;
-  };
-  C.copyToClipboard = function (text) {
-    try {
-      if (C.available && C.sdk.game && C.sdk.game.copyToClipboard) { C.sdk.game.copyToClipboard(text); return true; }
-    } catch (e) { diag("copyToClipboard failed: " + errText(e)); }
-    if (navigator.clipboard?.writeText) { navigator.clipboard.writeText(text); return true; }
-    return false;
   };
 })();

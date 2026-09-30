@@ -266,7 +266,7 @@
     b.innerHTML =
       `<img class="wc-art" src="assets/${worldArt(ch.id)}" alt="" loading="lazy"/>` +
       `<span class="wc-shade"></span>` +
-      `<span class="wc-num">WORLD ${String(ch.id + 1).padStart(2, "0")} · ${worldTag(ch.id)}</span>` +
+      `<span class="wc-num">WORLD ${String(ch.id + 1).padStart(2, "0")} · ${worldTag(ch.id)} · LV ${(NR.evolution?.levels?.[ch.id]) || 1}</span>` +
       `<span class="wc-body"><h4>${ch.short}</h4><p>${ch.district} · ${ch.description}</p></span>` +
       `<span class="wc-state">${
         locked
@@ -518,6 +518,60 @@
   ];
   let shopTab = "all";
   L.shopRendered = false;
+
+  /* ---------- Fortune Draw panel (lives inside the shop) ---------- */
+  function fortunePanel() {
+    const F = NR.economy.fortune;
+    const panel = document.createElement("div");
+    panel.className = "fortune-panel";
+    const head = document.createElement("div");
+    head.className = "fortune-head";
+    head.innerHTML = `<h3>🎴 FORTUNE DRAW</h3><span>One draw · ${F.COST} coins · instant reward</span>`;
+    const odds = document.createElement("div");
+    odds.className = "fortune-odds";
+    const total = F.totalWeight();
+    for (const e of F.TABLE) {
+      const chip = document.createElement("span");
+      chip.textContent = `${e.label} · ${(100 * e.w / total).toFixed(0)}%`;
+      odds.append(chip);
+    }
+    const actions = document.createElement("div");
+    actions.className = "fortune-actions";
+    const btn = document.createElement("button");
+    btn.className = "gold-btn fortune-draw-btn";
+    btn.innerHTML = `🎴 DRAW · ${F.COST} 🪙`;
+    const result = document.createElement("div");
+    result.className = "fortune-result";
+    result.hidden = true;
+    function showResult(r) {
+      NR.audio.play(r.id === "jackpot" ? "bossDefeat" : "powerUp");
+      result.hidden = false;
+      result.classList.remove("pop"); void result.offsetWidth; result.classList.add("pop");
+      result.innerHTML = `<b>${r.msg}</b><small>${r.free ? "FREE DRAW · AD REWARD" : "DRAW " + ((NR.profile.draws && NR.profile.draws.total) || 1) + " · PRIZE " + r.label}</small>`;
+      L.refreshWallet();
+      NR.hub.notify("Fortune draw: " + r.msg);
+    }
+    btn.addEventListener("click", () => {
+      const r = F.draw();
+      if (r) showResult(r); else NR.audio.play("deny");
+    });
+    actions.append(btn);
+    if (NR.crazy && NR.crazy.available) {
+      const adBtn = document.createElement("button");
+      adBtn.className = "ghost-btn";
+      adBtn.textContent = "▶ FREE DRAW · WATCH AD";
+      adBtn.addEventListener("click", () => {
+        NR.crazy.showRewarded(() => {
+          const r = F.freeDraw();
+          if (r) showResult(r);
+        }, "fortune-draw");
+      });
+      actions.append(adBtn);
+    }
+    panel.append(head, odds, actions, result);
+    return panel;
+  }
+
   L.renderShop = function () {
     L.shopRendered = true;
     if (!$("shop-grid")) return;
@@ -545,26 +599,34 @@
       // equip state · `!` information panel — no ability words in value slots
       NR.vault.itemCard({ cat, id: o.id, name: o.name })
     ));
+    // Fortune Draw sits at the top of the shop (rebuilt only with the grid)
+    const host = $("fortune-host");
+    if (host) { host.replaceChildren(fortunePanel()); }
     L.refreshWallet();
   };
-  /* AUTO-RESUME: if a saved wave-boundary checkpoint exists, offer it front
-     and center — the player never hunts through menus to get their run back. */
-  L.refreshResumeBanner = function () {
-    const banner = $("resume-banner");
-    if (!banner || !NR.waveResume) return;
-    const c = NR.waveResume.get();
-    if (!c || c.wave < 1) { banner.hidden = true; return; }
-    banner.hidden = false;
-    const note = $("resume-run-note");
-    if (note) note.textContent = `WAVE ${c.wave} · ${c.character.toUpperCase()} · SCORE ${Math.round(c.score).toLocaleString("en-US")}`;
-    const btn = $("resume-run-btn");
-    if (btn && !btn.dataset.wired) {
-      btn.dataset.wired = "1";
-      btn.addEventListener("click", () => {
-        NR.audio.play("uiConfirm");
-        NR.loader.wrap("RESUMING SAVED RUN", Promise.resolve(NR.waveResume.resume()));
-      });
-    }
+  /* ---- journey panel: visible progression at a glance ---- */
+  L.refreshJourney = function () {
+    const box = $("journey-grid");
+    if (!box) return;
+    const P2 = NR.profile;
+    const worlds = NR.adventure.chapters.length;
+    const rows = [
+      ["HERO LEVEL", "LV " + (P2.level || 1)],
+      ["CAMPAIGN", `WORLD ${Math.min(worlds, (P2.unlocked || 0) + 1)} / ${worlds} · LEVEL ${(NR.evolution && NR.evolution.levels && NR.evolution.levels[P2.chapter]) || 1}`],
+      ["BEST WAVE CLIMB", "FLOOR " + Math.max(1, (P2.bestFloor || 0) + (P2.bestFloor ? 0 : 1))],
+      ["BEST SURVIVAL RUN", (P2.bestRun || 0) + "m"],
+      ["BEST SURVIVAL WAVE", "WAVE " + Math.max(1, P2.bestWave || 1)],
+      ["HEROES UNLOCKED", NR.heroes.defs.filter((d) => NR.heroes.isUnlocked(d)).length + " / " + NR.heroes.defs.length],
+    ];
+    box.replaceChildren(...rows.map(([k, v]) => {
+      const row = document.createElement("div");
+      row.className = "journey-row";
+      row.innerHTML = `<span>${k}</span><b>${v}</b>`;
+      return row;
+    }));
+    const best1 = $("pm-best-wave"), best2 = $("pm-best-survive");
+    if (best1) best1.textContent = P2.bestFloor ? `BEST · FLOOR ${(P2.bestFloor || 0) + 1}` : "NO RECORD YET";
+    if (best2) best2.textContent = P2.bestRun ? `BEST · ${P2.bestRun}m` : "NO RECORD YET";
   };
 
   /* refresh the lobby hero stage after Vault changes (used by vault.js) */
@@ -572,6 +634,7 @@
     hero.actor = NR.char.actor(NR.vault ? NR.vault.effectiveLook() : P.appearance, { rate: 1 });
     hero.actor.play("idle");
     L.refreshCard();
+    L.refreshJourney();
     const tags = $("hero-tags");
     if (tags) {
       const c = NR.heroes.current();
@@ -693,7 +756,6 @@
     if ($("lb-play")) $("lb-play").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-play"); });
     if ($("lb-map")) $("lb-map").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-map"); });
     if ($("lb-heroes")) $("lb-heroes").addEventListener("click", () => { NR.audio.play("ui"); NR.vault.openVault("hero"); });
-    if ($("lb-online")) $("lb-online").addEventListener("click", () => { NR.audio.play("uiConfirm"); NR.social.openOnline(); });
     if ($("lb-vault")) $("lb-vault").addEventListener("click", () => { NR.audio.play("ui"); NR.vault.openVault(); });
     if ($("lb-shop")) $("lb-shop").addEventListener("click", () => { NR.audio.play("ui"); openModal("modal-shop"); });
     if ($("lb-settings")) $("lb-settings").addEventListener("click", () => { NR.audio.play("ui"); NR.ui.show("set"); });
@@ -713,7 +775,6 @@
         if (mode === "climb" || mode === "wavefight") { P.mode = "climb"; NR.saveProfile(); startRun(); }
         else if (mode === "run" || mode === "survive") { P.mode = "run"; NR.saveProfile(); startRun(); }
         else if (mode === "campaign") openModal("modal-deploy");
-        else if (mode === "online") NR.social.openOnline();
       }));
     const startRun = () => {
       NR.game.online = false; NR.game.pvp = false;
@@ -721,11 +782,10 @@
         Promise.resolve(NR.game.start()));
     };
 
-    // social hub + vault + codex (hero select / enemy roster) live inside the lobby
-    NR.social?.init();
+    // vault + codex (hero select / enemy roster) live inside the lobby
     NR.vault?.init();
     NR.codex?.init();
-    L.refreshResumeBanner();
+    L.refreshJourney();
 
     // deploy controls
     document.querySelectorAll("#deploy-modes .deploy-mode").forEach((b) =>

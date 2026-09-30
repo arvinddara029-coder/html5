@@ -97,7 +97,6 @@ function engine(seed = {}) {
     "profile",
     "economy",
     "progression",
-    "save-transfer",
     "character",
     "input",
     "audio",
@@ -653,77 +652,4 @@ test("version-one checkpoints without new combat fields or props remain compatib
   assert.equal(G.stats.parries, 0);
   assert.equal(G.player.kunaiCharges, 3);
   assert.equal(NR.adventure.props.filter((o) => o.broken).length, 0);
-});
-test("backup round-trip restores unlocked chapter, checkpoint, records and preferences", () => {
-  const { NR } = engine();
-  const G = NR.game;
-  NR.profile.unlocked = 2;
-  NR.profile.chapter = 2;
-  NR.profile.world = "day";
-  G.start();
-  NR.adventure.props[0].broken = true;
-  NR.checkpoint.save(G, NR.adventure);
-  NR.progress.record(G, false);
-  NR.progress.award("parry");
-  G.high = 1234;
-  G.toMenu();
-  const text = NR.saveTransfer.exportText();
-  NR.profile.unlocked = 0;
-  NR.profile.chapter = 0;
-  NR.profile.world = "night";
-  NR.checkpoint.clear();
-  NR.records = [];
-  assert.equal(NR.saveTransfer.apply(text).persistent, true);
-  assert.equal(NR.profile.world, "day");
-  assert.equal(NR.profile.unlocked, 2);
-  assert.equal(NR.checkpoint.get().chapter, 2);
-  assert.equal(NR.checkpoint.get().props[0], 0);
-  assert.equal(NR.records.length, 1);
-  assert.equal(G.high, 1234);
-});
-test("bad backups are rejected before any mutation, including future versions and unsafe keys", () => {
-  const { NR, data } = engine();
-  NR.game.start();
-  NR.checkpoint.save(NR.game, NR.adventure);
-  NR.game.toMenu();
-  const valid = NR.saveTransfer.exportText();
-  const before = JSON.stringify(data);
-  const variants = [
-    "{bad",
-    valid.replace('"version": 1', '"version": 999'),
-    '{"__proto__":{"polluted":true}}',
-    "x".repeat(NR.saveTransfer.maxBytes + 1),
-  ];
-  for (const mutate of [
-    (b) => (b.profile.chapter = 8),
-    (b) => (b.records = [{}]),
-    (b) => (b.achievements = ["nope"]),
-    (b) => (b.checkpoint.props = [99]),
-    (b) => (b.checkpoint.player.speedMul = -1),
-    (b) => (b.checkpoint.stats.parries = "oops"),
-  ]) {
-    const b = JSON.parse(valid);
-    mutate(b);
-    variants.push(JSON.stringify(b));
-  }
-  for (const text of variants) {
-    assert.throws(() => NR.saveTransfer.apply(text), /Invalid/);
-    assert.equal(JSON.stringify(data), before);
-  }
-});
-test("backup import survives blocked storage in memory and rejects importing during play", () => {
-  const { NR, context } = engine();
-  NR.game.start();
-  const text = NR.saveTransfer.exportText();
-  assert.throws(() => NR.saveTransfer.apply(text), /mission hub/);
-  NR.game.toMenu();
-  context.localStorage.setItem = () => {
-    throw new Error("blocked");
-  };
-  const b = JSON.parse(text);
-  b.profile.name = "IMPORTED";
-  assert.equal(NR.saveTransfer.apply(JSON.stringify(b)).persistent, false);
-  assert.equal(NR.profile.name, "IMPORTED");
-  assert.equal(JSON.parse(NR.store.getItem("nr_profile")).name, "IMPORTED");
-  assert.ok(NR.saveTransfer.exportText().includes("IMPORTED"));
 });

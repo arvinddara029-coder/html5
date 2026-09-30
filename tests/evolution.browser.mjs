@@ -36,11 +36,6 @@ try{
   await page.evaluate(()=>{NR.game.player.dead=true;NR.game.finishRun(false);});
   await page.click('#btn-continue-encounter');
   check(await page.evaluate(()=>NR.game.state==='playing' && NR.game.wave===1 && !NR.game.player.dead),'Same-wave continue works');
-  check(await page.evaluate(()=>{const G=NR.game;G.toMenu();const text=NR.saveTransfer.exportText();const b=NR.saveTransfer.validate(text);return b.evolution.hero===NR.evolution.hero && b.evolution.layout.jump.length===2;}),'Backup includes new systems');
-  await page.reload();await page.waitForFunction(()=>window.NR?.game.state==='menu',{timeout:60000});
-  await page.evaluate(()=>NR.ui.show('set'));await page.click('#resume-wave');
-  await page.waitForFunction(()=>NR.game.wave===1 && NR.game.state==='playing');
-  check(await page.evaluate(()=>NR.evolution.hero.length>0),'Saved wave and hero survive reload');
   const toast=await page.locator('#errtoast').textContent();check(!toast.includes('error'),'No frame error toast');
   await context.close();
  }

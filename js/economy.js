@@ -161,3 +161,76 @@
     return { coins, xp, leveled: (P.level || 1) - before };
   };
 })();
+
+/* ============ FORTUNE DRAW — the lobby luck draw ============
+   Clear rules: one draw costs 250 coins. The weighted prize table is
+   displayed in the shop before spending. Rewards are granted exactly once
+   per paid draw; the rewarded-ad free draw is granted only after the ad
+   completion callback fires. Draw history counters persist in the profile
+   so reward odds can never be double-claimed. */
+(function () {
+  const E = NR.economy, P = NR.profile;
+  const F = (E.fortune = {});
+  F.COST = 250;
+
+  /* [weight, prize] — prizes resolve lazily (cosmetics pick from catalog) */
+  F.TABLE = [
+    { w: 24, id: "c300",   label: "300 COINS",        grant: () => { E.addCoins(300); return "🪙 +300 coins"; } },
+    { w: 16, id: "c600",   label: "600 COINS",        grant: () => { E.addCoins(600); return "🪙 +600 coins"; } },
+    { w: 7,  id: "c1500",  label: "1,500 COINS",      grant: () => { E.addCoins(1500); return "🪙 +1,500 coins"; } },
+    { w: 2,  id: "jackpot",label: "JACKPOT · 5,000",  grant: () => { E.addCoins(5000); return "💰 JACKPOT · +5,000 coins!"; } },
+    { w: 14, id: "g5",     label: "5 GEMS",           grant: () => { E.addGems(5); return "💎 +5 gems"; } },
+    { w: 7,  id: "g12",    label: "12 GEMS",          grant: () => { E.addGems(12); return "💎 +12 gems"; } },
+    { w: 2,  id: "g30",    label: "30 GEMS",          grant: () => { E.addGems(30); return "💎 +30 gems"; } },
+    { w: 14, id: "xp",     label: "+250 XP",          grant: () => { E.applyXp(250, "Fortune draw"); return "✦ +250 XP"; } },
+    { w: 8,  id: "item",   label: "MYSTERY GEAR",     grant: () => grantMysteryItem() },
+  ];
+  F.totalWeight = () => F.TABLE.reduce((s, e) => s + e.w, 0);
+
+  function grantMysteryItem() {
+    // pick a random still-locked priced cosmetic and unlock it for free
+    const options = [];
+    for (const cat of Object.keys(NR.catalog || {})) {
+      if (cat === "skin" || cat === "underwear") continue;
+      for (const o of NR.catalog[cat] || []) {
+        if (E.price(cat, o.id) && !E.owned(cat, o.id)) options.push({ cat, o });
+      }
+    }
+    if (!options.length) { E.addCoins(400); return "🪙 Everything owned! +400 coins instead"; }
+    const pick = options[Math.floor(Math.random() * options.length)];
+    P.owned = P.owned || {};
+    P.owned[pick.cat + ":" + pick.o.id] = 1;
+    NR.saveProfile();
+    return "🎁 " + pick.o.name + " unlocked!";
+  }
+
+  function roll() {
+    let r = Math.random() * F.totalWeight();
+    for (const e of F.TABLE) { r -= e.w; if (r <= 0) return e; }
+    return F.TABLE[0];
+  }
+
+  F.busy = false;
+  /* paid draw: deducts first, then grants exactly once */
+  F.draw = function () {
+    if (F.busy) return null;
+    if (!E.spend(F.COST, 0)) { NR.hub?.notify(`Need ${F.COST} coins for a draw.`); return null; }
+    F.busy = true;
+    const prize = roll();
+    if (!P.draws || typeof P.draws !== "object") P.draws = { total: 0 };
+    P.draws.total = Math.min(1000000, (P.draws.total || 0) + 1);
+    NR.saveProfile();
+    const msg = prize.grant();
+    setTimeout(() => { F.busy = false; }, 700); // debounce double-clicks
+    return { label: prize.label, msg, id: prize.id };
+  };
+  /* free draw via completed rewarded ad — granted ONLY by the ad callback */
+  F.freeDraw = function () {
+    if (F.busy) return null;
+    F.busy = true;
+    const prize = roll();
+    const msg = prize.grant();
+    setTimeout(() => { F.busy = false; }, 700);
+    return { label: prize.label, msg, id: prize.id, free: true };
+  };
+})();

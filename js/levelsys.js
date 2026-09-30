@@ -55,7 +55,7 @@
 
   /* ---------------- level definition (generated) ---------------- */
   const THEMES = [
-    { name: "NEON TRANSIT", vfx: "cyan", music: "wave", textures: ["Brick", "Metal"] },
+    { name: "VERDANT WILDS", vfx: "green", music: "wave", textures: ["Stone", "Wood"] },
     { name: "OVERGROWN GARDENS", vfx: "green", music: "wave", textures: ["Stone", "Wood"] },
     { name: "ZERO REACTOR", vfx: "orange", music: "wave", textures: ["Metal", "Tile"] },
     { name: "SUNKEN FOUNDRY", vfx: "purple", music: "wave", textures: ["Plaster", "Metal"] },

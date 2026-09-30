@@ -2,15 +2,21 @@
 (function () {
   const U = NR.util, W = NR.world, F = NR.fx;
 
-  /* ---------- energy bolt (enemy fire) ---------- */
-  class Bolt {
-    constructor(x, y, vx, vy, o = {}) {
-      this.x = x; this.y = y; this.vx = vx; this.vy = vy;
-      this.r = o.r || 7; this.dmg = o.dmg || 10;
-      this.col = o.col || "magenta"; this.dead = false; this.life = 5;
-      this.trailT = 0;
-    }
-    update(dt, G) {
+  /* ---------- energy bolt (enemy fire) ----------
+     POOLED: `new NR.Bolt(...)` transparently reuses dead bolts from a
+     free-list (a constructor may return the recycled object), so heavy
+     bullet-hell waves allocate nothing once the pool is warm. */
+  const boltFree = [];
+  function Bolt(x, y, vx, vy, o = {}) {
+    const self = boltFree.pop() || Object.create(Bolt.prototype);
+    self.x = x; self.y = y; self.vx = vx; self.vy = vy;
+    self.r = o.r || 7; self.dmg = o.dmg || 10;
+    self.col = o.col || "magenta"; self.dead = false; self.life = 5;
+    self.trailT = 0;
+    return self;
+  }
+  Bolt.release = function (b) { if (boltFree.length < 160) boltFree.push(b); };
+  Bolt.prototype.update = function (dt, G) {
       this.life -= dt;
       if (this.life <= 0) { this.dead = true; return; }
       const x0=this.x,y0=this.y,x1=x0+this.vx*dt,y1=y0+this.vy*dt,C=NR.combat;
@@ -33,9 +39,9 @@
       if(wall<=1||this.x < -60||this.x>W.W+60||this.y < -200){this.dead=true;F.sparks(this.x,this.y,6,this.col,300);return;}
       this.trailT-=dt;
       if(this.trailT<=0){this.trailT=.03;F.burst(this.x,this.y,{n:1,col:this.col,spd:10,life:.25,size:6,grav:0});}
-    }
+  };
 
-    draw(ctx) {
+  Bolt.prototype.draw = function (ctx) {
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
       const sp = Math.hypot(this.vx, this.vy) || 1;
@@ -47,18 +53,20 @@
       ctx.stroke();
       NR.sprites.drawGlow(ctx, this.col, this.x, this.y, this.r * 3.4, 0.95);
       ctx.restore();
-    }
-  }
+  };
 
-  /* ---------- boss ground shockwave (jump to dodge) ---------- */
-  class ShockRing {
-    constructor(x, dir, o = {}) {
-      this.x = x; this.dir = dir; this.speed = o.speed || 460;
-      this.h = o.h || 100; this.halfW = 24;
-      this.dmg = o.dmg || 18; this.life = 4; this.dead = false;
-      this.col = o.col || "orange";
-    }
-    update(dt, G) {
+  /* ---------- boss ground shockwave (jump to dodge) — pooled like bolts ---------- */
+  const ringFree = [];
+  function ShockRing(x, dir, o = {}) {
+    const self = ringFree.pop() || Object.create(ShockRing.prototype);
+    self.x = x; self.dir = dir; self.speed = o.speed || 460;
+    self.h = o.h || 100; self.halfW = 24;
+    self.dmg = o.dmg || 18; self.life = 4; self.dead = false;
+    self.col = o.col || "orange";
+    return self;
+  }
+  ShockRing.release = function (r) { if (ringFree.length < 48) ringFree.push(r); };
+  ShockRing.prototype.update = function (dt, G) {
       this.life -= dt;
       this.x += this.dir * this.speed * dt;
       const y = W.groundY;
@@ -73,8 +81,9 @@
       const p = G.player;
       if (p && !p.dead && Math.abs(p.x - this.x) < this.halfW + p.w / 2 && p.y > y - this.h)
         G.hurtPlayer(this.dmg, this.dir, "shock");
-    }
-    draw(ctx) {
+  };
+
+  ShockRing.prototype.draw = function (ctx) {
       const y = W.groundY;
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
@@ -91,8 +100,7 @@
       NR.sprites.drawGlow(ctx, "orange", this.x, y - 14, 46, 0.8);
       NR.sprites.drawGlow(ctx, "yellow", this.x, y - this.h * 0.55, 26, 0.7);
       ctx.restore();
-    }
-  }
+  };
 
   /* ---------- pickups: hearts & energy orbs ---------- */
   class Pickup {

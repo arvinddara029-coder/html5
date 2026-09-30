@@ -3,8 +3,22 @@
   const U = NR.util, rand = U.rand, lerp = U.lerp;
   const F = (NR.fx = { parts: [], texts: [], slashes: [], max: 1000 });
 
-  F.reset = function () { F.parts.length = 0; F.texts.length = 0; F.slashes.length = 0; };
-  function add(p) { if (F.parts.length > F.max) F.parts.shift(); F.parts.push(p); }
+  /* POOLED particles: every effect reuses particle objects from a free-list
+     instead of allocating fresh ones — a boss fight spawns hundreds per
+     second and used to churn the GC. Dead particles are released back in
+     update(); removal is swap-pop, never splice. */
+  const partFree = [];
+  function takePart() { return partFree.pop() || {}; }
+  function releasePart(p) { if (partFree.length < 1200) partFree.push(p); }
+
+  F.reset = function () {
+    for (const p of F.parts) releasePart(p);
+    F.parts.length = 0; F.texts.length = 0; F.slashes.length = 0;
+  };
+  function add(p) {
+    if (F.parts.length > F.max) releasePart(F.parts.shift());
+    F.parts.push(p);
+  }
 
   F.burst = function (x, y, o = {}) {
     const n = o.n || 12, col = o.col || "cyan", spd = o.spd || 260, life = o.life || 0.5,
@@ -12,21 +26,35 @@
       spread = o.spread === undefined ? U.TAU : o.spread, base = o.ang || 0;
     for (let i = 0; i < n; i++) {
       const a = base + (Math.random() - 0.5) * spread, v = spd * (0.3 + Math.random() * 0.7);
-      add({ type, x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - (o.up || 0), grav, t: 0,
-        life: life * (0.55 + Math.random() * 0.8), size: size * (0.5 + Math.random()),
-        col, rot: rand(U.TAU), vr: (Math.random() - 0.5) * 14 });
+      const p = takePart();
+      p.type = type; p.x = x; p.y = y;
+      p.vx = Math.cos(a) * v; p.vy = Math.sin(a) * v - (o.up || 0);
+      p.grav = grav; p.t = 0;
+      p.life = life * (0.55 + Math.random() * 0.8);
+      p.size = size * (0.5 + Math.random());
+      p.col = col; p.rot = rand(U.TAU); p.vr = (Math.random() - 0.5) * 14;
+      add(p);
     }
   };
   F.sparks = (x, y, n = 8, col = "white", spd = 520) =>
     F.burst(x, y, { n, col, type: "spark", spd, life: 0.32, size: 9, grav: 1000 });
   F.smoke = function (x, y, n = 4) {
-    for (let i = 0; i < n; i++)
-      add({ type: "smoke", x: x + rand(-8, 8), y: y + rand(-6, 6), vx: rand(-30, 30), vy: rand(-70, -20),
-        grav: -40, t: 0, life: rand(0.7, 1.3), size: rand(16, 34), col: "smoke", rot: 0, vr: 0 });
+    for (let i = 0; i < n; i++) {
+      const p = takePart();
+      p.type = "smoke"; p.x = x + rand(-8, 8); p.y = y + rand(-6, 6);
+      p.vx = rand(-30, 30); p.vy = rand(-70, -20);
+      p.grav = -40; p.t = 0; p.life = rand(0.7, 1.3);
+      p.size = rand(16, 34); p.col = "smoke"; p.rot = 0; p.vr = 0;
+      add(p);
+    }
   };
-  F.ring = (x, y, o = {}) =>
-    add({ type: "ring", x, y, vx: 0, vy: 0, grav: 0, t: 0, life: o.life || 0.45, size: o.r0 || 12,
-      r1: o.r1 || 130, col: o.col || "cyan", lw: o.lw || 7, rot: 0, vr: 0 });
+  F.ring = (x, y, o = {}) => {
+    const p = takePart();
+    p.type = "ring"; p.x = x; p.y = y; p.vx = 0; p.vy = 0; p.grav = 0;
+    p.t = 0; p.life = o.life || 0.45; p.size = o.r0 || 12;
+    p.r1 = o.r1 || 130; p.col = o.col || "cyan"; p.lw = o.lw || 7; p.rot = 0; p.vr = 0;
+    add(p);
+  };
   F.shards = (x, y, n, col) => F.burst(x, y, { n, col, type: "shard", spd: 460, life: 0.6, size: 7, grav: 1300 });
   F.embers = (x, y, n, col = "orange") => F.burst(x, y, { n, col, type: "glow", spd: 160, life: 0.9, size: 5, grav: -120 });
   F.text = (x, y, str, o = {}) =>
@@ -47,21 +75,25 @@
     for (let i = P.length - 1; i >= 0; i--) {
       const p = P[i];
       p.t += dt;
-      if (p.t >= p.life) { P.splice(i, 1); continue; }
+      if (p.t >= p.life) {
+        releasePart(p);
+        P[i] = P[P.length - 1]; P.pop();
+        continue;
+      }
       p.vy += p.grav * dt;
       p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt;
     }
     for (let i = F.texts.length - 1; i >= 0; i--) {
       const t = F.texts[i]; t.t += dt; t.y += t.vy * dt;
-      if (t.t >= t.life) F.texts.splice(i, 1);
+      if (t.t >= t.life) { F.texts[i] = F.texts[F.texts.length - 1]; F.texts.pop(); }
     }
     for (let i = F.slashes.length - 1; i >= 0; i--) {
-      F.slashes[i].t += dt;
-      if (F.slashes[i].t >= F.slashes[i].life) F.slashes.splice(i, 1);
+      const s = F.slashes[i]; s.t += dt;
+      if (s.t >= s.life) { F.slashes[i] = F.slashes[F.slashes.length - 1]; F.slashes.pop(); }
     }
     for (let i = F.ghosts.length - 1; i >= 0; i--) {
-      F.ghosts[i].t += dt;
-      if (F.ghosts[i].t >= F.ghosts[i].life) F.ghosts.splice(i, 1);
+      const g = F.ghosts[i]; g.t += dt;
+      if (g.t >= g.life) { F.ghosts[i] = F.ghosts[F.ghosts.length - 1]; F.ghosts.pop(); }
     }
   };
 

@@ -116,20 +116,18 @@
     NR.audio.play("kunai");
     return true;
   };
-  class Kunai {
-    constructor(x, y, vx, vy, damage = 22, reflected = false) {
-      Object.assign(this, {
-        x,
-        y,
-        vx,
-        vy,
-        damage,
-        reflected,
-        dead: false,
-        life: 1.4,
-      });
-    }
-    update(dt, G) {
+  /* POOLED: player projectiles recycle through a free-list — throwing
+     fans of kunai in heavy combat allocates nothing once warm. */
+  const kunaiFree = [];
+  function Kunai(x, y, vx, vy, damage = 22, reflected = false) {
+    const self = kunaiFree.pop() || Object.create(Kunai.prototype);
+    self.x = x; self.y = y; self.vx = vx; self.vy = vy;
+    self.damage = damage; self.reflected = reflected;
+    self.dead = false; self.life = 1.4;
+    return self;
+  }
+  Kunai.release = function (k) { if (kunaiFree.length < 96) kunaiFree.push(k); };
+  Kunai.prototype.update = function (dt, G) {
       if (this.dead) return;
       this.life -= dt;
       if (this.life <= 0) {
@@ -202,8 +200,9 @@
         this.y = y1;
       }
       if (this.x < 0 || this.x > W.W) this.dead = true;
-    }
-    draw(ctx) {
+  };
+
+  Kunai.prototype.draw = function (ctx) {
       ctx.save();
       ctx.translate(this.x, this.y);
       ctx.rotate(Math.atan2(this.vy, this.vx));
@@ -222,7 +221,6 @@
       ctx.closePath();
       ctx.fill();
       ctx.restore();
-    }
-  }
+  };
   NR.Kunai = Kunai;
 })();

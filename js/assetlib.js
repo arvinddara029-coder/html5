@@ -372,7 +372,7 @@
     reactorEdge: ["Plaster/Plaster_01-512x512.png", "Plaster/Plaster_19-512x512.png", "Plaster/Plaster_20-512x512.png", "Plaster/Plaster_02-512x512.png"],
     reactorVeins: ["Elements/Elements_01-512x512.png", "Elements/Elements_02-512x512.png", "Elements/Elements_03-512x512.png", "Elements/Elements_04-512x512.png"],
   };
-  NR.textureBiomes = { 0: "city", 1: "garden", 2: "reactor" }; // chapter -> family prefix
+  NR.textureBiomes = { 0: "garden", 1: "garden", 2: "reactor" }; // chapter -> family prefix (wilds & gardens share natural stone/wood)
 
   /* ---------------- loader ---------------- */
   A.get = function (path) { return A.images[path] || null; };

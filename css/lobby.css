@@ -549,3 +549,38 @@
   border: 1px solid rgba(255, 215, 102, 0.45); box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
 }
 .run-rewards b { color: #ffd766; }
+
+/* ---------------- journey panel (visible progression) ---------------- */
+.journey-grid { display: flex; flex-direction: column; gap: 6px; }
+.journey-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  padding: 7px 10px; border-radius: 8px; font-size: 12px; letter-spacing: 0.08em;
+  background: rgba(20, 30, 20, 0.35); border: 1px solid rgba(180, 231, 132, 0.16);
+}
+.journey-row span { color: #cfe0c8; text-transform: uppercase; font-weight: 600; }
+.journey-row b { color: #ffe9c4; font-family: "Barlow Condensed", sans-serif; font-size: 15px; letter-spacing: 0.06em; }
+
+/* ---------------- fortune draw ---------------- */
+.fortune-panel {
+  margin: 0 0 14px; padding: 14px 16px; border-radius: 14px;
+  background: linear-gradient(180deg, rgba(88, 44, 120, 0.35), rgba(20, 10, 34, 0.55));
+  border: 1px solid rgba(200, 138, 255, 0.4); box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+}
+.fortune-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.fortune-head h3 { margin: 0; font-size: 20px; letter-spacing: 0.12em; color: #ffd766; text-shadow: 0 0 18px rgba(255, 215, 102, 0.5); }
+.fortune-head span { font-size: 12px; letter-spacing: 0.1em; color: #d8c6ef; text-transform: uppercase; }
+.fortune-odds { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.fortune-odds span {
+  font-size: 11px; padding: 3px 8px; border-radius: 999px; letter-spacing: 0.05em;
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.18); color: #efe4ff;
+}
+.fortune-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.fortune-result {
+  margin-top: 10px; padding: 10px 14px; border-radius: 10px; text-align: center;
+  background: linear-gradient(180deg, rgba(255, 215, 102, 0.2), rgba(0, 0, 0, 0.35));
+  border: 1px solid rgba(255, 215, 102, 0.55);
+}
+.fortune-result b { display: block; font-size: 19px; color: #ffe9c4; letter-spacing: 0.08em; }
+.fortune-result small { color: #d8c6ef; letter-spacing: 0.12em; text-transform: uppercase; font-size: 10px; }
+.fortune-result.pop { animation: fortune-pop 0.45s cubic-bezier(0.2, 1.6, 0.4, 1); }
+@keyframes fortune-pop { 0% { transform: scale(0.7); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }

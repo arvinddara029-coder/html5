@@ -32,8 +32,6 @@
       NR.game.start({ chapter: P.chapter });
     });
     on("btn-victory-menu", () => NR.game.toMenu());
-    on("btn-credits", () => NR.ui.show("credits"));
-    on("btn-credits-back", () => NR.ui.show("set"));
     on("interaction-prompt", () => {
       if (NR.game.state === "playing") NR.input.pressed.interact = true;
     });
@@ -56,7 +54,6 @@
         NR.saveProfile();
       });
     }
-    if (NR.saveTransfer && NR.saveTransfer.init) NR.saveTransfer.init();
     X.refresh();
   };
   X.refresh = function () {
@@ -215,6 +212,12 @@
       `<div><strong>${NR.util.fmt(G.score)}</strong><span>SCORE</span></div><div><strong>${NR.util.fmtTime(G.time)}</strong><span>TIME</span></div><div><strong>${caches}/4</strong><span>CACHES</span></div><div><strong>${shards}/${A.shards.length}</strong><span>SHARDS</span></div>`;
     const bn = $("btn-next-chapter");
     if (bn) bn.hidden = G.chapter >= NR.adventure.chapters.length - 1;
+    const nwl = $("next-world-level");
+    if (nwl) nwl.textContent = `NEXT LEVEL · WORLD ${G.chapter + 1} · LV ${(NR.evolution && NR.evolution.levels && NR.evolution.levels[G.chapter]) || 1} →`;
+    if (bn && !bn.hidden) {
+      NR.hub?.notify?.(`NEW WORLD UNLOCKED · ${NR.adventure.chapters[Math.min(G.chapter + 1, NR.adventure.chapters.length - 1)].name}`);
+      NR.crazy?.happytime?.();
+    }
     NR.ui.show("victory");
   };
 })();

@@ -1,4 +1,8 @@
-/* ============ NEON RONIN — world: parallax city, arena, rain, lightning ============ */
+/* ============ SKYWARD — world: natural green adventure parallax + arenas ============
+   The primary environment is a living, natural wildscape: layered green
+   hills, forests, grass fringes, bushes and rocks — generated once into
+   cached offscreen layers (cheap to blit, zero per-frame allocations).
+   The Zero Reactor district keeps its industrial identity. */
 (function () {
   const U = NR.util, rand = U.rand, randi = U.randi, pick = U.pick;
   const W = (NR.world = {
@@ -12,11 +16,14 @@
     ],
   });
 
-  let midCity = null, rain = [], vehicles = [], lightning = 0, lightT = rand(5, 11), fogT = 0;
+  let midCity = null, midWilds = null, grassFringe = null, bushStamp = null, rockStamp = null;
+  let rain = [], vehicles = [], lightning = 0, lightT = rand(5, 11), fogT = 0;
   let stars = [], motes = [];
 
   W.init = function () {
     genMidCity();
+    genMidWilds();
+    genNatureStamps();
     rain = [];
     for (let i = 0; i < 220; i++)
       rain.push({ fx: Math.random(), fy: Math.random(), len: rand(16, 34), spd: rand(950, 1500) });
@@ -73,6 +80,94 @@
     midCity = c;
   }
 
+  /* mid-distance natural landscape: rolling hills + a layered tree line.
+     Built ONCE into a 2048-wide strip and blitted with parallax. */
+  function genMidWilds() {
+    const c = document.createElement("canvas");
+    c.width = 2048; c.height = 520;
+    const g = c.getContext("2d");
+    // far hill band
+    g.fillStyle = "#274d3a";
+    g.beginPath(); g.moveTo(0, 520);
+    for (let x = 0; x <= 2048; x += 64)
+      g.lineTo(x, 300 + Math.sin(x * 0.006 + 1.4) * 46 + Math.sin(x * 0.017) * 18);
+    g.lineTo(2048, 520); g.closePath(); g.fill();
+    // near hill band
+    g.fillStyle = "#1d3f2e";
+    g.beginPath(); g.moveTo(0, 520);
+    for (let x = 0; x <= 2048; x += 64)
+      g.lineTo(x, 390 + Math.sin(x * 0.009 + 4) * 34 + Math.sin(x * 0.023 + 1) * 14);
+    g.lineTo(2048, 520); g.closePath(); g.fill();
+    // tree line on the near hill
+    for (let x = 14; x < 2048; x += 34 + Math.floor(Math.random() * 30)) {
+      const baseY = 396 + Math.sin(x * 0.009 + 4) * 34 + Math.sin(x * 0.023 + 1) * 14;
+      const h = 60 + Math.random() * 70, w = 26 + Math.random() * 26;
+      // trunk
+      g.fillStyle = "#20301f";
+      g.fillRect(x - 3, baseY - h * 0.45, 6, h * 0.5);
+      // canopy — three stacked blobs
+      g.fillStyle = Math.random() < 0.5 ? "#2c5a3d" : "#245037";
+      for (let i = 0; i < 3; i++) {
+        g.beginPath();
+        g.ellipse(x + (Math.random() - 0.5) * 8, baseY - h * 0.5 - i * h * 0.22, w * (1 - i * 0.22), h * 0.26, 0, 0, 6.2832);
+        g.fill();
+      }
+    }
+    // a few feature trees with brighter crowns
+    for (let i = 0; i < 7; i++) {
+      const x = 120 + i * 280 + Math.random() * 120;
+      const baseY = 470;
+      g.fillStyle = "#243322"; g.fillRect(x - 5, baseY - 120, 10, 120);
+      g.fillStyle = "#3a7049";
+      g.beginPath(); g.ellipse(x, baseY - 150, 54, 44, 0, 0, 6.2832); g.fill();
+      g.fillStyle = "#47855a";
+      g.beginPath(); g.ellipse(x - 14, baseY - 168, 30, 22, 0, 0, 6.2832); g.fill();
+    }
+    midWilds = c;
+  }
+
+  /* small nature stamps reused along the ground: grass fringe strip,
+     a bush and a rock — drawn once, blitted many times. */
+  function genNatureStamps() {
+    // grass fringe: a 256-wide tuft strip that tiles horizontally
+    const f = document.createElement("canvas");
+    f.width = 256; f.height = 26;
+    const fg = f.getContext("2d");
+    for (let x = 0; x < 256; x += 3) {
+      const h = 6 + Math.random() * 14;
+      fg.strokeStyle = Math.random() < 0.5 ? "#4d8f4e" : "#3c7440";
+      fg.lineWidth = 2;
+      fg.beginPath();
+      fg.moveTo(x, 26);
+      fg.quadraticCurveTo(x + (Math.random() - 0.5) * 6, 26 - h * 0.6, x + (Math.random() - 0.5) * 8, 26 - h);
+      fg.stroke();
+    }
+    grassFringe = f;
+    // bush
+    const b = document.createElement("canvas");
+    b.width = 96; b.height = 56;
+    const bg = b.getContext("2d");
+    bg.fillStyle = "#2e5c38";
+    bg.beginPath(); bg.ellipse(48, 40, 44, 22, 0, 0, 6.2832); bg.fill();
+    bg.fillStyle = "#3c7446";
+    bg.beginPath(); bg.ellipse(32, 30, 24, 17, 0, 0, 6.2832); bg.fill();
+    bg.beginPath(); bg.ellipse(62, 32, 22, 15, 0, 0, 6.2832); bg.fill();
+    bg.fillStyle = "#4d8f55";
+    bg.beginPath(); bg.ellipse(44, 22, 14, 10, 0, 0, 6.2832); bg.fill();
+    bushStamp = b;
+    // rock
+    const r = document.createElement("canvas");
+    r.width = 72; r.height = 44;
+    const rg = r.getContext("2d");
+    rg.fillStyle = "#5c625e";
+    rg.beginPath();
+    rg.moveTo(8, 42); rg.lineTo(14, 18); rg.lineTo(30, 6); rg.lineTo(52, 10); rg.lineTo(66, 30); rg.lineTo(62, 42);
+    rg.closePath(); rg.fill();
+    rg.fillStyle = "#6f766f";
+    rg.beginPath(); rg.moveTo(14, 18); rg.lineTo(30, 6); rg.lineTo(46, 12); rg.lineTo(28, 24); rg.closePath(); rg.fill();
+    rockStamp = r;
+  }
+
   W.update = function (dt, view) {
     fogT += dt;
     for (const v of vehicles) {
@@ -88,8 +183,8 @@
       if (m.fx < -0.05) m.fx = 1.05;
     }
     lightT -= dt;
-    const biome = NR.adventure?.active ? NR.adventure.chapter.biome : "city";
-    if (lightT <= 0 && NR.profile.world === "night" && biome === "city") {
+    const biome = W.biome();
+    if (lightT <= 0 && NR.profile.world === "night" && biome === "reactor") {
       lightning = 1;
       lightT = rand(7, 18);
       NR.audio.play("thunder", { delay: rand(0.3, 0.9) });
@@ -97,20 +192,28 @@
     lightning = Math.max(0, lightning - dt * 2.4);
   };
 
+  /* current visual biome: adventure chapters carry their own look (the
+     final spire keeps its industrial rooftop identity); every arena —
+     wave climb, survival run, wave fight — lives in the natural wilds. */
+  W.biome = function () {
+    return NR.adventure?.active ? NR.adventure.chapter.biome : "wilds";
+  };
+
   /* ---------- background ----------
-     DAY (primary): bright warm sky, full-color world art, soft sun.
+     DAY (primary): bright natural sky, full-color world art, soft sun.
      NIGHT: the same world falls dark — deep-indigo grade, star field, moon,
-     biome life (city rain+lightning, garden fireflies, reactor embers). */
+     biome life (wilds/garden fireflies, reactor embers). */
   const NIGHT_SKY = { top: "#04060f", mid: "#0a0d21", low: "#160f2a" };
   const DAY_SKY = {
-    city: ["#6fb3d6", "#bfe0d8", "#f7d7a8"],
+    wilds: ["#7fc4e0", "#cde8c2", "#f5eec0"],
     garden: ["#83c4a4", "#cfe6b8", "#f6e3ac"],
     reactor: ["#8e7a94", "#c69a7e", "#f2c08a"],
+    city: ["#6fb3d6", "#bfe0d8", "#f7d7a8"],
   };
   W.drawBack = function (ctx, cam, view) {
     const day = NR.profile.world === "day";
-    const biome = NR.adventure?.active ? NR.adventure.chapter.biome : "city";
-    const scenic = biome === "garden" || biome === "reactor";
+    const biome = W.biome();
+    const scenic = true; // every district now paints full-bleed world art
     // --- sky gradient ---
     const g = ctx.createLinearGradient(0, cam.y, 0, cam.y + view.h);
     if (day) {
@@ -156,7 +259,9 @@
 
     // --- world art (parallax 0.18), day & night use different paintings/grades ---
     let img = null;
-    const keyJpg = scenic ? 'bg_' + biome + '.jpg' : day ? 'bg_day.jpg' : 'bg_far.jpg';
+    const keyJpg = biome === "wilds" ? "bg_garden.jpg"
+      : biome === "city" ? (day ? "bg_day.jpg" : "bg_far.jpg")
+      : 'bg_' + biome + '.jpg';
     const keyShort = keyJpg.replace(/\.jpg$/, "");
     try {
       img = (NR.assets && NR.assets.get && (NR.assets.get(keyJpg) || NR.assets.get(keyShort))) || U.assets.get(keyJpg) || U.assets.get(keyShort);
@@ -187,35 +292,42 @@
       }
     }
 
-    // purple haze band
+    // atmospheric depth band (warm in the wilds, violet in the reactor)
     const haze = ctx.createLinearGradient(0, cam.y + view.h * 0.55, 0, cam.y + view.h);
     haze.addColorStop(0, "rgba(70,20,110,0)");
-    haze.addColorStop(1, day ? "rgba(255,214,150,0.22)" : "rgba(90,30,140,0.25)");
+    haze.addColorStop(1, biome === "reactor"
+      ? (day ? "rgba(255,214,150,0.22)" : "rgba(90,30,140,0.25)")
+      : (day ? "rgba(214,236,170,0.25)" : "rgba(28,44,66,0.3)"));
     ctx.fillStyle = haze;
     ctx.fillRect(cam.x, cam.y + view.h * 0.55, view.w, view.h * 0.45);
 
-    // mid city (parallax 0.45)
-    if (midCity) {
+    // mid-distance layer (parallax 0.45): reactor keeps the dark skyline,
+    // every natural district gets the green hills + forest strip
+    const mid = biome === "reactor" ? midCity : midWilds;
+    if (mid) {
       const f = 0.45, mh = 470, mw = 2048 * (mh / 520);
       const baseY = W.groundY - mh + 26;
       const pcx = cam.x + (W.originX || 0);
       let startX = cam.x - (((pcx * f) % mw) + mw) % mw - mw;
-      ctx.globalAlpha = scenic ? (day ? .25 : .5) : day ? 0.55 : 0.95;
+      ctx.globalAlpha = biome === "reactor" ? (day ? 0.55 : 0.95) : (day ? 0.9 : 0.75);
       for (let x0 = startX; x0 < cam.x + view.w + mw; x0 += mw)
-        ctx.drawImage(midCity, x0, baseY, mw, mh);
+        ctx.drawImage(mid, x0, baseY, mw, mh);
       ctx.globalAlpha = 1;
     }
 
-    // flying vehicles only buzz the city — and only at day; nights belong to stars
-    if (!scenic && day) {
+    // birds drift across the wilds by day
+    if (biome !== "reactor" && day) {
       ctx.save();
-      ctx.globalCompositeOperation = "lighter";
+      ctx.strokeStyle = "rgba(28,44,38,0.75)";
+      ctx.lineWidth = 2;
       for (const v of vehicles) {
-        const sx = cam.x + v.fx * view.w, sy = cam.y + v.fy * view.h * 0.9;
-        NR.sprites.drawGlow(ctx, v.col, sx, sy, 9, 0.8);
-        ctx.strokeStyle = "rgba(180,220,255,0.5)";
-        ctx.lineWidth = 1.6;
-        ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx - v.v * 0.25, sy); ctx.stroke();
+        const sx = cam.x + v.fx * view.w, sy = cam.y + v.fy * view.h * 0.55 + Math.sin(fogT * 2 + v.v) * 6;
+        const flap = Math.sin(fogT * 9 + v.v) * 4;
+        ctx.beginPath();
+        ctx.moveTo(sx - 7, sy - flap * 0.5);
+        ctx.quadraticCurveTo(sx - 2, sy + flap, sx, sy);
+        ctx.quadraticCurveTo(sx + 2, sy + flap, sx + 7, sy - flap * 0.5);
+        ctx.stroke();
       }
       ctx.restore();
     }
@@ -260,9 +372,11 @@
 
   function drawArena(ctx, cam, view) {
     const gy = W.groundY;
+    const biome = W.biome();
+    const natural = biome !== "reactor";
     // ground body
     const gg = ctx.createLinearGradient(0, gy, 0, W.H + 80);
-    gg.addColorStop(0, NR.profile.world === "day" ? "#314d53" : "#0d0f22");
+    gg.addColorStop(0, NR.profile.world === "day" ? (natural ? "#3d5a34" : "#314d53") : "#0d0f22");
     gg.addColorStop(1, "#05060f");
     ctx.fillStyle = gg;
     ctx.fillRect(cam.x - 60, gy, view.w + 120, Math.max(W.H, cam.y + view.h) - gy + 120);
@@ -314,13 +428,32 @@
       }
       ctx.restore();
     }
-    // ground top neon edge
+    /* ---- living ground dressing (natural districts only) ----
+       grass fringe + scattered bushes and rocks. All stamps are cached
+       offscreen canvases; positions are deterministic hashes of the world
+       x, so there is no per-frame randomness and no allocation. */
+    if (natural && grassFringe) {
+      ctx.save();
+      ctx.globalAlpha = NR.profile.world === "day" ? 0.95 : 0.55;
+      for (let sx = Math.floor((cam.x - 60) / 256) * 256; sx < cam.x + view.w + 60; sx += 256)
+        ctx.drawImage(grassFringe, sx, gy - 25);
+      // bushes & rocks at stable hashed slots
+      for (let sx = Math.floor((cam.x - 200) / 340) * 340; sx < cam.x + view.w + 200; sx += 340) {
+        const h = Math.abs(Math.imul(sx | 0, 2654435761)) >>> 0;
+        const kind = h % 10;
+        if (kind < 4 && bushStamp) ctx.drawImage(bushStamp, sx + (h % 120), gy - 52);
+        else if (kind === 7 && rockStamp) ctx.drawImage(rockStamp, sx + (h % 90), gy - 42);
+      }
+      ctx.restore();
+    }
+    // ground top glow edge — warm green in nature, cyan in the reactor
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
+    const edgeCol = natural ? "150,235,130" : "0,255,244";
     const eg = ctx.createLinearGradient(0, gy - 8, 0, gy + 10);
-    eg.addColorStop(0, "rgba(0,255,244,0)");
-    eg.addColorStop(0.5, "rgba(0,255,244,0.85)");
-    eg.addColorStop(1, "rgba(0,255,244,0)");
+    eg.addColorStop(0, `rgba(${edgeCol},0)`);
+    eg.addColorStop(0.5, `rgba(${edgeCol},0.85)`);
+    eg.addColorStop(1, `rgba(${edgeCol},0)`);
     ctx.fillStyle = eg;
     ctx.fillRect(cam.x - 60, gy - 8, view.w + 120, 18);
     ctx.restore();
@@ -388,7 +521,7 @@
      rising embers (reactor) — daytime stays clear and readable. ---------- */
   W.drawFront = function (ctx, cam, view) {
     if (NR.profile.world === "day") return;
-    const biome = NR.adventure?.active ? NR.adventure.chapter.biome : "city";
+    const biome = W.biome();
     if (biome === "city") {
       ctx.save();
       ctx.strokeStyle = "rgba(160,200,255,0.33)";

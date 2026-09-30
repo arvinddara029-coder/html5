@@ -17,13 +17,13 @@
   A.chapters = [
     {
       id: 0,
-      name: "THE NEON OUTSKIRTS",
+      name: "THE VERDANT OUTSKIRTS",
       short: "Outskirts",
       district: "SECTOR 09",
-      biome: "city",
+      biome: "garden",
       color: "#8af5e1",
       description:
-        "Follow the abandoned transit line. Restore three relays and find a way beyond the city wall.",
+        "The old transit line is buried in green. Cross the wilds, restore three relays and find the way forward.",
       objective: "Restore the transit relays",
       length: 6800,
       boss: "ronin",

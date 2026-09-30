@@ -130,14 +130,6 @@ try {
     ),
     "independent audio volume settings",
   );
-  await page.click("#btn-credits");
-  check(
-    (await page.locator(".credits-body").textContent()).includes(
-      "Creative Commons Zero",
-    ),
-    "in-game asset credit screen",
-  );
-  await page.click("#btn-credits-back");
   await page.click("#btn-set-back");
   await page.reload();
   await page.waitForFunction(() => NR.game.state === "menu");
@@ -442,98 +434,7 @@ try {
     NR.checkpoint.save(G, A);
     G.toMenu();
   });
-  const savedName = await page.evaluate(() => NR.profile.name);
-  await page.click("#btn-profile");
-  const downloadEvent = page.waitForEvent("download");
-  await page.click("#btn-export-save");
-  const download = await downloadEvent;
-  await download.saveAs("test-results/backup.json");
-  const { readFile } = await import("node:fs/promises");
-  const backup = await readFile("test-results/backup.json", "utf8");
-  check(
-    JSON.parse(backup).checkpoint.props.includes(0),
-    "downloaded backup includes destroyed loot and checkpoint",
-  );
-  await page
-    .locator("#save-file")
-    .setInputFiles({
-      name: "broken.json",
-      mimeType: "application/json",
-      buffer: Buffer.from("{invalid"),
-    });
-  await page.waitForFunction(() =>
-    document.getElementById("save-status").textContent.includes("Invalid"),
-  );
-  check(
-    await page.locator("#save-confirm").isHidden(),
-    "bad import rejected without offering replacement",
-  );
-  check(
-    await page.evaluate((name) => NR.profile.name === name, savedName),
-    "bad import preserves existing profile",
-  );
-  await page
-    .locator("#save-file")
-    .setInputFiles({
-      name: "backup.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(backup),
-    });
-  await page.locator("#btn-cancel-import").waitFor({ state: "visible" });
-  await page.click("#btn-cancel-import");
-  check(
-    await page.locator("#save-confirm").isHidden(),
-    "valid import can be cancelled before mutation",
-  );
-  await page.evaluate(() => {
-    NR.profile.name = "CHANGED";
-    NR.saveProfile();
-    NR.checkpoint.clear();
-  });
-  await page
-    .locator("#save-file")
-    .setInputFiles({
-      name: "backup.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(backup),
-    });
-  await page.locator("#btn-confirm-import").waitFor({ state: "visible" });
-  await page.screenshot({ path: "test-results/save-transfer.png" });
-  check(
-    await page.evaluate(
-      () => NR.profile.name === "CHANGED" && NR.checkpoint.get() === null,
-    ),
-    "valid file does not change progress until confirmation",
-  );
-  await page.click("#btn-confirm-import");
-  await page.waitForFunction(() => NR.game.state === "menu");
-  check(
-    await page.evaluate(
-      (name) =>
-        NR.profile.name === name && NR.checkpoint.get().props.includes(0),
-      savedName,
-    ),
-    "confirmed import restores profile and loot checkpoint",
-  );
-  await page.reload();
-  await page.waitForFunction(() => NR.game.state === "menu");
-  check(
-    await page.evaluate(
-      (name) =>
-        NR.profile.name === name && NR.checkpoint.get().props.includes(0),
-      savedName,
-    ),
-    "imported backup survives page reload",
-  );
-  await page.click("#btn-continue");
-  await page.waitForFunction(() => NR.game.state === "playing");
-  check(
-    await page.evaluate(
-      () => NR.adventure.props[0].broken && NR.game.stats.salvaged === 1,
-    ),
-    "continued imported checkpoint does not respawn destroyed loot",
-  );
-  await page.close();
+    await page.close();
 
   for (const size of [
     { width: 390, height: 844 },

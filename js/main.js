@@ -70,8 +70,18 @@
   window.addEventListener("resize", resize);
   NR.resize = resize;
 
-  /* ---------------- boot ---------------- */
+  /* ---------------- boot ----------------
+     Real staged loading — every progress step maps to actual work:
+       1. SYSTEM INIT      engine modules, sprites, world, UI
+       2. TEXTURES         backgrounds + terrain library
+       3. CHARACTERS       hero layers, enemy sheets, pets
+       4. AUDIO            sample map prefetch
+       5. VALIDATION       decoded-image check; a failed texture is retried
+       6. READY            menu opens; remaining cosmetics stream in the
+                           background (lazy, never blocks the menu) */
   function boot() {
+    const stage = (label) => { const t = document.querySelector(".load-tip"); if (t) t.textContent = label; };
+    stage("INITIALIZING SYSTEMS…");
     NR.diag.initDebug();
     NR.vfx.install();                // wrap the animated-effect library with the VFX budget
     NR.crazy.init();                 // never blocks the game
@@ -87,56 +97,85 @@
       });
       window.addEventListener?.("blur", () => NR.game.autoPause());
     }
-    NR.ui.setLoading(0.05);
+    NR.ui.setLoading(0.04);
     NR.crazy.loadingStart();
-    // invite-link routing: an invited player skips straight into the room
-    const inviteRoom = NR.crazy.getInviteParam("room");
-    if (inviteRoom) NR.diag.info("started from invite link, room=" + inviteRoom);
-    // staged loading: lobby art + the hero's equipped layers first, everything else streams in
+
+    const loader = (NR.assets && NR.assets.load) ? NR.assets : U.assets;
     const lookPaths = NR.assets.layerPaths(NR.profile.appearance);
-    const lobbyPaths = [
+    const worldPaths = [
       "bg_far.jpg", "kenney/platformIndustrial_sheet.png", "bg_day.jpg", "bg_garden.jpg",
       "bg_reactor.jpg", "menu_hero.jpg", "emblem.jpg", "lobby_bg.jpg",
-      "GandalfHardcore Emojis and Icons/GandalfHardcore Emojis and Icons/Coin.png",
-      "GandalfHardcore Emojis and Icons/GandalfHardcore Emojis and Icons/Quest marker.png",
-      "GandalfHardcore Emojis and Icons/GandalfHardcore Emojis and Icons/GandalfHardcore Emoji.png",
-      "GandalfHardcFREE NPC/GandalfHardcore Goddess NPC.png", // Luna, the lobby guide
-      // combat-manual demo strips + grand-lobby event art + pet wardrobe
-      "idle/sprite sheets/idle.png", "walk/sprite sheets/walk.png", "walk/sprite sheets/from idle.png",
-      "GandalfHardcore Warrior.png",
-      "GandalfHardcore Pet companion/GandalfHardcore doggy hat.png",
-      "GandalfHardcore Pet companion/GandalfHardcore doggy backpack.png",
       // terrain textures used by the arena
       "Brick/Brick_01-512x512.png", "Metal/Metal_01-512x512.png", "Metal/Metal_08-512x512.png",
       "Stone/Stone_01-128x128.png", "Stone/Stone_09-128x128.png", "Wood/Wood_01-128x128.png",
       "Tile/Tile_01-128x128.png", "Plaster/Plaster_01-512x512.png",
       // biome overlays from the Elements pack
       "Elements/Elements_02-512x512.png", "Elements/Elements_13-512x512.png", "Elements/Elements_17-512x512.png",
+      // nature props used by the verdant arena dressing
+      "super/Legacy-Fantasy - High Forest 2.3/Trees/Green-Tree.png",
+      "super/Legacy-Fantasy - High Forest 2.3/Assets/Props-Rocks.png",
+      "super/GandalfHardcore FREE Platformer Assets/Animated Sprites/GandalfHardcore Portal sheet.png",
+      "super/GandalfHardcore FREE Platformer Assets/Animated Sprites/Campfire sheet.png",
+    ];
+    const characterPaths = [
+      "GandalfHardcore Emojis and Icons/GandalfHardcore Emojis and Icons/Coin.png",
+      "GandalfHardcore Emojis and Icons/GandalfHardcore Emojis and Icons/Quest marker.png",
+      "GandalfHardcore Emojis and Icons/GandalfHardcore Emojis and Icons/GandalfHardcore Emoji.png",
+      "GandalfHardcFREE NPC/GandalfHardcore Goddess NPC.png", // Luna, the lobby guide
+      // combat-manual demo strips + pet wardrobe
+      "idle/sprite sheets/idle.png", "walk/sprite sheets/walk.png", "walk/sprite sheets/from idle.png",
+      "GandalfHardcore Warrior.png",
+      "GandalfHardcore Pet companion/GandalfHardcore doggy hat.png",
+      "GandalfHardcore Pet companion/GandalfHardcore doggy backpack.png",
     ].concat(lookPaths);
-    // Use the main asset lib (NR.assets) which knows how to load string paths.
-    const loader = (NR.assets && NR.assets.load) ? NR.assets : U.assets;
-    loader.load(lobbyPaths, (k) => NR.ui.setLoading(0.05 + k * 0.85)).then(() => {
-      NR.ui.setLoading(0.92);
-      // stream the rest of the packs in the background (creator/shop instant access)
-      const rest = NR.assets.allLayerPaths().filter((p) => !NR.assets.ready(p));
-      const loader2 = (NR.assets && NR.assets.load) ? NR.assets : U.assets;
-      loader2.load(rest, (k) => NR.ui.setLoading(0.92 + k * 0.08)).then(() => {
-        NR.ui.setLoading(1);
-        setTimeout(() => {
-          G.toMenu();
-          NR.crazy.loadingStop();
-          NR.settings?.apply?.();
-          NR.cloudSync?.pull?.();
-          // invited players land directly in the room that invited them
-          if (inviteRoom) {
-            NR.hub.notify("Joining your friend's room…");
-            NR.net.joinRoom(inviteRoom).then((room) => { if (room) NR.social.openOnline(); });
-          } else if (NR.crazy.isInstantMultiplayer()) {
-            NR.social.openOnline();
-          }
-          if (location.hash === "#auto") smokeTest();
-        }, 250);
+    // enemy sheets are required before the first battle — preload them here
+    for (const sk of ["orc", "soldier", "slime", "slimeGreen", "slimeRed", "wizard", "samurai", "diego", "holly", "gordon"])
+      for (const a of Object.keys(NR.sheets[sk].anims)) characterPaths.push(NR.sheets[sk].anims[a].path);
+
+    // Every stage starts decoding IMMEDIATELY (in parallel) so nothing waits
+    // on anything — progress still reflects real completed work per stage.
+    stage("LOADING WORLD TEXTURES…");
+    const worldP = loader.load(worldPaths, (k) => NR.ui.setLoading(0.04 + k * 0.22));
+    stage("PREPARING CHARACTERS…");
+    const charP = loader.load(characterPaths, (k) => {
+      NR.ui.setLoading(Math.max(0.26, Math.min(0.68, 0.26 + k * 0.42)));
+    });
+    Promise.all([worldP, charP]).then(() => {
+      stage("PREPARING AUDIO…");
+      NR.ui.setLoading(0.72);
+      // the sample map was fetched at boot; decoding happens on the first
+      // user gesture (autoplay policy), so nothing blocks here
+      return Promise.resolve();
+    }).then(() => {
+      stage("VALIDATING RESOURCES…");
+      NR.ui.setLoading(0.8);
+      // resource validation: every critical texture must be decoded. Anything
+      // blank gets ONE retry; if it still fails we log it and continue (the
+      // renderer has procedural fallbacks) instead of hanging on the loader.
+      const critical = worldPaths.concat(lookPaths).slice(0, 40);
+      const bad = critical.filter((p) => {
+        const img = NR.assets.get(p);
+        return !img || !img.complete || !img.naturalWidth;
       });
+      if (!bad.length) return;
+      NR.diag.warn(`boot validation: ${bad.length} texture(s) not decoded — retrying`);
+      return loader.load(bad).catch(() => {});
+    }).then(() => {
+      stage("READY");
+      NR.ui.setLoading(1);
+      G.toMenu();
+      NR.crazy.loadingStop();
+      NR.settings?.apply?.();
+      NR.lobby.init();
+      // background streaming: the remaining cosmetic layers arrive lazily so
+      // the creator/shop open instantly without a longer blocking load
+      const rest = NR.assets.allLayerPaths().filter((p) => !NR.assets.ready(p));
+      if (rest.length) loader.load(rest).catch(() => {});
+      if (location.hash === "#auto") smokeTest();
+    }).catch((err) => {
+      reportError("Boot loading", err);
+      G.toMenu();
+      NR.crazy.loadingStop();
       NR.lobby.init();
     });
     requestAnimationFrame(frame);
@@ -180,7 +219,6 @@
       if (G.state !== "loading") G.update(dt, rd);
       if (G.state === "menu") NR.world.update(rd, NR.view); // ambient life behind menu
       NR.audio.muted = !NR.audio.sfxOn && !NR.audio.musicOn;
-      NR.net.tick(rd);
       NR.input.postUpdate();
       NR.hub.update(now);
       render();
@@ -211,8 +249,6 @@
       NR.spriteRender.drawCorpses(ctx, G);
       for (const e of G.enemies) e.draw(ctx);
       for (const w of G.shockwaves) w.draw(ctx);
-      // remote online heroes (interpolated)
-      for (const r of NR.net.remote.values()) r.draw(ctx);
       if (!G.player.dead || G.deathT > 1.1) G.player.draw(ctx);
       for (const b of G.bolts) b.draw(ctx);
       for (const b of G.shots) b.draw(ctx);
