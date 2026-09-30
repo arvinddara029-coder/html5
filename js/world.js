@@ -16,13 +16,12 @@
     ],
   });
 
-  let midCity = null, midWilds = null, grassFringe = null, bushStamp = null, rockStamp = null;
+  let midCity = null, grassFringe = null;
   let rain = [], vehicles = [], lightning = 0, lightT = rand(5, 11), fogT = 0;
   let stars = [], motes = [];
 
   W.init = function () {
     genMidCity();
-    genMidWilds();
     genNatureStamps();
     rain = [];
     for (let i = 0; i < 220; i++)
@@ -80,56 +79,9 @@
     midCity = c;
   }
 
-  /* mid-distance natural landscape: rolling hills + a layered tree line.
-     Built ONCE into a 2048-wide strip and blitted with parallax. */
-  function genMidWilds() {
-    const c = document.createElement("canvas");
-    c.width = 2048; c.height = 520;
-    const g = c.getContext("2d");
-    // far hill band
-    g.fillStyle = "#274d3a";
-    g.beginPath(); g.moveTo(0, 520);
-    for (let x = 0; x <= 2048; x += 64)
-      g.lineTo(x, 300 + Math.sin(x * 0.006 + 1.4) * 46 + Math.sin(x * 0.017) * 18);
-    g.lineTo(2048, 520); g.closePath(); g.fill();
-    // near hill band
-    g.fillStyle = "#1d3f2e";
-    g.beginPath(); g.moveTo(0, 520);
-    for (let x = 0; x <= 2048; x += 64)
-      g.lineTo(x, 390 + Math.sin(x * 0.009 + 4) * 34 + Math.sin(x * 0.023 + 1) * 14);
-    g.lineTo(2048, 520); g.closePath(); g.fill();
-    // tree line on the near hill
-    for (let x = 14; x < 2048; x += 34 + Math.floor(Math.random() * 30)) {
-      const baseY = 396 + Math.sin(x * 0.009 + 4) * 34 + Math.sin(x * 0.023 + 1) * 14;
-      const h = 60 + Math.random() * 70, w = 26 + Math.random() * 26;
-      // trunk
-      g.fillStyle = "#20301f";
-      g.fillRect(x - 3, baseY - h * 0.45, 6, h * 0.5);
-      // canopy — three stacked blobs
-      g.fillStyle = Math.random() < 0.5 ? "#2c5a3d" : "#245037";
-      for (let i = 0; i < 3; i++) {
-        g.beginPath();
-        g.ellipse(x + (Math.random() - 0.5) * 8, baseY - h * 0.5 - i * h * 0.22, w * (1 - i * 0.22), h * 0.26, 0, 0, 6.2832);
-        g.fill();
-      }
-    }
-    // a few feature trees with brighter crowns
-    for (let i = 0; i < 7; i++) {
-      const x = 120 + i * 280 + Math.random() * 120;
-      const baseY = 470;
-      g.fillStyle = "#243322"; g.fillRect(x - 5, baseY - 120, 10, 120);
-      g.fillStyle = "#3a7049";
-      g.beginPath(); g.ellipse(x, baseY - 150, 54, 44, 0, 0, 6.2832); g.fill();
-      g.fillStyle = "#47855a";
-      g.beginPath(); g.ellipse(x - 14, baseY - 168, 30, 22, 0, 0, 6.2832); g.fill();
-    }
-    midWilds = c;
-  }
-
-  /* small nature stamps reused along the ground: grass fringe strip,
-     a bush and a rock — drawn once, blitted many times. */
+  /* cheap procedural grass fringe — only a fallback until the painted
+     grass_strip.png decodes, so the ground is never blank on first frame. */
   function genNatureStamps() {
-    // grass fringe: a 256-wide tuft strip that tiles horizontally
     const f = document.createElement("canvas");
     f.width = 256; f.height = 26;
     const fg = f.getContext("2d");
@@ -143,29 +95,6 @@
       fg.stroke();
     }
     grassFringe = f;
-    // bush
-    const b = document.createElement("canvas");
-    b.width = 96; b.height = 56;
-    const bg = b.getContext("2d");
-    bg.fillStyle = "#2e5c38";
-    bg.beginPath(); bg.ellipse(48, 40, 44, 22, 0, 0, 6.2832); bg.fill();
-    bg.fillStyle = "#3c7446";
-    bg.beginPath(); bg.ellipse(32, 30, 24, 17, 0, 0, 6.2832); bg.fill();
-    bg.beginPath(); bg.ellipse(62, 32, 22, 15, 0, 0, 6.2832); bg.fill();
-    bg.fillStyle = "#4d8f55";
-    bg.beginPath(); bg.ellipse(44, 22, 14, 10, 0, 0, 6.2832); bg.fill();
-    bushStamp = b;
-    // rock
-    const r = document.createElement("canvas");
-    r.width = 72; r.height = 44;
-    const rg = r.getContext("2d");
-    rg.fillStyle = "#5c625e";
-    rg.beginPath();
-    rg.moveTo(8, 42); rg.lineTo(14, 18); rg.lineTo(30, 6); rg.lineTo(52, 10); rg.lineTo(66, 30); rg.lineTo(62, 42);
-    rg.closePath(); rg.fill();
-    rg.fillStyle = "#6f766f";
-    rg.beginPath(); rg.moveTo(14, 18); rg.lineTo(30, 6); rg.lineTo(46, 12); rg.lineTo(28, 24); rg.closePath(); rg.fill();
-    rockStamp = r;
   }
 
   W.update = function (dt, view) {
@@ -203,6 +132,24 @@
      DAY (primary): bright natural sky, full-color world art, soft sun.
      NIGHT: the same world falls dark — deep-indigo grade, star field, moon,
      biome life (wilds/garden fireflies, reactor embers). */
+  /* tile one painterly jungle treeline with parallax `f`, anchored so its
+     base sits `fill` of the view-height above the ground. Returns false if
+     the art isn't decoded yet (the renderer simply skips it — no error). */
+  function jungleLayer(ctx, cam, view, path, f, fill, alpha) {
+    const img = NR.assets && NR.assets.get ? NR.assets.get(path) : null;
+    if (!img || !img.width || !img.height) return false;
+    const ih = Math.max(220, view.h * fill);
+    const iw = ih * (img.width / img.height);
+    const baseY = W.groundY - ih + 30;
+    const pcx = cam.x + (W.originX || 0);
+    const startX = cam.x - (((pcx * f) % iw) + iw) % iw - iw;
+    ctx.globalAlpha = alpha;
+    for (let x0 = startX; x0 < cam.x + view.w + iw; x0 += iw)
+      ctx.drawImage(img, x0, baseY, iw, ih);
+    ctx.globalAlpha = 1;
+    return true;
+  }
+
   const NIGHT_SKY = { top: "#04060f", mid: "#0a0d21", low: "#160f2a" };
   const DAY_SKY = {
     wilds: ["#7fc4e0", "#cde8c2", "#f5eec0"],
@@ -259,7 +206,7 @@
 
     // --- world art (parallax 0.18), day & night use different paintings/grades ---
     let img = null;
-    const keyJpg = biome === "wilds" ? "bg_garden.jpg"
+    const keyJpg = (biome === "wilds" || biome === "garden") ? "bg_jungle.jpg"
       : biome === "city" ? (day ? "bg_day.jpg" : "bg_far.jpg")
       : 'bg_' + biome + '.jpg';
     const keyShort = keyJpg.replace(/\.jpg$/, "");
@@ -301,18 +248,23 @@
     ctx.fillStyle = haze;
     ctx.fillRect(cam.x, cam.y + view.h * 0.55, view.w, view.h * 0.45);
 
-    // mid-distance layer (parallax 0.45): reactor keeps the dark skyline,
-    // every natural district gets the green hills + forest strip
-    const mid = biome === "reactor" ? midCity : midWilds;
-    if (mid) {
-      const f = 0.45, mh = 470, mw = 2048 * (mh / 520);
-      const baseY = W.groundY - mh + 26;
-      const pcx = cam.x + (W.originX || 0);
-      let startX = cam.x - (((pcx * f) % mw) + mw) % mw - mw;
-      ctx.globalAlpha = biome === "reactor" ? (day ? 0.55 : 0.95) : (day ? 0.9 : 0.75);
-      for (let x0 = startX; x0 < cam.x + view.w + mw; x0 += mw)
-        ctx.drawImage(mid, x0, baseY, mw, mh);
-      ctx.globalAlpha = 1;
+    // mid-distance jungle layers (true multi-layer parallax). The reactor
+    // keeps its dark skyline; every natural district stacks two painterly
+    // jungle treelines that read as depth, not "pasted trees sliding".
+    if (biome === "reactor") {
+      if (midCity) {
+        const f = 0.45, mh = 470, mw = 2048 * (mh / 520);
+        const baseY = W.groundY - mh + 26;
+        const pcx = cam.x + (W.originX || 0);
+        let startX = cam.x - (((pcx * f) % mw) + mw) % mw - mw;
+        ctx.globalAlpha = day ? 0.55 : 0.95;
+        for (let x0 = startX; x0 < cam.x + view.w + mw; x0 += mw)
+          ctx.drawImage(midCity, x0, baseY, mw, mh);
+        ctx.globalAlpha = 1;
+      }
+    } else {
+      jungleLayer(ctx, cam, view, "jungle_layer_far.png", 0.22, 0.52, day ? 0.75 : 0.5);
+      jungleLayer(ctx, cam, view, "jungle_layer_near.png", 0.45, 0.72, day ? 1 : 0.82);
     }
 
     // birds drift across the wilds by day
@@ -428,41 +380,48 @@
       }
       ctx.restore();
     }
-    /* ---- living ground dressing (natural districts only) ----
-       grass fringe + scattered bushes and rocks. All stamps are cached
-       offscreen canvases; positions are deterministic hashes of the world
-       x, so there is no per-frame randomness and no allocation. */
-    if (natural && grassFringe) {
-      ctx.save();
-      ctx.globalAlpha = NR.profile.world === "day" ? 0.95 : 0.55;
-      for (let sx = Math.floor((cam.x - 60) / 256) * 256; sx < cam.x + view.w + 60; sx += 256)
-        ctx.drawImage(grassFringe, sx, gy - 25);
-      // bushes & rocks at stable hashed slots
-      for (let sx = Math.floor((cam.x - 200) / 340) * 340; sx < cam.x + view.w + 200; sx += 340) {
-        const h = Math.abs(Math.imul(sx | 0, 2654435761)) >>> 0;
-        const kind = h % 10;
-        if (kind < 4 && bushStamp) ctx.drawImage(bushStamp, sx + (h % 120), gy - 52);
-        else if (kind === 7 && rockStamp) ctx.drawImage(rockStamp, sx + (h % 90), gy - 42);
+    /* ---- realistic ground grass (natural districts) ----
+       a pre-generated painterly grass strip tiles along the ground line —
+       real blades, ferns and wildflowers instead of the old cartoon fringe.
+       Deterministic tiling, zero per-frame allocation. */
+    if (natural) {
+      const gimg = NR.assets && NR.assets.get ? NR.assets.get("grass_strip.png") : null;
+      if (gimg && gimg.width && gimg.height) {
+        const gh = 78, gw = gh * (gimg.width / gimg.height);
+        ctx.save();
+        ctx.globalAlpha = NR.profile.world === "day" ? 1 : 0.62;
+        for (let sx = Math.floor((cam.x - 80) / gw) * gw; sx < cam.x + view.w + gw; sx += gw)
+          ctx.drawImage(gimg, sx, gy - gh + 14, gw, gh);
+        ctx.restore();
+      } else if (grassFringe) {
+        // fallback until the art decodes — never a blank ground
+        ctx.save();
+        ctx.globalAlpha = NR.profile.world === "day" ? 0.95 : 0.55;
+        for (let sx = Math.floor((cam.x - 60) / 256) * 256; sx < cam.x + view.w + 60; sx += 256)
+          ctx.drawImage(grassFringe, sx, gy - 25);
+        ctx.restore();
       }
-      ctx.restore();
     }
-    // ground top glow edge — warm green in nature, cyan in the reactor
+    // ground top edge: a soft sun-lit rim in nature (subtle), neon in reactor
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
-    const edgeCol = natural ? "150,235,130" : "0,255,244";
+    const edgeCol = natural ? "190,235,150" : "0,255,244";
+    const edgeA = natural ? 0.28 : 0.85;
     const eg = ctx.createLinearGradient(0, gy - 8, 0, gy + 10);
     eg.addColorStop(0, `rgba(${edgeCol},0)`);
-    eg.addColorStop(0.5, `rgba(${edgeCol},0.85)`);
+    eg.addColorStop(0.5, `rgba(${edgeCol},${edgeA})`);
     eg.addColorStop(1, `rgba(${edgeCol},0)`);
     ctx.fillStyle = eg;
     ctx.fillRect(cam.x - 60, gy - 8, view.w + 120, 18);
     ctx.restore();
-    // neon grid receding
-    ctx.strokeStyle = "rgba(0,255,244,0.07)";
-    ctx.lineWidth = 1;
-    const gridStart = Math.floor((cam.x - 60) / 128) * 128;
-    for (let gx = gridStart; gx < cam.x + view.w + 60; gx += 128) {
-      ctx.beginPath(); ctx.moveTo(gx, gy + 4); ctx.lineTo(gx - 60, W.H + 60); ctx.stroke();
+    // neon grid receding (reactor only — the wilds get soil, not circuitry)
+    if (!natural) {
+      ctx.strokeStyle = "rgba(0,255,244,0.07)";
+      ctx.lineWidth = 1;
+      const gridStart = Math.floor((cam.x - 60) / 128) * 128;
+      for (let gx = gridStart; gx < cam.x + view.w + 60; gx += 128) {
+        ctx.beginPath(); ctx.moveTo(gx, gy + 4); ctx.lineTo(gx - 60, W.H + 60); ctx.stroke();
+      }
     }
     // arena boundary walls
     for (const bx of [0, W.W]) {

@@ -550,6 +550,7 @@
       const q = G.spawnQueue[i];
       q.t -= dt;
       if (G.maxAlive && NR.modes?.active && G.enemies.length >= G.maxAlive) continue; // cap: never flood the arena
+      if (!NR.modes?.active && G.enemies.length >= 48) continue; // survival safety valve: lag-proof flood cap
       if (q.t <= 0) { try { spawnEnemy(q.type, q); } catch (err) { NR.diag?.warn?.("spawn failed: " + q.type + " " + err.message); } G.spawnQueue.splice(i, 1); }
     }
 

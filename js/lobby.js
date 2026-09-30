@@ -248,8 +248,8 @@
 
   /* ================= deploy panel — WORLD SELECT first ================= */
   /* one card per chapter — art falls back instead of breaking on new chapters */
-  const WORLD_ART = ["bg_day.jpg", "bg_garden.jpg", "bg_reactor.jpg", "bg_far.jpg", "menu_hero.jpg", "lobby.png"];
-  const WORLD_TAG = ["TRANSIT LINE", "RECLAIMED GARDENS", "THE CORE", "SUNKEN FOUNDRY", "SKYWARD DOCKS", "THE SPIRE"];
+  const WORLD_ART = ["bg_jungle.jpg", "bg_garden.jpg", "bg_reactor.jpg", "bg_far.jpg", "menu_hero.jpg", "lobby.png"];
+  const WORLD_TAG = ["VERDANT WILDS", "RECLAIMED GARDENS", "THE CORE", "SUNKEN FOUNDRY", "SKYWARD DOCKS", "THE SPIRE"];
   const worldArt = (id) => WORLD_ART[id % WORLD_ART.length];
   const worldTag = (id) => WORLD_TAG[id % WORLD_TAG.length];
   function worldCard(ch, selectable) {
@@ -624,9 +624,10 @@
       row.innerHTML = `<span>${k}</span><b>${v}</b>`;
       return row;
     }));
-    const best1 = $("pm-best-wave"), best2 = $("pm-best-survive");
+    const best1 = $("pm-best-wave"), best2 = $("pm-best-survive"), best3 = $("pm-best-campaign");
     if (best1) best1.textContent = P2.bestFloor ? `BEST · FLOOR ${(P2.bestFloor || 0) + 1}` : "NO RECORD YET";
     if (best2) best2.textContent = P2.bestRun ? `BEST · ${P2.bestRun}m` : "NO RECORD YET";
+    if (best3) best3.textContent = (P2.unlocked || 0) > 0 ? `UNLOCKED · WORLD ${(P2.unlocked || 0) + 1} / 6` : "WORLD 1 READY";
   };
 
   /* refresh the lobby hero stage after Vault changes (used by vault.js) */

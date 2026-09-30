@@ -163,26 +163,32 @@
         <button class="lm-close" data-close="modal-play" aria-label="Close">✕</button>
         <h2 class="gm-title">SELECT<br/>BATTLE MODE</h2>
         <div class="play-modes" id="play-modes">
-          <button class="pm-card" data-pmode="climb" style="--art:url('assets/bg_reactor.jpg')">
+          <button class="pm-card" data-pmode="campaign" style="--art:url('assets/bg_jungle.jpg')">
+            <span class="pm-frame"></span>
+            <span class="pm-tag">STORY · 6 WORLDS</span>
+            <h3>CAMPAIGN</h3>
+            <p>Cross living worlds, restore the relays and break Protocol Prime. Unlock heroes and gear as you go.</p>
+            <small>▶ PROGRESSION · BOSSES · UNLOCKS</small>
+            <span class="pm-best" id="pm-best-campaign"></span>
+          </button>
+          <button class="pm-card" data-pmode="climb" style="--art:url('assets/jungle_layer_near.png')">
             <span class="pm-frame"></span>
             <span class="pm-tag">WAVES + CLIMB · ENDLESS</span>
             <h3>WAVE<br/>CLIMB</h3>
-            <p>Clear the wave, the gate opens — run forward and climb to the next floor's portal. Checkpoints lock every floor. Each wave brings a new enemy family; a boss every 5th floor.</p>
-            <small>▶ CO-OP ONLINE · BOSSES · UPGRADES</small>
+            <p>Clear the wave, the gate opens — run and climb to the next floor. Checkpoints lock each floor; a boss every 5th.</p>
+            <small>▶ BOSSES · UPGRADES · CHECKPOINTS</small>
             <span class="pm-best" id="pm-best-wave"></span>
           </button>
-          <button class="pm-card" data-pmode="run" style="--art:url('assets/bg_garden.jpg')">
+          <button class="pm-card" data-pmode="run" style="--art:url('assets/bg_jungle.jpg')">
             <span class="pm-frame"></span>
             <span class="pm-tag">SIDE-SCROLL · ENDLESS</span>
             <h3>SURVIVAL<br/>RUN</h3>
-            <p>Keep pushing forward like a classic platformer: pits, lifts and enemy squads. Campfire checkpoints save you; a guardian boss every 5th camp.</p>
-            <small>▶ CO-OP ONLINE · DISTANCE · HIGH SCORE</small>
+            <p>Push forward through pits, lifts and enemy squads. Campfires save you; a guardian boss every 5th camp.</p>
+            <small>▶ DISTANCE · CHECKPOINTS · HIGH SCORE</small>
             <span class="pm-best" id="pm-best-survive"></span>
           </button>
         </div>
-        <div class="play-secondary">
-          <button data-pmode="campaign"><svg class="ico" aria-hidden="true"><use href="#i-map"/></svg> CAMPAIGN · WORLDS</button>
-        </div>
+        <div class="play-secondary"></div>
         </div>
       </div>
 

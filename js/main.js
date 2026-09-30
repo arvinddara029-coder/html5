@@ -105,6 +105,8 @@
     const worldPaths = [
       "bg_far.jpg", "kenney/platformIndustrial_sheet.png", "bg_day.jpg", "bg_garden.jpg",
       "bg_reactor.jpg", "menu_hero.jpg", "emblem.jpg", "lobby_bg.jpg",
+      // the layered jungle world (far art + two parallax treelines + ground grass)
+      "bg_jungle.jpg", "jungle_layer_far.png", "jungle_layer_near.png", "grass_strip.png",
       // terrain textures used by the arena
       "Brick/Brick_01-512x512.png", "Metal/Metal_01-512x512.png", "Metal/Metal_08-512x512.png",
       "Stone/Stone_01-128x128.png", "Stone/Stone_09-128x128.png", "Wood/Wood_01-128x128.png",
@@ -245,10 +247,13 @@
     if (G.state !== "menu" && G.player) {
       NR.adventure.draw(ctx, cam, view);
       NR.modes?.draw(ctx, cam, view);
-      for (const p of G.pickups) p.draw(ctx);
+      // horizontal culling: only draw what the camera can see — this is what
+      // keeps 40+ enemies at 60fps, since off-screen entities cost nothing.
+      const culL = cam.x - 240, culR = cam.x + view.w + 240;
+      for (const p of G.pickups) if (p.x > culL && p.x < culR) p.draw(ctx);
       NR.spriteRender.drawCorpses(ctx, G);
-      for (const e of G.enemies) e.draw(ctx);
-      for (const w of G.shockwaves) w.draw(ctx);
+      for (const e of G.enemies) if (e.x > culL - (e.w || 60) && e.x < culR + (e.w || 60)) e.draw(ctx);
+      for (const w of G.shockwaves) if (w.x > culL && w.x < culR) w.draw(ctx);
       if (!G.player.dead || G.deathT > 1.1) G.player.draw(ctx);
       for (const b of G.bolts) b.draw(ctx);
       for (const b of G.shots) b.draw(ctx);
